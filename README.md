@@ -126,6 +126,49 @@ flowchart LR
 
 ---
 
+## 🧱 Repo Layout
+
+```text
+one_portrait/
+├── apps/web/        Next.js App Router の土台
+├── contracts/       Move package `one_portrait`
+├── generator/       モザイク生成コンテナの入口
+├── shared/          Web / Generator 共通の型と定数
+├── docs/            仕様書
+└── scripts/         開発補助スクリプト
+```
+
+現時点では、`apps/web` と `generator` は最小の TypeScript 土台です。
+`contracts` は Move package の雛形までを置いています。
+
+---
+
+## 🛠 Development
+
+### JavaScript / TypeScript
+
+```bash
+corepack pnpm install
+corepack pnpm run check
+corepack pnpm --filter web build
+```
+
+- Web の公開環境変数は `apps/web/.env.example` を起点に用意します
+- root の `check` は workspace 全体の `typecheck` と `test` をまとめて実行します
+
+### Move
+
+```bash
+cd contracts
+sui move build
+sui move test
+```
+
+- `sui` CLI が入っていない環境では、`contracts/Move.toml` と `contracts/sources/` の雛形を確認してください
+- 本リポジトリの devcontainer には Node は入っていますが、`sui` CLI は別途用意が必要です
+
+---
+
 ## 📚 Further Reading
 
 - 📘 [`docs/spec.md`](docs/spec.md) — プロダクト・体験仕様（ユーザー層 / 機能要件 / フロー / Sui・Walrus 活用意義）
