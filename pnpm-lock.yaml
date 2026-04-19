@@ -53,6 +53,12 @@ importers:
         specifier: ^4.2.2
         version: 4.2.2
 
+  generator:
+    dependencies:
+      '@one-portrait/shared':
+        specifier: workspace:*
+        version: link:../shared
+
   shared: {}
 
 packages:
