@@ -1,0 +1,58 @@
+{
+  "name": "one-portrait-dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "dev",
+  "runServices": [
+    "dev"
+  ],
+  "workspaceFolder": "/workspace/one_portrait",
+  "remoteUser": "pwuser",
+  "overrideCommand": false,
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [
+    3000,
+    9323
+  ],
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/mnt/host-claude,type=bind,readonly",
+    "source=${localEnv:HOME}/.codex,target=/mnt/host-codex,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/mnt/host-gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/gh,target=/home/pwuser/.config/gh,type=bind,readonly",
+    "source=one-portrait-devcontainer-claude-home,target=/home/pwuser/.claude,type=volume",
+    "source=one-portrait-devcontainer-codex-home,target=/home/pwuser/.codex,type=volume",
+    "source=one-portrait-devcontainer-playwright-cache,target=/home/pwuser/.cache/ms-playwright,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/pwuser/.claude",
+    "HOST_CLAUDE_DIR": "/mnt/host-claude",
+    "CODEX_HOME": "/home/pwuser/.codex",
+    "HOST_CODEX_DIR": "/mnt/host-codex",
+    "HOST_GITCONFIG": "/mnt/host-gitconfig",
+    "PLAYWRIGHT_BROWSERS_PATH": "/home/pwuser/.cache/ms-playwright"
+  },
+  "remoteEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/pwuser/.claude",
+    "HOST_CLAUDE_DIR": "/mnt/host-claude",
+    "CODEX_HOME": "/home/pwuser/.codex",
+    "HOST_CODEX_DIR": "/mnt/host-codex",
+    "HOST_GITCONFIG": "/mnt/host-gitconfig",
+    "PLAYWRIGHT_BROWSERS_PATH": "/home/pwuser/.cache/ms-playwright"
+  },
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "biomejs.biome",
+        "ms-playwright.playwright",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "mysten.move-analyzer"
+      ]
+    }
+  }
+}

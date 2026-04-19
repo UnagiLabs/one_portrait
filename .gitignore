@@ -1,0 +1,32 @@
+# Node / Next.js
+**/node_modules
+**/.next
+**/.open-next
+**/.wrangler
+**/dist
+**/build
+
+# Env
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Logs & OS
+*.log
+.DS_Store
+
+# Playwright / E2E
+**/e2e/reports
+**/e2e/artifacts
+**/test-results
+**/playwright-report
+
+# Devcontainer / agent runtime state
+.claude/
+.codex/
+.agents/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/

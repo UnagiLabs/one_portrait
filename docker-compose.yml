@@ -1,0 +1,22 @@
+services:
+  dev:
+    build:
+      context: .
+    image: one-portrait-dev:local
+    working_dir: /workspace/one_portrait
+    environment:
+      APP_BASE_URL: http://localhost:3000
+    volumes:
+      - .:/workspace/one_portrait
+    ports:
+      - "3000:3000"
+      - "9323:9323"
+    init: true
+    stdin_open: true
+    tty: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    command: ["sleep", "infinity"]

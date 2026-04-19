@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/.open-next
+**/.wrangler
+**/dist
+**/build
+**/e2e/reports
+**/e2e/artifacts
+**/.env
+**/.env.local
+.git
+.github

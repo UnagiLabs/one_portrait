@@ -97,12 +97,14 @@ sequenceDiagram
 
 ```
 one_portrait/
-├── apps/web/                 # Next.js (OpenNext → Cloudflare Workers)
-│   └── src/{app, lib/{sui,walrus,zklogin,image}, components/ui}
-├── packages/
-│   ├── move/sources/         # unit / master_portrait / kakera / events
-│   ├── generator/            # on-demand Container (composer / finalize / walrus)
-│   └── shared/               # 型・定数
+├── apps/
+│   └── web/                  # Next.js (OpenNext → Cloudflare Workers)
+│       └── src/{app, lib/{sui,walrus,zklogin,image}, components/ui}
+├── contracts/                # Move package root (`sui move new` をここで実行)
+│   ├── Move.toml
+│   └── sources/              # unit / master_portrait / kakera / events
+├── generator/                # on-demand Container (composer / finalize / walrus)
+├── shared/                   # Web / Generator 共有の型・定数
 └── docs/{spec,tech}.md
 ```
 
@@ -233,10 +235,10 @@ one_portrait/
 
 ## 12. 開発・デプロイ
 
-- **ローカル:** `pnpm --filter {web|move|generator} {dev|build|test}`。
-- **Sui Publish:** `sui client publish packages/move` → `PACKAGE_ID` / `AdminCap ID` を `.env` に保存。
+- **ローカル:** JavaScript / TypeScript 系は `pnpm --filter {web|generator|shared} {dev|build|test}`。Move 系は `cd contracts && sui move build` / `sui move test`。
+- **Sui Publish:** `sui client publish contracts` → `PACKAGE_ID` / `AdminCap ID` を `.env` に保存。
 - **デプロイ:** `wrangler deploy` で Web（OpenNext adapter）と Generator Container（on-demand）を個別デプロイ。
-- **CI (GitHub Actions):** `move build/test` / `next build` / `wrangler deploy --dry-run` / TypeScript型チェック / ESLint。
+- **CI (GitHub Actions):** `cd contracts && sui move build && sui move test` / `next build` / `wrangler deploy --dry-run` / TypeScript型チェック / ESLint。
 
 ---
 
