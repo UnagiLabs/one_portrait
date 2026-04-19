@@ -67,10 +67,10 @@ flowchart LR
 1. **アクセス** — 会場/SNSのQRから着地。
 2. **zkLogin** — Google アカウントで認証、Sui アドレスがその場で発行。
 3. **選手選択** — 参加したい選手の進行中ユニット (500マス) を選ぶ。
-4. **写真投稿** — ブラウザでリサイズ+EXIF除去 → Walrus に直接 PUT。
-5. **Kakera 即時受領** — `submit_photo` と同一 Tx で Soulbound NFT が自分のアドレスに mint。
+4. **写真投稿** — 原画像公開性に同意したうえで、ブラウザでリサイズ+EXIF除去 → Walrus に直接 PUT。
+5. **Kakera 即時受領** — `submit_photo` と同一 Tx で `submission_no` 付き Soulbound NFT が自分のアドレスに mint。
 6. **リビール** — 500枚目着弾 → ブラウザ分散トリガーが finalize 起動 → モザイク生成 → 全画面同時公開。
-7. **マイギャラリー** — 後日アクセスすれば、保有 Kakera から参加履歴が自動復元。
+7. **マイギャラリー** — 後日アクセスすれば、保有 Kakera から参加履歴が自動復元。元写真が取得できない場合でも、完成作品と欠片情報は残る。
 
 ---
 
@@ -84,11 +84,12 @@ flowchart LR
         │  UnitFilled 検知 → POST /api/finalize
         ▼
 [ Sui Testnet  Move package: one_portrait ]
-        ├─ Unit (shared)            進捗 / submitters / status / master_id?
+        ├─ Registry (shared)        athlete_id -> current_unit_id
+        ├─ Unit (shared)            athlete_id / target blob / submitters / submissions / status / master_id?
         ├─ MasterPortrait           placements: Table<blob_id, Placement>
-        └─ Kakera (Soulbound)       blob_id / edition / unit_id
+        └─ Kakera (Soulbound)       blob_id / submission_no / unit_id
 
-[ Walrus ]      ファン投稿 500枚 (epochs=5) + 完成モザイク 1枚 (epochs=100)
+[ Walrus ]      ファン投稿 500枚 (epochs=5, MVPでは長期保証なし) + 完成モザイク 1枚 (epochs=100)
 [ Cloudflare ]  Finalize Worker ─▶ Mosaic Generator Container (on-demand)
 ```
 
@@ -100,7 +101,7 @@ flowchart LR
 
 | ハイライト | 意義 |
 | :--- | :--- |
-| **Walrus による100年永続** | 投稿500枚と完成モザイクを分散ストレージに保存。中央サーバー無しで長期アクセス可能に。 |
+| **Walrus による永続保存** | 完成モザイクと目標画像を分散ストレージに保存。ファン投稿原画像は `blob_id` を正本識別子として保持しつつ、MVPでは長期可用性を保証しない。 |
 | **Sui `Table` で逆引き正本化** | `MasterPortrait.placements: Table<blob_id, Placement>` により blob_id → 配置座標を**ガス低コストでオンチェーン解決**。NFT 内部に 500件をベタ書きしないスマート設計。 |
 | **Soulbound を型で保証** | Kakera は Move の能力設計 (`key only`、`store` 不付与) で**コンパイル時から譲渡不能**。実行時チェックではなく型レベルで担保。 |
 | **zkLogin + Sponsored Tx** | Enoki でユーザーは Google ログインのみ。`submit_photo` は運営が Sponsored で gas 負担、`moveCallTargets` で対象を厳格に絞る。SUI 保有ゼロでフル参加。 |

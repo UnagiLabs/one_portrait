@@ -7,11 +7,13 @@
 ## 1. アーキテクチャ
 
 ### 1.1 設計原則
-- **オンチェーン主・運用メタ最小:** 正本（参加履歴・モザイク配置）は Sui オブジェクトとイベント。オフチェーンDBは持たない。
+- **オンチェーン主・運用メタ最小:** 正本（参加履歴・モザイク配置）は Sui オブジェクト。イベントは通知用に限定し、復元の正本には使わない。オフチェーンDBは持たない。
 - **Kakera は投稿時に即時発行:** `submit_photo` と同一 Tx で Kakera NFT をファンへ mint。座標は持たず、完成後に Master の `placements` を blob_id で逆引きして解決。finalize での一括 mint を回避。
 - **ブラウザ分散トリガー:** `UnitFilled` 検知と finalize 起動は参加者ブラウザが担う。常駐 Listener / Cron / Queue に依存しない。冪等性は Move 側 (`status == Filled && master_id.is_none()`) で担保。
 - **Soulbound は Move の型で保証:** Kakera は `store` 能力を付与せず、発行後の譲渡を型レベルで禁止。
 - **Gas は Sponsored Transaction:** ユーザーの `submit_photo` 等はすべて Enoki の Sponsored Transaction で運営が gas 負担。ファンは SUI 保有不要、Web2 体験を維持。`finalize` は AdminCap キーが自己負担。
+- **選手メタは off-chain / unit 発見は on-chain:** 選手名・画像などの表示メタデータは web の catalog で持ち、on-chain では `athlete_id: u16` と `Registry` による `athlete_id -> current_unit_id` の参照だけを持つ。
+- **MVPの原画像保持は限定保証:** 完成モザイクと on-chain 記録は残す。ファン投稿原画像は `blob_id` を正本識別子として保持するが、ハッカソンMVPでは長期可用性を保証しない。
 
 ### 1.2 コンポーネント構成
 
@@ -22,9 +24,10 @@
    │  UnitFilled 検知 → POST /api/finalize
    ▼
 [Sui Testnet: Move package one_portrait]
-   ├─ Unit (shared): 進捗 / 状態 / submitters / master_id?
+   ├─ Registry (shared): athlete_id -> current_unit_id
+   ├─ Unit (shared): athlete_id / target_walrus_blob / 状態 / submitters / submissions / master_id?
    ├─ MasterPortrait (運営保有, 将来選手移管): placements Table<blob_id, Placement>
-   └─ Kakera (Soulbound, ファン保有): blob_id, edition, unit_id
+   └─ Kakera (Soulbound, ファン保有): blob_id, submission_no, unit_id
 
 [Walrus] ファン投稿500枚 + 完成モザイク1枚
 [Cloudflare] Finalize Worker ──▶ Mosaic Generator Container (on-demand)
@@ -65,9 +68,9 @@ sequenceDiagram
     Clients->>Worker: POST /api/finalize { unitId }
     Worker->>Sui: status==Filled && master_id.is_none()?
     Worker->>Gen: dispatch (on-demand)
-    Gen->>Sui: SubmittedEvent履歴取得
+    Gen->>Sui: Unit.submissions / target_walrus_blob 取得
     Gen->>Walrus: GET 500枚 (並列)
-    Gen->>Gen: 平均色再算出 / greedy配置 / sharp合成
+    Gen->>Gen: 平均色再算出 / 決定的 greedy配置 / sharp合成
     Gen->>Walrus: PUT mosaic (epochs=100)
     Gen->>Sui: finalize(mosaic_blob, placements)<br/>→ MasterPortrait発行
     Sui-->>Clients: MosaicReadyEvent
@@ -102,7 +105,7 @@ one_portrait/
 │       └── src/{app, lib/{sui,walrus,zklogin,image}, components/ui}
 ├── contracts/                # Move package root (`sui move new` をここで実行)
 │   ├── Move.toml
-│   └── sources/              # unit / master_portrait / kakera / events
+│   └── sources/              # registry / unit / master_portrait / kakera / events
 ├── generator/                # on-demand Container (composer / finalize / walrus)
 ├── shared/                   # Web / Generator 共有の型・定数
 └── docs/{spec,tech}.md
@@ -119,19 +122,50 @@ one_portrait/
 
 | モジュール | 主要型 | 責務 |
 | :--- | :--- | :--- |
-| `unit` | `Unit` (shared) | 進捗カウンター、`submitters` Table による重複チェック、`status` 遷移、`master_id` 保持。`submit_photo` / `finalize` を公開。 |
-| `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, edition, minted_at_ms }` を保持。座標は持たない。 |
-| `master_portrait` | `MasterPortrait` (key+store) | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, edition)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
+| `registry` | `Registry` (shared) | `athlete_id -> current_unit_id` を保持し、各選手の進行中 unit 発見を一意にする。 |
+| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。`submit_photo` / `finalize` を公開。 |
+| `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
+| `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
 
-### 4.3 状態遷移
+### 4.3 データモデル
+- `Registry`
+  - shared object。`current_units: Table<u16, ID>` を持ち、各 `athlete_id` の現在の `Unit` を指す。
+- `Unit`
+  - `athlete_id: u16`
+  - `target_walrus_blob`
+  - `max_slots`
+  - `status`
+  - `master_id: Option<ID>`
+  - `submitters: Table<address, bool>`
+  - `submissions: vector<SubmissionRef>`
+- `SubmissionRef`
+  - `submission_no`
+  - `submitter`
+  - `walrus_blob_id`
+  - `submitted_at_ms`
+- `Kakera`
+  - `unit_id`
+  - `athlete_id`
+  - `submitter`
+  - `walrus_blob_id`
+  - `submission_no`
+  - `minted_at_ms`
+- `Placement`
+  - `x`
+  - `y`
+  - `submitter`
+  - `submission_no`
+
+### 4.4 状態遷移
 `Pending (0..499) → Filled (500到達) → Finalized (Masterミント済)`
 
-### 4.4 権限
+### 4.5 権限
+- `create_unit` / `rotate_current_unit`: `AdminCap` 保有者のみ。次 unit は自動生成せず、運営が `Registry` を更新する。
 - `submit_photo`: 誰でも実行可（zkLoginアドレスで発火）。
 - `finalize`: `AdminCap` 保有者のみ（運営アドレス、Admin キーは Cloudflare Secrets Store）。
 
-### 4.5 冪等性・制約
+### 4.6 冪等性・制約
 | 関数 | 必須条件 |
 | :--- | :--- |
 | `submit_photo` | `status == Pending` && `!submitters[sender]` |
@@ -150,11 +184,11 @@ one_portrait/
 
 | ルート | 責務 |
 | :--- | :--- |
-| `/` | 進行中ユニット一覧（Sui `queryObjects` で `status=Pending` を取得）。 |
-| `/units/[unitId]` | 待機ページ。`submitted_count / max_slots` のみ表示（モザイクは非公開）。投稿完了時に自ウォレットの Kakera を `getOwnedObjects` で取得し「あなたの欠片」として表示（localStorage 非依存）。Sui WebSocket で `SubmittedEvent`→カウンタ更新、`UnitFilledEvent`→`/api/finalize` 発火、`MosaicReadyEvent`→Framer Motion でリビール演出 + Master から自分のマスを逆引きハイライト。 |
-| `/gallery` | 保有 Kakera を `getOwnedObjects` で取得。`master_id` 未設定ユニットは「完成待ち」、設定済みは MasterPortrait を取得して `placements[blob_id]` を逆引き → 座標・エディション・投稿写真を表示。SWR / sessionStorage でキャッシュ。 |
+| `/` | `Registry` から各選手の `current_unit_id` を取得し、off-chain catalog で選手メタデータを解決して一覧表示する。 |
+| `/units/[unitId]` | 待機ページ。`submitted_count / max_slots` のみ表示（モザイクは非公開）。アップロード前に原画像公開性への明示同意を必須にする。投稿完了時に自ウォレットの Kakera を `getOwnedObjects` で取得し「あなたの欠片」として表示（localStorage 非依存）。Sui WebSocket で `SubmittedEvent`→カウンタ更新、`UnitFilledEvent`→`/api/finalize` 発火、`MosaicReadyEvent`→Framer Motion でリビール演出 + Master から自分のマスを逆引きハイライト。 |
+| `/gallery` | 保有 Kakera を `getOwnedObjects` で取得。`master_id` 未設定ユニットは「完成待ち」、設定済みは MasterPortrait を取得して `placements[blob_id]` を逆引き → 座標・`submission_no` を表示。元写真が取得できる間は表示し、取得不能後は完成作品と欠片メタデータを表示する。SWR / sessionStorage でキャッシュ。 |
 | `/api/og/[kakeraId]` | Satori で SNS共有用 OG 画像生成。 |
-| `/api/finalize` | 入力 `{ unitId }`。Sui で冪等チェック後、Generator Container を on-demand 呼び出し。Move 側で他クライアントが先行していれば abort → Worker は 200 で吸収。 |
+| `/api/finalize` | 入力 `{ unitId }`。Sui で冪等チェック後、`Unit.submissions` を正本として Generator Container を on-demand 呼び出す。Move 側で他クライアントが先行していれば abort → Worker は 200 で吸収。 |
 
 ### 5.3 クライアント画像前処理
 最大10MB検証 → `createImageBitmap` → `OffscreenCanvas` で長辺1024pxリサイズ → JPEG 85%再エンコード（EXIFは再エンコードで自動除去）→ SHA-256。**配置用の平均色はクライアントから送らない**（悪意クライアント対策、generator 側で実画像から再算出）。
@@ -169,6 +203,8 @@ one_portrait/
 | 完成モザイク | Generator Container | 100 |
 | 目標画像（選手ポートレート） | 運営（Unit作成時） | 100 |
 
+注: MVPでは fan photo の PUT epoch は短めに設定し、原画像の長期可用性は保証しない。gallery は取得不能時の fallback を前提に実装する。
+
 ---
 
 ## 7. バックエンド (Cloudflare)
@@ -177,7 +213,7 @@ one_portrait/
 常駐プロセス・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が on-demand で Container 起動。
 
 - **Finalize Worker:** `/api/finalize` で冪等チェック → Service Binding 経由で Container を呼ぶ。
-- **Mosaic Generator Container:** on-demand 起動・scale-to-zero。処理は 500枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+- **Mosaic Generator Container:** on-demand 起動・scale-to-zero。処理は `Unit.submissions` 読み出し → 500枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
 
 ### 7.2 シークレット
 - `ADMIN_SUI_PRIVATE_KEY` は Cloudflare Secrets Store。
@@ -188,10 +224,11 @@ one_portrait/
 ## 8. モザイク合成
 
 ### 8.1 入力
-目標画像 (`Unit.target_walrus_blob`) + `SubmittedEvent` 履歴から復元した 500件の `{ submitter, walrus_blob_id, edition }`。
+目標画像 (`Unit.target_walrus_blob`) + `Unit.submissions` に保持された 500件の `{ submission_no, submitter, walrus_blob_id, submitted_at_ms }`。
 
 ### 8.2 配置戦略
 - **MVP:** 平均色ソート + greedy nearest assignment（Lab空間 ΔE*ab 最小、未使用タイルから選択）。
+- **決定性:** 同じ `Unit.submissions` と同じ目標画像なら、再実行しても同じ `placements` と同じ mosaic になるようにする。最低限、`submissions` は `submission_no` 昇順、タイル走査順は左上→右下、tie-break は `submission_no` 昇順 → `walrus_blob_id` 昇順で固定する。
 - **P1:** ハンガリアン法へアップグレード。
 
 ### 8.3 出力
@@ -213,13 +250,14 @@ one_portrait/
 
 | シナリオ | 対策 |
 | :--- | :--- |
-| 同一ユーザーの複数投稿 | `submitters` Table で abort。 |
+| 同一ユーザーの同一 unit への複数投稿 | `submitters` Table で abort。別 unit には参加可能。 |
 | 501枚目・Finalized後の投稿 | `status == Pending` で abort。 |
 | `/api/finalize` 同時多重発火 | `master_id.is_none()` で Move側が1件のみ成功、他は abort。Worker はエラーを 200 で吸収。 |
 | 誰も finalize を叩かない | `/units/[id]` や `/gallery` を開いた任意のクライアントが検知→発火。分散トリガー。 |
-| finalize 途中クラッシュ | Tx は atomic。Container 失敗時は次回呼び出しで再実行（Walrus は content-addressed のため二重 PUT の実害なし）。 |
+| finalize 途中クラッシュ | Tx は atomic。Container 失敗時は次回呼び出しで再実行。配置アルゴリズムは決定的にして再試行時も同一結果に揃える。 |
 | Walrus アップロード失敗 | クライアント側で指数バックオフ×3。最終失敗時は再試行ボタン。 |
-| unit 放棄（Filled未到達） | Kakera は単体で参加証として有効。`/gallery` は「完成待ち」表示。 |
+| 投稿後に差し替えたい | MVPでは不可。投稿前のプレビューでのみ撮り直し可能。 |
+| unit 放棄（Filled未到達） | MVPでは無期限 `Pending` のまま扱う。Kakera は単体で参加証として有効。`/gallery` は「完成待ち」表示。 |
 
 ---
 
@@ -227,6 +265,7 @@ one_portrait/
 
 - **zkLogin salt:** Enoki 管理、クライアント保存なし。
 - **Walrus 匿名書込:** 誰でも書ける前提（MVPは事前モデレーションなし、将来は署名付きアップロードへ）。
+- **原画像公開性:** `walrus_blob_id` は on-chain に載るため private ではない。投稿前に明示同意を必須にする。
 - **Admin キー:** `finalize` 専用、Cloudflare Secrets Store に隔離、ローテート手順を用意。
 - **CSP:** `img-src` に Walrus Aggregator、`connect-src` に Sui Full Node WebSocket を許可。
 - **EXIF除去:** クライアント前処理で GPS 等を必ず削除。
@@ -246,17 +285,30 @@ one_portrait/
 
 | 優先度 | 項目 |
 | :--- | :--- |
+| P0 | `Registry` による `athlete_id -> current_unit_id` 解決と off-chain catalog による選手表示 |
 | P0 | zkLogin、写真アップロード、`submit_photo` + Kakera即時mint（同一Tx） |
+| P0 | 原画像公開性への明示同意UI |
 | P0 | 進捗カウンター購読、ブラウザ分散トリガーによる `/api/finalize` 発火 |
 | P0 | Generator で greedy 合成 → Walrus保存 → `finalize` Tx |
 | P0 | リビール演出 + Master から自分のマス逆引きハイライト |
-| P1 | `/gallery`（Master 未完ユニット含む）、ハンガリアン法 |
+| P1 | `/gallery`（Master 未完ユニット含む、原画像fallback対応）、ハンガリアン法 |
 | P2 | OG画像生成、複数選手・ユニット並行、運用メタKV導入 |
 | P3 | i18n / PWA、選手アドレスへの Master 移管フロー |
 
 ---
 
-## 14. 今後の検討
+## 14. 実装時の確認観点
+- 投稿成功時に `submission_no` 付き Kakera が即時発行されること
+- 同一アドレスの同一 unit への再投稿が拒否され、別 unit では参加できること
+- `Registry` から各選手の `current_unit_id` を一意に解決できること
+- finalize 再実行で同一 `placements` が得られること
+- `/gallery` が `master_id` 未設定 unit を「完成待ち」と表示できること
+- 原画像が取得可能な間は表示され、取得不能後も `/gallery` が fallback 表示で破綻しないこと
+- 同意 UI がないとアップロードに進めないこと
+
+---
+
+## 15. 今後の検討
 - 不適切画像のモデレーションフロー（MVPはデモ用データで回避）。
 - 長期間埋まらないユニットのタイムアウト設計。
 - 並行ユニット多数時の Sui RPC / Walrus コスト試算。
