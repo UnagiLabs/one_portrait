@@ -1,10 +1,12 @@
 # Node / Next.js
 **/node_modules
+**/.pnpm-store
 **/.next
 **/.open-next
 **/.wrangler
 **/dist
 **/build
+**/*.tsbuildinfo
 
 # Env
 **/.env
