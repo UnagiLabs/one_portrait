@@ -9,8 +9,8 @@ services:
     volumes:
       - .:/workspace/one_portrait
     ports:
-      - "3000:3000"
-      - "9323:9323"
+      - "3000"
+      - "9323"
     init: true
     stdin_open: true
     tty: true

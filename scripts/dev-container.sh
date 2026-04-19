@@ -31,5 +31,17 @@ fi
 echo "[dev-container] devcontainer up ..."
 "${DEVCONTAINER[@]}" up --workspace-folder "$REPO_ROOT"
 
+print_mapped_port() {
+  local container_port="$1" label="$2" mapping
+  mapping="$(docker compose -p one_portrait port dev "$container_port" 2>/dev/null | head -n1)"
+  if [ -n "$mapping" ]; then
+    echo "[dev-container] $label -> http://localhost:${mapping##*:}"
+  fi
+}
+
+echo "[dev-container] host port mappings:"
+print_mapped_port 3000 "Next.js (3000)"
+print_mapped_port 9323 "Playwright (9323)"
+
 echo "[dev-container] entering bash in /workspace/one_portrait ..."
 exec "${DEVCONTAINER[@]}" exec --workspace-folder "$REPO_ROOT" bash -lc 'cd /workspace/one_portrait && exec bash -l'
