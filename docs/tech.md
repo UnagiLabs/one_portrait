@@ -1,0 +1,263 @@
+# tech.md: ONE Portrait 技術仕様書
+
+> **目的:** `docs/spec.md` の要件を実現するための技術仕様。各レイヤーの責務とインターフェースを定義する。
+
+---
+
+## 1. アーキテクチャ
+
+### 1.1 設計原則
+- **オンチェーン主・運用メタ最小:** 正本（参加履歴・モザイク配置）は Sui オブジェクトとイベント。オフチェーンDBは持たない。
+- **Kakera は投稿時に即時発行:** `submit_photo` と同一 Tx で Kakera NFT をファンへ mint。座標は持たず、完成後に Master の `placements` を blob_id で逆引きして解決。finalize での一括 mint を回避。
+- **ブラウザ分散トリガー:** `UnitFilled` 検知と finalize 起動は参加者ブラウザが担う。常駐 Listener / Cron / Queue に依存しない。冪等性は Move 側 (`status == Filled && master_id.is_none()`) で担保。
+- **Soulbound は Move の型で保証:** Kakera は `store` 能力を付与せず、発行後の譲渡を型レベルで禁止。
+- **Gas は Sponsored Transaction:** ユーザーの `submit_photo` 等はすべて Enoki の Sponsored Transaction で運営が gas 負担。ファンは SUI 保有不要、Web2 体験を維持。`finalize` は AdminCap キーが自己負担。
+
+### 1.2 コンポーネント構成
+
+```
+[ブラウザ (Next.js / OpenNext / Cloudflare Workers)]
+   │  zkLogin → 画像前処理 → Walrus 直接PUT → submit_photo PTB (Kakera即時発行)
+   │  Sui WebSocket で Submitted / UnitFilled / MosaicReady を購読
+   │  UnitFilled 検知 → POST /api/finalize
+   ▼
+[Sui Testnet: Move package one_portrait]
+   ├─ Unit (shared): 進捗 / 状態 / submitters / master_id?
+   ├─ MasterPortrait (運営保有, 将来選手移管): placements Table<blob_id, Placement>
+   └─ Kakera (Soulbound, ファン保有): blob_id, edition, unit_id
+
+[Walrus] ファン投稿500枚 + 完成モザイク1枚
+[Cloudflare] Finalize Worker ──▶ Mosaic Generator Container (on-demand)
+```
+
+### 1.3 シーケンス
+
+#### 1.3.1 投稿フロー
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Fan as ファン
+    participant Browser as ブラウザ
+    participant Walrus
+    participant Sui
+
+    Fan->>Browser: 写真選択
+    Browser->>Browser: resize 1024px / EXIF除去 / 再エンコード
+    Browser->>Walrus: PUT (epochs=5)
+    Walrus-->>Browser: blob_id
+    Browser->>Sui: PTB submit_photo(unit, blob_id)<br/>→ Kakera mint + transfer to sender
+    Sui-->>Browser: Kakera NFT 受領 (Soulbound)
+    Sui-->>Browser: emit SubmittedEvent (count/max)
+```
+
+#### 1.3.2 500枚到達〜リビール
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Clients as 参加者全員
+    participant Sui
+    participant Worker as /api/finalize
+    participant Gen as Generator Container
+    participant Walrus
+
+    Note over Sui: 500枚目着弾 → status=Filled / UnitFilledEvent
+    Sui-->>Clients: UnitFilledEvent
+    Clients->>Worker: POST /api/finalize { unitId }
+    Worker->>Sui: status==Filled && master_id.is_none()?
+    Worker->>Gen: dispatch (on-demand)
+    Gen->>Sui: SubmittedEvent履歴取得
+    Gen->>Walrus: GET 500枚 (並列)
+    Gen->>Gen: 平均色再算出 / greedy配置 / sharp合成
+    Gen->>Walrus: PUT mosaic (epochs=100)
+    Gen->>Sui: finalize(mosaic_blob, placements)<br/>→ MasterPortrait発行
+    Sui-->>Clients: MosaicReadyEvent
+    Clients->>Walrus: GET mosaic_blob → リビール
+    Clients->>Sui: Kakera.blob_id で master.placements 逆引き → (x,y)
+```
+
+---
+
+## 2. 技術スタック
+
+| レイヤー | 技術 |
+| :--- | :--- |
+| フロントエンド | Next.js (App Router, TypeScript) |
+| ホスティング | Cloudflare Workers + OpenNext (`@opennextjs/cloudflare`) |
+| UI / 演出 | Tailwind CSS + shadcn/ui / Framer Motion |
+| Web3認証 | zkLogin (Sui) + Enoki |
+| Sui SDK | `@mysten/sui` (PTB / イベント購読) |
+| ストレージ | Walrus (Publisher / Aggregator HTTP API) |
+| コントラクト | Sui Move (単一パッケージ `one_portrait`) |
+| バックエンド | Cloudflare Worker + on-demand Container (sharp/libvips) |
+| 実行環境 | Node.js 20+ / pnpm workspace |
+
+---
+
+## 3. モノレポ構成
+
+```
+one_portrait/
+├── apps/web/                 # Next.js (OpenNext → Cloudflare Workers)
+│   └── src/{app, lib/{sui,walrus,zklogin,image}, components/ui}
+├── packages/
+│   ├── move/sources/         # unit / master_portrait / kakera / events
+│   ├── generator/            # on-demand Container (composer / finalize / walrus)
+│   └── shared/               # 型・定数
+└── docs/{spec,tech}.md
+```
+
+---
+
+## 4. スマートコントラクト (Move)
+
+### 4.1 パッケージ `one_portrait`
+単一パッケージ／複数モジュール。ユニットサイズは `max_slots` でパラメータ化し、本番・デモともに **500 固定**（デモは Mock データを事前投入）。
+
+### 4.2 モジュールと責務
+
+| モジュール | 主要型 | 責務 |
+| :--- | :--- | :--- |
+| `unit` | `Unit` (shared) | 進捗カウンター、`submitters` Table による重複チェック、`status` 遷移、`master_id` 保持。`submit_photo` / `finalize` を公開。 |
+| `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, edition, minted_at_ms }` を保持。座標は持たない。 |
+| `master_portrait` | `MasterPortrait` (key+store) | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, edition)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
+| `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
+
+### 4.3 状態遷移
+`Pending (0..499) → Filled (500到達) → Finalized (Masterミント済)`
+
+### 4.4 権限
+- `submit_photo`: 誰でも実行可（zkLoginアドレスで発火）。
+- `finalize`: `AdminCap` 保有者のみ（運営アドレス、Admin キーは Cloudflare Secrets Store）。
+
+### 4.5 冪等性・制約
+| 関数 | 必須条件 |
+| :--- | :--- |
+| `submit_photo` | `status == Pending` && `!submitters[sender]` |
+| `finalize` | `status == Filled` && `master_id.is_none()` |
+
+---
+
+## 5. フロントエンド
+
+### 5.1 ランタイム
+- OpenNext → Cloudflare Workers。`compatibility_flags: ["nodejs_compat"]`。Durable Objects は不使用。
+- 環境変数: `SUI_NETWORK / PACKAGE_ID / WALRUS_PUBLISHER / WALRUS_AGGREGATOR / ENOKI_API_KEY`。
+- 画像は Walrus Aggregator から直接配信（Cloudflare Images Transforms でキャッシュ）。
+
+### 5.2 ページ / エンドポイント
+
+| ルート | 責務 |
+| :--- | :--- |
+| `/` | 進行中ユニット一覧（Sui `queryObjects` で `status=Pending` を取得）。 |
+| `/units/[unitId]` | 待機ページ。`submitted_count / max_slots` のみ表示（モザイクは非公開）。投稿完了時に自ウォレットの Kakera を `getOwnedObjects` で取得し「あなたの欠片」として表示（localStorage 非依存）。Sui WebSocket で `SubmittedEvent`→カウンタ更新、`UnitFilledEvent`→`/api/finalize` 発火、`MosaicReadyEvent`→Framer Motion でリビール演出 + Master から自分のマスを逆引きハイライト。 |
+| `/gallery` | 保有 Kakera を `getOwnedObjects` で取得。`master_id` 未設定ユニットは「完成待ち」、設定済みは MasterPortrait を取得して `placements[blob_id]` を逆引き → 座標・エディション・投稿写真を表示。SWR / sessionStorage でキャッシュ。 |
+| `/api/og/[kakeraId]` | Satori で SNS共有用 OG 画像生成。 |
+| `/api/finalize` | 入力 `{ unitId }`。Sui で冪等チェック後、Generator Container を on-demand 呼び出し。Move 側で他クライアントが先行していれば abort → Worker は 200 で吸収。 |
+
+### 5.3 クライアント画像前処理
+最大10MB検証 → `createImageBitmap` → `OffscreenCanvas` で長辺1024pxリサイズ → JPEG 85%再エンコード（EXIFは再エンコードで自動除去）→ SHA-256。**配置用の平均色はクライアントから送らない**（悪意クライアント対策、generator 側で実画像から再算出）。
+
+---
+
+## 6. Walrus
+
+| 対象 | 保存者 | エポック |
+| :--- | :--- | :--- |
+| ファン投稿写真 | ブラウザから直接 PUT | 5 |
+| 完成モザイク | Generator Container | 100 |
+| 目標画像（選手ポートレート） | 運営（Unit作成時） | 100 |
+
+---
+
+## 7. バックエンド (Cloudflare)
+
+### 7.1 構成
+常駐プロセス・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が on-demand で Container 起動。
+
+- **Finalize Worker:** `/api/finalize` で冪等チェック → Service Binding 経由で Container を呼ぶ。
+- **Mosaic Generator Container:** on-demand 起動・scale-to-zero。処理は 500枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+
+### 7.2 シークレット
+- `ADMIN_SUI_PRIVATE_KEY` は Cloudflare Secrets Store。
+- Walrus は公開エンドポイントのためシークレット不要。
+
+---
+
+## 8. モザイク合成
+
+### 8.1 入力
+目標画像 (`Unit.target_walrus_blob`) + `SubmittedEvent` 履歴から復元した 500件の `{ submitter, walrus_blob_id, edition }`。
+
+### 8.2 配置戦略
+- **MVP:** 平均色ソート + greedy nearest assignment（Lab空間 ΔE*ab 最小、未使用タイルから選択）。
+- **P1:** ハンガリアン法へアップグレード。
+
+### 8.3 出力
+解像度 4000×5000px（500タイル × 200px角）の PNG。各投稿写真には目標タイル色へ寄せる軽いトーンカーブを可変強度で適用。
+
+---
+
+## 9. 認証・Gas (zkLogin + Sponsored Transaction)
+
+- **zkLogin (Enoki):** salt管理・proof生成・署名を SaaS化（自前 ZK Prover 不要）。IdP は Google 必須、Twitter/Apple は余力で追加。Sui アドレスは zkLogin 由来の派生アドレスで、Kakera はこのアドレスに永久帰属。
+- **Sponsored Transaction:** `submit_photo` を含むファン発火の全 Tx は Enoki Sponsor API を経由し、運営スポンサーアドレスが gas を負担する。ユーザーは SUI トークンを一切保持せず参加可能。
+  - スポンサー対象は `PACKAGE_ID::unit::submit_photo` のみに `moveCallTargets` で絞り、関係ない Tx への gas 流用を防止。
+  - スポンサー用ウォレットは運営管理、残高はダッシュボードで監視、`gas_budget` に上限を設定。
+  - `finalize` は Sponsored ではなく、AdminCap を持つ運営ウォレットが自己負担で送信。
+
+---
+
+## 10. 整合性・冪等性
+
+| シナリオ | 対策 |
+| :--- | :--- |
+| 同一ユーザーの複数投稿 | `submitters` Table で abort。 |
+| 501枚目・Finalized後の投稿 | `status == Pending` で abort。 |
+| `/api/finalize` 同時多重発火 | `master_id.is_none()` で Move側が1件のみ成功、他は abort。Worker はエラーを 200 で吸収。 |
+| 誰も finalize を叩かない | `/units/[id]` や `/gallery` を開いた任意のクライアントが検知→発火。分散トリガー。 |
+| finalize 途中クラッシュ | Tx は atomic。Container 失敗時は次回呼び出しで再実行（Walrus は content-addressed のため二重 PUT の実害なし）。 |
+| Walrus アップロード失敗 | クライアント側で指数バックオフ×3。最終失敗時は再試行ボタン。 |
+| unit 放棄（Filled未到達） | Kakera は単体で参加証として有効。`/gallery` は「完成待ち」表示。 |
+
+---
+
+## 11. セキュリティ
+
+- **zkLogin salt:** Enoki 管理、クライアント保存なし。
+- **Walrus 匿名書込:** 誰でも書ける前提（MVPは事前モデレーションなし、将来は署名付きアップロードへ）。
+- **Admin キー:** `finalize` 専用、Cloudflare Secrets Store に隔離、ローテート手順を用意。
+- **CSP:** `img-src` に Walrus Aggregator、`connect-src` に Sui Full Node WebSocket を許可。
+- **EXIF除去:** クライアント前処理で GPS 等を必ず削除。
+
+---
+
+## 12. 開発・デプロイ
+
+- **ローカル:** `pnpm --filter {web|move|generator} {dev|build|test}`。
+- **Sui Publish:** `sui client publish packages/move` → `PACKAGE_ID` / `AdminCap ID` を `.env` に保存。
+- **デプロイ:** `wrangler deploy` で Web（OpenNext adapter）と Generator Container（on-demand）を個別デプロイ。
+- **CI (GitHub Actions):** `move build/test` / `next build` / `wrangler deploy --dry-run` / TypeScript型チェック / ESLint。
+
+---
+
+## 13. MVP スコープ
+
+| 優先度 | 項目 |
+| :--- | :--- |
+| P0 | zkLogin、写真アップロード、`submit_photo` + Kakera即時mint（同一Tx） |
+| P0 | 進捗カウンター購読、ブラウザ分散トリガーによる `/api/finalize` 発火 |
+| P0 | Generator で greedy 合成 → Walrus保存 → `finalize` Tx |
+| P0 | リビール演出 + Master から自分のマス逆引きハイライト |
+| P1 | `/gallery`（Master 未完ユニット含む）、ハンガリアン法 |
+| P2 | OG画像生成、複数選手・ユニット並行、運用メタKV導入 |
+| P3 | i18n / PWA、選手アドレスへの Master 移管フロー |
+
+---
+
+## 14. 今後の検討
+- 不適切画像のモデレーションフロー（MVPはデモ用データで回避）。
+- 長期間埋まらないユニットのタイムアウト設計。
+- 並行ユニット多数時の Sui RPC / Walrus コスト試算。
+- Master Portrait の譲渡ポリシー（Kiosk 導入可否）。
+- 運用メタ（job追跡・event cursor）の Cloudflare KV 後付け判断。
+- 人気選手での shared `Unit` 競合顕在化時の分離戦略。
