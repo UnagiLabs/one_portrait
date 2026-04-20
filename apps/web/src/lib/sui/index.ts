@@ -1,9 +1,17 @@
 /**
- * Public API of the Sui read layer.
+ * Public API of the Sui read layer (server- and client-neutral).
  *
  * Anything outside `apps/web/src/lib/sui/` MUST import from this barrel —
- * never from sibling files directly. That keeps the SDK surface contained
- * and makes it trivial to swap clients (REST, GraphQL, indexer) later.
+ * never from sibling files directly — for everything **except** the React
+ * hook adapter, which lives in `./react` to keep the RSC graph free of
+ * client-only imports (see `./react.ts` for the rationale).
+ *
+ * Keeping the barrel split means:
+ *   - Server Components (`app/page.tsx`, `app/units/[unitId]/page.tsx`) can
+ *     freely import RPC helpers from `@/lib/sui` without Turbopack dragging
+ *     `useEffect` / `useRef` into the server graph.
+ *   - Client Components import the hook from `@/lib/sui/react` explicitly,
+ *     documenting the boundary at the import site.
  */
 
 export type { SuiReadClient, SuiSubscriptionClient } from "./client";
@@ -42,5 +50,3 @@ export {
   UNIT_STATUS_PENDING,
 } from "./types";
 export { getUnitProgress, UnitNotFoundError } from "./unit";
-export type { UseUnitEventsArgs } from "./use-unit-events";
-export { useUnitEvents } from "./use-unit-events";

@@ -16,12 +16,12 @@
 
 import { useState } from "react";
 
-import {
-  type MosaicReadyEvent,
-  type SubmittedEvent,
-  type UnitFilledEvent,
-  useUnitEvents,
+import type {
+  MosaicReadyEvent,
+  SubmittedEvent,
+  UnitFilledEvent,
 } from "../../../lib/sui";
+import { useUnitEvents } from "../../../lib/sui/react";
 
 export type LiveProgressProps = {
   readonly packageId: string;
