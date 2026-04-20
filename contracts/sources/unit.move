@@ -3,6 +3,7 @@ module one_portrait::unit;
 
 use one_portrait::events;
 use one_portrait::kakera;
+use one_portrait::master_portrait::{Self as master_portrait, PlacementInput};
 use one_portrait::registry::{Self as registry, AdminCap, Registry};
 use sui::clock::{Self as clock, Clock};
 use sui::table::{Self as table, Table};
@@ -10,11 +11,12 @@ use sui::table::{Self as table, Table};
 const STATUS_PENDING: u8 = 0;
 const STATUS_FILLED: u8 = 1;
 const STATUS_FINALIZED: u8 = 2;
-const ENOT_IMPLEMENTED: u64 = 0;
 const EINVALID_MAX_SLOTS: u64 = 1;
 const ENEXT_UNIT_ATHLETE_MISMATCH: u64 = 2;
 const EUNIT_NOT_PENDING: u64 = 3;
 const EALREADY_SUBMITTED: u64 = 4;
+const EUNIT_NOT_FILLED: u64 = 5;
+const EMASTER_ALREADY_SET: u64 = 6;
 
 public struct Unit has key {
     id: UID,
@@ -150,8 +152,18 @@ public fun is_filled_for_testing(unit: &Unit): bool {
 }
 
 #[test_only]
+public fun is_finalized_for_testing(unit: &Unit): bool {
+    unit.status == STATUS_FINALIZED
+}
+
+#[test_only]
 public fun has_master_for_testing(unit: &Unit): bool {
     option::is_some(&unit.master_id)
+}
+
+#[test_only]
+public fun master_id_for_testing(unit: &Unit): ID {
+    *option::borrow(&unit.master_id)
 }
 
 #[test_only]
@@ -189,11 +201,33 @@ public fun submission_ref_submitted_at_ms_for_testing(submission: &SubmissionRef
     submission.submitted_at_ms
 }
 
+#[allow(lint(self_transfer))]
 public fun finalize(
     _admin_cap: &AdminCap,
-    _unit: &mut Unit,
-    _mosaic_blob_id: vector<u8>,
-    _ctx: &mut TxContext,
+    unit: &mut Unit,
+    mosaic_blob_id: vector<u8>,
+    placements: vector<PlacementInput>,
+    ctx: &mut TxContext,
 ) {
-    abort ENOT_IMPLEMENTED
+    assert!(unit.status == STATUS_FILLED, EUNIT_NOT_FILLED);
+    assert!(option::is_none(&unit.master_id), EMASTER_ALREADY_SET);
+
+    let master_id = master_portrait::create_and_transfer(
+        object::id(unit),
+        unit.athlete_id,
+        copy mosaic_blob_id,
+        placements,
+        tx_context::sender(ctx),
+        ctx,
+    );
+
+    unit.master_id = option::some(master_id);
+    unit.status = STATUS_FINALIZED;
+
+    events::emit_mosaic_ready(
+        object::id(unit),
+        unit.athlete_id,
+        master_id,
+        mosaic_blob_id,
+    );
 }

@@ -61,6 +61,20 @@ public(package) fun emit_unit_filled(
     });
 }
 
+public(package) fun emit_mosaic_ready(
+    unit_id: ID,
+    athlete_id: u16,
+    master_id: ID,
+    mosaic_walrus_blob_id: vector<u8>,
+) {
+    event::emit(MosaicReadyEvent {
+        unit_id,
+        athlete_id,
+        master_id,
+        mosaic_walrus_blob_id,
+    });
+}
+
 #[test_only]
 public fun submitted_event_unit_id_for_testing(event: &SubmittedEvent): ID {
     event.unit_id
@@ -114,4 +128,26 @@ public fun unit_filled_event_filled_count_for_testing(event: &UnitFilledEvent): 
 #[test_only]
 public fun unit_filled_event_max_slots_for_testing(event: &UnitFilledEvent): u64 {
     event.max_slots
+}
+
+#[test_only]
+public fun mosaic_ready_event_unit_id_for_testing(event: &MosaicReadyEvent): ID {
+    event.unit_id
+}
+
+#[test_only]
+public fun mosaic_ready_event_athlete_id_for_testing(event: &MosaicReadyEvent): u16 {
+    event.athlete_id
+}
+
+#[test_only]
+public fun mosaic_ready_event_master_id_for_testing(event: &MosaicReadyEvent): ID {
+    event.master_id
+}
+
+#[test_only]
+public fun mosaic_ready_event_mosaic_walrus_blob_id_for_testing(
+    event: &MosaicReadyEvent,
+): vector<u8> {
+    copy event.mosaic_walrus_blob_id
 }
