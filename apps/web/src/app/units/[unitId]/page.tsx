@@ -17,6 +17,7 @@ import { loadPublicEnv } from "../../../lib/env";
 import { getUnitProgress } from "../../../lib/sui";
 
 import { LiveProgress } from "./live-progress";
+import { ParticipationAccess } from "./participation-access";
 
 type UnitPageProps = {
   readonly params: Promise<{ readonly unitId: string }>;
@@ -102,6 +103,8 @@ export default async function UnitPage(
             </p>
           )}
         </section>
+
+        <ParticipationAccess />
 
         {/*
          * Hook points for follow-up issues (kept as comments so reviewers can
