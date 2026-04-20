@@ -1,25 +1,29 @@
 "use client";
 
-import { registerEnokiWallets, isEnokiNetwork } from "@mysten/enoki";
 import {
   SuiClientProvider,
-  WalletProvider,
   useSuiClientContext,
+  WalletProvider,
 } from "@mysten/dapp-kit";
+import { isEnokiNetwork, registerEnokiWallets } from "@mysten/enoki";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createContext,
+  type ReactNode,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 
 import { loadPublicEnv } from "../env";
 import { resolveFullnodeUrl } from "../sui/client";
 
-import { canEnableSubmit, loadSubmitPublicEnv, type SubmitPublicEnv } from "./env";
+import {
+  canEnableSubmit,
+  loadSubmitPublicEnv,
+  type SubmitPublicEnv,
+} from "./env";
 
 export type EnokiConfigState =
   | { readonly submitEnabled: true; readonly config: SubmitPublicEnv }
@@ -35,7 +39,7 @@ export function AppWalletProvider({
 }: {
   readonly children: ReactNode;
 }): React.ReactElement {
-  const readEnv = loadPublicEnv(process.env);
+  const readEnv = safeLoadPublicEnv(process.env);
   const [queryClient] = useState(() => new QueryClient());
   const state = useMemo<EnokiConfigState>(() => {
     if (!canEnableSubmit(process.env)) {
@@ -52,14 +56,25 @@ export function AppWalletProvider({
   }, []);
 
   const networks = useMemo(
-    () => ({
-      [readEnv.suiNetwork]: {
-        network: readEnv.suiNetwork,
-        url: resolveFullnodeUrl(readEnv.suiNetwork),
-      },
-    }),
-    [readEnv.suiNetwork],
+    () =>
+      readEnv
+        ? {
+            [readEnv.suiNetwork]: {
+              network: readEnv.suiNetwork,
+              url: resolveFullnodeUrl(readEnv.suiNetwork),
+            },
+          }
+        : null,
+    [readEnv],
   );
+
+  if (!readEnv || !networks) {
+    return (
+      <EnokiConfigContext.Provider value={state}>
+        {children}
+      </EnokiConfigContext.Provider>
+    );
+  }
 
   return (
     <EnokiConfigContext.Provider value={state}>
@@ -107,4 +122,14 @@ export function EnokiWalletRegistrar({
   }, [client, network, state]);
 
   return null;
+}
+
+function safeLoadPublicEnv(
+  source: Readonly<Record<string, string | undefined>>,
+) {
+  try {
+    return loadPublicEnv(source);
+  } catch {
+    return null;
+  }
 }

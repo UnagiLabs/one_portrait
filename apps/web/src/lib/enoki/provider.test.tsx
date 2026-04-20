@@ -27,7 +27,11 @@ vi.mock("@mysten/enoki", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   QueryClient: class {},
-  QueryClientProvider: ({ children }: { readonly children: React.ReactNode }) => {
+  QueryClientProvider: ({
+    children,
+  }: {
+    readonly children: React.ReactNode;
+  }) => {
     queryClientProviderMock();
     return <>{children}</>;
   },

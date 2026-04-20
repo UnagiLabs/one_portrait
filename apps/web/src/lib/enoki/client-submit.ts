@@ -1,10 +1,10 @@
 "use client";
 
-import { getSession } from "@mysten/enoki";
 import { useCurrentWallet, useSignTransaction } from "@mysten/dapp-kit";
+import { getSession } from "@mysten/enoki";
 import { useState } from "react";
 
-import { ENOKI_JWT_HEADER, type EnokiApiErrorBody, type EnokiApiErrorCode } from "./api";
+import { ENOKI_JWT_HEADER, type EnokiApiErrorCode } from "./api";
 
 type SponsorSubmitPhotoResponse = {
   readonly bytes: string;

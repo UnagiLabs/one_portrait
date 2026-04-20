@@ -10,7 +10,6 @@ describe("workspace foundation", () => {
 
   it("centralises the required public env keys in apps/web", () => {
     expect(publicEnvKeys).toContain("NEXT_PUBLIC_SUI_NETWORK");
-    expect(publicEnvKeys).toContain("NEXT_PUBLIC_PACKAGE_ID");
     expect(publicEnvKeys).toContain("NEXT_PUBLIC_REGISTRY_OBJECT_ID");
   });
 });

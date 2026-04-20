@@ -1,6 +1,5 @@
 "use client";
 
-import { isGoogleWallet } from "@mysten/enoki";
 import {
   useConnectWallet,
   useCurrentAccount,
@@ -8,9 +7,13 @@ import {
   useDisconnectWallet,
   useWallets,
 } from "@mysten/dapp-kit";
+import { isGoogleWallet } from "@mysten/enoki";
 import { useState } from "react";
 
-import { EnokiSubmitClientError, useSubmitPhoto } from "../../../lib/enoki/client-submit";
+import {
+  EnokiSubmitClientError,
+  useSubmitPhoto,
+} from "../../../lib/enoki/client-submit";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
 
 export function ParticipationAccess({
@@ -79,7 +82,10 @@ function ParticipationAccessEnabled({
       setSubmitFeedback(`送信を開始しました。digest: ${result.digest}`);
       setBlobId("");
     } catch (error) {
-      if (error instanceof EnokiSubmitClientError && error.code === "auth_expired") {
+      if (
+        error instanceof EnokiSubmitClientError &&
+        error.code === "auth_expired"
+      ) {
         disconnectWallet.mutate();
         setConnectError(error.message);
         return;

@@ -1,10 +1,13 @@
 import type { EnokiNetwork } from "@mysten/enoki";
 import { EnokiClient, EnokiClientError } from "@mysten/enoki";
 import { Transaction } from "@mysten/sui/transactions";
-import { SUI_CLOCK_OBJECT_ID, isValidSuiObjectId, toBase64 } from "@mysten/sui/utils";
-
-import { createSuiClient } from "../sui/client";
+import {
+  isValidSuiObjectId,
+  SUI_CLOCK_OBJECT_ID,
+  toBase64,
+} from "@mysten/sui/utils";
 import type { SuiNetwork } from "../env";
+import { createSuiClient } from "../sui/client";
 
 import { ENOKI_JWT_HEADER, EnokiApiError } from "./api";
 import {
@@ -64,7 +67,11 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
   }
 
   const keys = Object.keys(input);
-  if (keys.length !== 2 || !keys.includes("unitId") || !keys.includes("blobId")) {
+  if (
+    keys.length !== 2 ||
+    !keys.includes("unitId") ||
+    !keys.includes("blobId")
+  ) {
     throw invalidArgs("`unitId` と `blobId` だけを送ってください。");
   }
 
@@ -85,13 +92,19 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
   };
 }
 
-export function parseExecuteSponsoredInput(input: unknown): ExecuteSponsoredInput {
+export function parseExecuteSponsoredInput(
+  input: unknown,
+): ExecuteSponsoredInput {
   if (!isRecord(input)) {
     throw invalidArgs("送信内容の形式が正しくありません。");
   }
 
   const keys = Object.keys(input);
-  if (keys.length !== 2 || !keys.includes("digest") || !keys.includes("signature")) {
+  if (
+    keys.length !== 2 ||
+    !keys.includes("digest") ||
+    !keys.includes("signature")
+  ) {
     throw invalidArgs("`digest` と `signature` だけを送ってください。");
   }
 

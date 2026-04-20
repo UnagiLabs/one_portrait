@@ -1,7 +1,4 @@
-import {
-  jsonError,
-  EnokiApiError,
-} from "../../../../../lib/enoki/api";
+import { EnokiApiError, jsonError } from "../../../../../lib/enoki/api";
 import {
   parseSubmitPhotoInput,
   readZkLoginJwt,
