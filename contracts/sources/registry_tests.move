@@ -727,8 +727,8 @@ fun finalize_rejects_double_finalize() {
     scenario.end();
 }
 
-#[test, expected_failure(abort_code = unit::EBLOB_ALREADY_SUBMITTED)]
-fun submit_photo_rejects_duplicate_blob_id_from_different_sender() {
+#[test, expected_failure(abort_code = unit::EDUPLICATE_BLOB_ID)]
+fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
     let publisher = @0xA11CE;
     let first_submitter = @0xF41;
     let second_submitter = @0xF42;

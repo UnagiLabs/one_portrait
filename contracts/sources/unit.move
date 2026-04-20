@@ -17,7 +17,7 @@ const EUNIT_NOT_PENDING: u64 = 3;
 const EALREADY_SUBMITTED: u64 = 4;
 const EUNIT_NOT_FILLED: u64 = 5;
 const EMASTER_ALREADY_SET: u64 = 6;
-const EBLOB_ALREADY_SUBMITTED: u64 = 7;
+const EDUPLICATE_BLOB_ID: u64 = 7;
 const EINVALID_PLACEMENTS: u64 = 8;
 
 public struct Unit has key {
@@ -85,7 +85,7 @@ public fun submit_photo(
 
     let submitter = tx_context::sender(ctx);
     assert!(!table::contains(&unit.submitters, submitter), EALREADY_SUBMITTED);
-    assert!(!has_blob_id(&unit.submissions, &walrus_blob_id), EBLOB_ALREADY_SUBMITTED);
+    assert!(!has_blob_id(&unit.submissions, &walrus_blob_id), EDUPLICATE_BLOB_ID);
 
     let submission_no = vector::length(&unit.submissions) + 1;
     let submitted_at_ms = clock::timestamp_ms(clock);
