@@ -281,4 +281,288 @@ describe("ParticipationAccess", () => {
       );
     });
   });
+
+  describe("submission flow (Walrus PUT + Sponsored Tx)", () => {
+    const SUBMIT_BUTTON_NAME = /投稿を確定/;
+
+    type PreprocessedLike = {
+      readonly blob: Blob;
+      readonly width: number;
+      readonly height: number;
+      readonly contentType: "image/jpeg";
+      readonly sha256: string;
+      readonly previewUrl: string;
+    };
+    type PreprocessMock = (file: File) => Promise<PreprocessedLike>;
+    type SubmitMock = (
+      blobId: string,
+    ) => Promise<{ readonly digest: string; readonly sender: string }>;
+    type PutMock = (
+      photo: PreprocessedLike,
+      deps: {
+        readonly env: {
+          readonly NEXT_PUBLIC_WALRUS_PUBLISHER: string | undefined;
+          readonly NEXT_PUBLIC_WALRUS_AGGREGATOR: string | undefined;
+        };
+      },
+    ) => Promise<{ readonly blobId: string; readonly aggregatorUrl: string }>;
+
+    function setupPreviewingEnv(): {
+      readonly preprocessPhoto: ReturnType<typeof vi.fn<PreprocessMock>>;
+      readonly submitPhoto: ReturnType<typeof vi.fn<SubmitMock>>;
+    } {
+      setupSignedInEnv();
+      const preprocessPhoto = vi.fn<PreprocessMock>().mockResolvedValue({
+        blob: new Blob(["encoded"], { type: "image/jpeg" }),
+        width: 1024,
+        height: 768,
+        contentType: "image/jpeg",
+        sha256: "deadbeef",
+        previewUrl: "blob:preview-xyz",
+      });
+      const submitPhoto = vi.fn<SubmitMock>();
+      useSubmitPhotoMock.mockReturnValue({
+        isSubmitting: false,
+        submitPhoto,
+      });
+      return { preprocessPhoto, submitPhoto };
+    }
+
+    async function advanceToPreview(
+      preprocessPhoto: ReturnType<typeof vi.fn<PreprocessMock>>,
+    ): Promise<void> {
+      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
+        target: { files: [makeFile()] },
+      });
+      await waitFor(() => {
+        expect(preprocessPhoto).toHaveBeenCalledTimes(1);
+      });
+      await waitFor(() => {
+        expect(screen.getByAltText("投稿プレビュー")).toBeTruthy();
+      });
+    }
+
+    it("shows a submit button on the preview step", async () => {
+      const { preprocessPhoto } = setupPreviewingEnv();
+      const putBlob = vi.fn<PutMock>();
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      expect(
+        screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }),
+      ).toBeTruthy();
+    });
+
+    it("calls putBlob first, then submitPhoto with the returned blobId", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const callOrder: string[] = [];
+      const putBlob = vi.fn<PutMock>(async () => {
+        callOrder.push("put");
+        return {
+          blobId: "walrus-blob-123",
+          aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-123",
+        };
+      });
+      submitPhoto.mockImplementation(async (_blobId: string) => {
+        callOrder.push("submit");
+        return { digest: "tx-digest", sender: "0xabc123" };
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(submitPhoto).toHaveBeenCalledWith("walrus-blob-123");
+      });
+
+      expect(callOrder).toEqual(["put", "submit"]);
+      expect(putBlob).toHaveBeenCalledTimes(1);
+      const firstArg = putBlob.mock.calls[0][0];
+      expect(firstArg.previewUrl).toBe("blob:preview-xyz");
+    });
+
+    it("does not call submitPhoto while putBlob is pending", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      let resolvePut: (value: {
+        readonly blobId: string;
+        readonly aggregatorUrl: string;
+      }) => void = () => {};
+      const putBlob = vi.fn<PutMock>(
+        () =>
+          new Promise((resolve) => {
+            resolvePut = resolve;
+          }),
+      );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(putBlob).toHaveBeenCalledTimes(1);
+      });
+      expect(submitPhoto).not.toHaveBeenCalled();
+
+      resolvePut({
+        blobId: "walrus-blob-789",
+        aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-789",
+      });
+
+      await waitFor(() => {
+        expect(submitPhoto).toHaveBeenCalledWith("walrus-blob-789");
+      });
+    });
+
+    it("shows a Walrus failure message and skips submitPhoto when putBlob rejects with a final error", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const { WalrusPutError } = await import("../../../lib/walrus/put");
+      const putBlob = vi
+        .fn<PutMock>()
+        .mockRejectedValue(
+          new WalrusPutError(
+            "final",
+            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+          ),
+        );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert").textContent).toContain(
+          "Walrus への写真の保存に失敗",
+        );
+      });
+      expect(submitPhoto).not.toHaveBeenCalled();
+    });
+
+    it("disconnects and returns to the login step when submitPhoto fails with auth_expired", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const disconnectMutate = vi.fn();
+      useDisconnectWalletMock.mockReturnValue({ mutate: disconnectMutate });
+      const { EnokiSubmitClientError } = await import(
+        "../../../lib/enoki/client-submit"
+      );
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-xyz",
+        aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-xyz",
+      }));
+      submitPhoto.mockRejectedValue(
+        new EnokiSubmitClientError(
+          401,
+          "auth_expired",
+          "ログインが切れました。Google でもう一度ログインしてください。",
+        ),
+      );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(disconnectMutate).toHaveBeenCalled();
+      });
+      await waitFor(() => {
+        expect(screen.getByRole("alert").textContent).toContain(
+          "ログインが切れました",
+        );
+      });
+    });
+
+    it("shows a completion message with the transaction digest on success", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-ok",
+        aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-ok",
+      }));
+      submitPhoto.mockResolvedValue({
+        digest: "final-digest-XYZ",
+        sender: "0xabc123",
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+      expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
+    });
+  });
 });
