@@ -38,6 +38,21 @@ export type SuiReadClient = {
   getDynamicFieldObject: SuiJsonRpcClient["getDynamicFieldObject"];
 };
 
+/**
+ * Subset used by the event subscription helper. Split from {@link SuiReadClient}
+ * because event polling needs `queryEvents` only — keeping the surfaces narrow
+ * so unit/registry tests don't need to stub more than they consume.
+ *
+ * The naming retains "subscription" intentionally: from the consumer's
+ * perspective this is a stream of `UnitEvent`s, even though under the hood
+ * we poll `queryEvents` (the JSON-RPC `subscribeEvent` method was removed
+ * from `@mysten/sui` v2 — see CHANGELOG entry for v1.0.0).
+ */
+export type SuiSubscriptionClient = {
+  readonly network: string;
+  queryEvents: SuiJsonRpcClient["queryEvents"];
+};
+
 /** Resolve the official fullnode URL for a given Sui network. */
 export function resolveFullnodeUrl(network: SuiNetwork): string {
   return getJsonRpcFullnodeUrl(network);
