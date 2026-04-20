@@ -9,10 +9,9 @@ const VALID = {
 } as const;
 
 describe("publicEnvKeys", () => {
-  it("lists the three required keys in a stable order", () => {
+  it("lists the required read-only keys in a stable order", () => {
     expect(publicEnvKeys).toEqual([
       "NEXT_PUBLIC_SUI_NETWORK",
-      "NEXT_PUBLIC_PACKAGE_ID",
       "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
     ]);
   });
@@ -51,7 +50,7 @@ describe("loadPublicEnv", () => {
   });
 
   it("throws MissingPublicEnvError when a key is undefined", () => {
-    const source = { ...VALID, NEXT_PUBLIC_PACKAGE_ID: undefined };
+    const source = { ...VALID, NEXT_PUBLIC_REGISTRY_OBJECT_ID: undefined };
 
     expect(() => loadPublicEnv(source)).toThrow(MissingPublicEnvError);
   });
@@ -66,7 +65,7 @@ describe("loadPublicEnv", () => {
     const source = {
       NEXT_PUBLIC_SUI_NETWORK: "",
       NEXT_PUBLIC_PACKAGE_ID: undefined,
-      NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg",
+      NEXT_PUBLIC_REGISTRY_OBJECT_ID: "",
     };
 
     try {
@@ -76,8 +75,8 @@ describe("loadPublicEnv", () => {
       expect(error).toBeInstanceOf(MissingPublicEnvError);
       const message = (error as Error).message;
       expect(message).toContain("NEXT_PUBLIC_SUI_NETWORK");
-      expect(message).toContain("NEXT_PUBLIC_PACKAGE_ID");
-      expect(message).not.toContain("NEXT_PUBLIC_REGISTRY_OBJECT_ID");
+      expect(message).toContain("NEXT_PUBLIC_REGISTRY_OBJECT_ID");
+      expect(message).not.toContain("NEXT_PUBLIC_PACKAGE_ID");
     }
   });
 
@@ -85,5 +84,18 @@ describe("loadPublicEnv", () => {
     const source = { ...VALID, NEXT_PUBLIC_SUI_NETWORK: "production" };
 
     expect(() => loadPublicEnv(source)).toThrow(/NEXT_PUBLIC_SUI_NETWORK/);
+  });
+
+  it("keeps package id optional so read-only pages can still load", () => {
+    const env = loadPublicEnv({
+      ...VALID,
+      NEXT_PUBLIC_PACKAGE_ID: "   ",
+    });
+
+    expect(env).toEqual({
+      suiNetwork: "testnet",
+      packageId: null,
+      registryObjectId: "0xreg",
+    });
   });
 });

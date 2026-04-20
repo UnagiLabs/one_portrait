@@ -9,7 +9,6 @@
 
 export const publicEnvKeys = [
   "NEXT_PUBLIC_SUI_NETWORK",
-  "NEXT_PUBLIC_PACKAGE_ID",
   "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
 ] as const;
 
@@ -26,8 +25,8 @@ export type SuiNetwork = (typeof suiNetworks)[number];
 
 export type PublicEnv = {
   readonly suiNetwork: SuiNetwork;
-  readonly packageId: string;
   readonly registryObjectId: string;
+  readonly packageId: string | null;
 };
 
 export class MissingPublicEnvError extends Error {
@@ -72,13 +71,18 @@ export function loadPublicEnv(source: EnvSource): PublicEnv {
 
   return {
     suiNetwork,
-    packageId: normalized.get("NEXT_PUBLIC_PACKAGE_ID") as string,
     registryObjectId: normalized.get(
       "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
     ) as string,
+    packageId: normalizeOptionalValue(source.NEXT_PUBLIC_PACKAGE_ID),
   };
 }
 
 function isSuiNetwork(value: string): value is SuiNetwork {
   return (suiNetworks as readonly string[]).includes(value);
+}
+
+function normalizeOptionalValue(value: string | undefined): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized.length > 0 ? normalized : null;
 }
