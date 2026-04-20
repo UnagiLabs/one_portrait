@@ -15,8 +15,9 @@ export default function HomePage() {
               500 faces, one reveal.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-200">
-              Next.js workspace is ready. The first waiting room can now be built
-              on top of shared product constants instead of ad-hoc local copies.
+              Next.js workspace is ready. The first waiting room can now be
+              built on top of shared product constants instead of ad-hoc local
+              copies.
             </p>
           </div>
         </section>

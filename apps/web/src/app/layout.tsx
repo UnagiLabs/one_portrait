@@ -1,13 +1,12 @@
+import { appMeta } from "@one-portrait/shared";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-
-import { appMeta } from "@one-portrait/shared";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: appMeta.name,
-  description: appMeta.tagline
+  description: appMeta.tagline,
 };
 
 type RootLayoutProps = {

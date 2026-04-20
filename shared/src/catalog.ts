@@ -10,6 +10,6 @@ export const athleteCatalog: AthleteCatalogItem[] = [
     id: 1,
     slug: "demo-athlete",
     displayName: "Demo Athlete",
-    heroCopy: "Fan photos become one portrait."
-  }
+    heroCopy: "Fan photos become one portrait.",
+  },
 ];

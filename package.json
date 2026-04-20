@@ -11,12 +11,14 @@
     "@one-portrait/shared": "workspace:*"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.6",
     "@types/node": "^24.7.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   },
   "scripts": {
-    "check": "corepack pnpm run typecheck && corepack pnpm test",
+    "lint": "biome check .",
+    "check": "corepack pnpm run lint && corepack pnpm run typecheck && corepack pnpm test",
     "typecheck": "tsc -p tsconfig.json --noEmit && corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present typecheck",
     "test": "vitest run && corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present test",
     "build": "corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present build"

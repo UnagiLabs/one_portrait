@@ -1,0 +1,36 @@
+{
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "apps/**",
+      "shared/**",
+      "generator/**",
+      "test/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "tsconfig.base.json",
+      "biome.json",
+      "!apps/web/.next",
+      "!apps/web/.open-next",
+      "!apps/web/.wrangler",
+      "!.claude",
+      "!.codex",
+      "!node_modules"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  }
+}

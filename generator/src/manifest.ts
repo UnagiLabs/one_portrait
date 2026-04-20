@@ -17,10 +17,11 @@ export type FinalizeManifest = {
 };
 
 export function buildFinalizeManifest(
-  input: FinalizeManifestInput
+  input: FinalizeManifestInput,
 ): FinalizeManifest {
   const athlete =
-    athleteCatalog.find((item) => item.id === input.athleteId) ?? athleteCatalog[0];
+    athleteCatalog.find((item) => item.id === input.athleteId) ??
+    athleteCatalog[0];
 
   return {
     generatorName: appMeta.name,
@@ -28,6 +29,6 @@ export function buildFinalizeManifest(
     heroCopy: athlete.heroCopy,
     unitId: input.unitId,
     targetWalrusBlobId: input.targetWalrusBlobId,
-    tileCount: input.tileCount
+    tileCount: input.tileCount,
   };
 }

@@ -1,0 +1,53 @@
+name: frontend-ci
+
+on:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "shared/**"
+      - "generator/**"
+      - "test/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "tsconfig.base.json"
+      - "biome.json"
+      - ".github/workflows/**"
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Biome check
+        run: corepack pnpm run lint
+
+      - name: Type check
+        run: corepack pnpm run typecheck
+
+      - name: Unit test
+        run: corepack pnpm test
+
+      - name: Prepare env for bundle size test
+        run: cp apps/web/.env.example apps/web/.env
+
+      - name: Cloudflare bundle size
+        run: corepack pnpm --filter web run test:bundle-size
