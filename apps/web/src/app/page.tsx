@@ -1,8 +1,10 @@
-import { athleteCatalog, requiredWebEnvKeys } from "@one-portrait/shared";
+import { getAthleteCatalog } from "../lib/catalog";
+import { publicEnvKeys } from "../lib/env";
 
-const featuredAthlete = athleteCatalog[0];
+export default async function HomePage() {
+  const catalog = await getAthleteCatalog();
+  const featuredAthlete = catalog[0];
 
-export default function HomePage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
       <div className="mx-auto flex max-w-5xl flex-col gap-10">
@@ -16,8 +18,7 @@ export default function HomePage() {
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-200">
               Next.js workspace is ready. The first waiting room can now be
-              built on top of shared product constants instead of ad-hoc local
-              copies.
+              built on top of the athlete catalog and public env loader.
             </p>
           </div>
         </section>
@@ -27,20 +28,31 @@ export default function HomePage() {
             <p className="text-sm uppercase tracking-[0.3em] text-amber-300/80">
               Featured unit
             </p>
-            <h2 className="mt-4 text-3xl font-semibold text-white">
-              {featuredAthlete.displayName}
-            </h2>
-            <p className="mt-3 text-slate-300">{featuredAthlete.heroCopy}</p>
-            <dl className="mt-6 grid gap-3 text-sm text-slate-200">
-              <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3">
-                <dt className="text-slate-400">Catalog slug</dt>
-                <dd>{featuredAthlete.slug}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3">
-                <dt className="text-slate-400">Athlete id</dt>
-                <dd>{featuredAthlete.id}</dd>
-              </div>
-            </dl>
+            {featuredAthlete ? (
+              <>
+                <h2 className="mt-4 text-3xl font-semibold text-white">
+                  {featuredAthlete.displayName}
+                </h2>
+                <dl className="mt-6 grid gap-3 text-sm text-slate-200">
+                  <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3">
+                    <dt className="text-slate-400">Catalog slug</dt>
+                    <dd>{featuredAthlete.slug}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3">
+                    <dt className="text-slate-400">Athlete public id</dt>
+                    <dd>{featuredAthlete.athletePublicId}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <p className="mt-4 text-slate-300">
+                Athlete catalog is empty. Populate
+                <code className="mx-1 font-mono">
+                  apps/web/src/data/athlete-catalog.ts
+                </code>
+                to show this card.
+              </p>
+            )}
           </article>
 
           <article className="rounded-[1.75rem] border border-cyan-300/20 bg-cyan-300/8 p-7">
@@ -48,7 +60,7 @@ export default function HomePage() {
               Required public env
             </p>
             <ul className="mt-4 grid gap-3">
-              {requiredWebEnvKeys.map((key) => (
+              {publicEnvKeys.map((key) => (
                 <li
                   key={key}
                   className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 font-mono text-sm text-cyan-100"
