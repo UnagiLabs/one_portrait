@@ -10,16 +10,47 @@ import {
 import { isGoogleWallet } from "@mysten/enoki";
 import { useState } from "react";
 
-import {
-  EnokiSubmitClientError,
-  useSubmitPhoto,
-} from "../../../lib/enoki/client-submit";
+import { useSubmitPhoto } from "../../../lib/enoki/client-submit";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
+import {
+  type PreprocessedPhoto,
+  preprocessPhoto as defaultPreprocessPhoto,
+} from "../../../lib/image/preprocess";
+
+/**
+ * Waiting-room submission access.
+ *
+ * Phase 2 / STEP 3 scope: the UI walks the participant through
+ *
+ *   idle (not signed in)
+ *     -> ready (signed in; consent + file picker)
+ *     -> processing (client-side preprocess in flight)
+ *     -> previewing (preprocessed blob rendered)
+ *     -> error (preprocess failed)
+ *
+ * Walrus upload and `submit_photo` wiring land in STEP 4 — we intentionally
+ * stop at previewing for now. `useSubmitPhoto` is still instantiated so the
+ * hook contract stays warm and we can plug it in without re-threading props.
+ *
+ * Consent wording follows `docs/spec.md` §3.5 (Kakera is a Soulbound NFT) and
+ * §3.7 (the original image becomes retrievable by anyone who knows the
+ * Walrus `blob_id`).
+ */
+
+type PreprocessPhotoFn = (file: File) => Promise<PreprocessedPhoto>;
+
+type UploadPhase =
+  | { readonly kind: "ready" }
+  | { readonly kind: "processing" }
+  | { readonly kind: "previewing"; readonly photo: PreprocessedPhoto }
+  | { readonly kind: "error"; readonly message: string };
 
 export function ParticipationAccess({
   unitId,
+  preprocessPhoto,
 }: {
   readonly unitId: string;
+  readonly preprocessPhoto?: PreprocessPhotoFn;
 }): React.ReactElement {
   const state = useEnokiConfigState();
 
@@ -36,23 +67,33 @@ export function ParticipationAccess({
     );
   }
 
-  return <ParticipationAccessEnabled unitId={unitId} />;
+  return (
+    <ParticipationAccessEnabled
+      preprocessPhoto={preprocessPhoto ?? defaultPreprocessPhoto}
+      unitId={unitId}
+    />
+  );
 }
 
 function ParticipationAccessEnabled({
   unitId,
+  preprocessPhoto,
 }: {
   readonly unitId: string;
+  readonly preprocessPhoto: PreprocessPhotoFn;
 }): React.ReactElement {
   const wallets = useWallets();
   const currentAccount = useCurrentAccount();
   const currentWallet = useCurrentWallet();
   const connectWallet = useConnectWallet();
   const disconnectWallet = useDisconnectWallet();
-  const { isSubmitting, submitPhoto } = useSubmitPhoto(unitId);
+  // Keep the hook mounted so STEP 4 can wire it to the preprocessed blob
+  // without restructuring the component. Not invoked in STEP 3.
+  useSubmitPhoto(unitId);
+
   const [connectError, setConnectError] = useState<string | null>(null);
-  const [blobId, setBlobId] = useState("");
-  const [submitFeedback, setSubmitFeedback] = useState<string | null>(null);
+  const [consented, setConsented] = useState(false);
+  const [phase, setPhase] = useState<UploadPhase>({ kind: "ready" });
 
   const googleWallet = wallets.find(isGoogleWallet) ?? null;
   const isConnecting = currentWallet.connectionStatus === "connecting";
@@ -66,34 +107,28 @@ function ParticipationAccessEnabled({
     setConnectError(null);
 
     try {
-      await connectWallet.mutateAsync({
-        wallet: googleWallet,
-      });
+      await connectWallet.mutateAsync({ wallet: googleWallet });
     } catch (error) {
       setConnectError(toMessage(error));
     }
   }
 
-  async function handleSubmit(): Promise<void> {
-    setSubmitFeedback(null);
+  async function handleFileChange(file: File): Promise<void> {
+    setPhase({ kind: "processing" });
 
     try {
-      const result = await submitPhoto(blobId);
-      setSubmitFeedback(`送信を開始しました。digest: ${result.digest}`);
-      setBlobId("");
+      const photo = await preprocessPhoto(file);
+      setPhase({ kind: "previewing", photo });
     } catch (error) {
-      if (
-        error instanceof EnokiSubmitClientError &&
-        error.code === "auth_expired"
-      ) {
-        disconnectWallet.mutate();
-        setConnectError(error.message);
-        return;
-      }
-
-      setSubmitFeedback(toMessage(error));
+      setPhase({ kind: "error", message: toMessage(error) });
     }
   }
+
+  const isProcessing = phase.kind === "processing";
+  const fileInputDisabled = !consented || isProcessing;
+  const previewPhoto = phase.kind === "previewing" ? phase.photo : null;
+  const preprocessErrorMessage =
+    phase.kind === "error" ? phase.message : null;
 
   return (
     <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
@@ -112,30 +147,55 @@ function ParticipationAccessEnabled({
           <p className="font-mono text-xs break-all text-cyan-100">
             {currentAccount.address}
           </p>
-          <label className="grid gap-2 text-sm text-slate-200">
-            <span>仮の blob id</span>
-            {/* TODO(issue-next): replace this temporary blob input with Walrus upload output. */}
+
+          <label className="flex items-start gap-2 text-sm text-slate-200">
             <input
-              className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 font-mono text-sm text-white outline-none placeholder:text-slate-500"
+              checked={consented}
+              className="mt-1"
               onChange={(event) => {
-                setBlobId(event.target.value);
+                setConsented(event.target.checked);
               }}
-              placeholder="walrus-blob-id"
-              type="text"
-              value={blobId}
+              type="checkbox"
+            />
+            <span>
+              投稿した原画像は Walrus に保存され、blob_id
+              を知る人は誰でも取得できます。
+              また、参加の証として Soulbound（譲渡不可）の Kakera NFT
+              が自分のウォレットに発行されることに同意します。
+            </span>
+          </label>
+
+          <label className="grid gap-2 text-sm text-slate-200">
+            <span>写真を選択</span>
+            <input
+              accept="image/*"
+              disabled={fileInputDisabled}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleFileChange(file);
+                }
+              }}
+              type="file"
             />
           </label>
+
+          {isProcessing ? (
+            <p className="text-sm text-slate-300" role="status">
+              処理中…
+            </p>
+          ) : null}
+
+          {previewPhoto ? (
+            // biome-ignore lint: client-side object URL preview, next/image not applicable.
+            <img
+              alt="投稿プレビュー"
+              className="max-w-full rounded-2xl border border-white/10"
+              src={previewPhoto.previewUrl}
+            />
+          ) : null}
+
           <div className="flex flex-wrap gap-3">
-            <button
-              className="rounded-full bg-amber-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
-              disabled={blobId.trim().length === 0 || isSubmitting}
-              onClick={() => {
-                void handleSubmit();
-              }}
-              type="button"
-            >
-              {isSubmitting ? "送信中..." : "投稿用 Tx を試す"}
-            </button>
             <button
               className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
               onClick={() => disconnectWallet.mutate()}
@@ -174,12 +234,14 @@ function ParticipationAccessEnabled({
           {connectError}
         </p>
       ) : null}
-      {submitFeedback ? (
+
+      {preprocessErrorMessage ? (
         <p
           aria-live="polite"
-          className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50"
+          className="rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+          role="alert"
         >
-          {submitFeedback}
+          {preprocessErrorMessage}
         </p>
       ) : null}
     </section>
@@ -191,5 +253,5 @@ function toMessage(error: unknown): string {
     return error.message;
   }
 
-  return "ログインに失敗しました。時間をおいて、もう一度お試しください。";
+  return "処理に失敗しました。時間をおいて、もう一度お試しください。";
 }
