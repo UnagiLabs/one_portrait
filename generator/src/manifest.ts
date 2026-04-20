@@ -1,4 +1,18 @@
-import { appMeta, athleteCatalog } from "@one-portrait/shared";
+import { appMeta } from "@one-portrait/shared";
+
+type GeneratorAthlete = {
+  readonly id: number;
+  readonly slug: string;
+  readonly heroCopy: string;
+};
+
+const generatorAthletes: readonly GeneratorAthlete[] = [
+  {
+    id: 1,
+    slug: "demo-athlete",
+    heroCopy: "Fan photos become one portrait.",
+  },
+] as const;
 
 export type FinalizeManifestInput = {
   unitId: string;
@@ -20,8 +34,8 @@ export function buildFinalizeManifest(
   input: FinalizeManifestInput,
 ): FinalizeManifest {
   const athlete =
-    athleteCatalog.find((item) => item.id === input.athleteId) ??
-    athleteCatalog[0];
+    generatorAthletes.find((item) => item.id === input.athleteId) ??
+    generatorAthletes[0];
 
   return {
     generatorName: appMeta.name,

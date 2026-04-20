@@ -4,9 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./catalog": "./src/catalog.ts",
-    "./env": "./src/env.ts"
+    ".": "./src/index.ts"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
