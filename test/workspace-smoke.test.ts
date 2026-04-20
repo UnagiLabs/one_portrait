@@ -1,6 +1,6 @@
 import { appMeta } from "@one-portrait/shared";
-import { publicEnvKeys } from "../apps/web/src/lib/env";
 import { describe, expect, it } from "vitest";
+import { publicEnvKeys } from "../apps/web/src/lib/env";
 
 describe("workspace foundation", () => {
   it("exposes shared metadata through the workspace package", () => {
