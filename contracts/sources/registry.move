@@ -24,7 +24,7 @@ fun init(_witness: REGISTRY, ctx: &mut TxContext) {
     transfer::share_object(registry);
 }
 
-public fun current_unit_id(registry: &Registry, athlete_id: u16): Option<ID> {
+public(package) fun current_unit_id(registry: &Registry, athlete_id: u16): Option<ID> {
     if (table::contains(&registry.current_units, athlete_id)) {
         option::some(*table::borrow(&registry.current_units, athlete_id))
     } else {

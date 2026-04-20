@@ -26,7 +26,7 @@ public struct PlacementInput has copy, drop, store {
     submission_no: u64,
 }
 
-public fun new_placement_input(
+public(package) fun new_placement_input(
     blob_id: vector<u8>,
     x: u16,
     y: u16,
@@ -52,6 +52,14 @@ public(package) fun placement_input_submitter(input: &PlacementInput): address {
 
 public(package) fun placement_input_submission_no(input: &PlacementInput): u64 {
     input.submission_no
+}
+
+public(package) fun placement_input_x(input: &PlacementInput): u16 {
+    input.x
+}
+
+public(package) fun placement_input_y(input: &PlacementInput): u16 {
+    input.y
 }
 
 public(package) fun create(
@@ -109,6 +117,38 @@ public(package) fun create_and_transfer(
     let master_id = object::id(&master);
     transfer::transfer(master, recipient);
     master_id
+}
+
+public(package) fun unit_id(master: &MasterPortrait): ID {
+    master.unit_id
+}
+
+public(package) fun athlete_id(master: &MasterPortrait): u16 {
+    master.athlete_id
+}
+
+public(package) fun mosaic_walrus_blob_id(master: &MasterPortrait): vector<u8> {
+    copy master.mosaic_walrus_blob_id
+}
+
+public(package) fun placement(master: &MasterPortrait, blob_id: vector<u8>): Placement {
+    *table::borrow(&master.placements, blob_id)
+}
+
+public(package) fun placement_x(placement: &Placement): u16 {
+    placement.x
+}
+
+public(package) fun placement_y(placement: &Placement): u16 {
+    placement.y
+}
+
+public(package) fun placement_submitter(placement: &Placement): address {
+    placement.submitter
+}
+
+public(package) fun placement_submission_no(placement: &Placement): u64 {
+    placement.submission_no
 }
 
 #[test_only]

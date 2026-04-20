@@ -123,10 +123,12 @@ one_portrait/
 | モジュール | 主要型 | 責務 |
 | :--- | :--- | :--- |
 | `registry` | `Registry` (shared) | `athlete_id -> current_unit_id` を保持し、各選手の進行中 unit 発見を一意にする。 |
-| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。`submit_photo` / `finalize` を公開。 |
+| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。公開 API から委譲される内部状態遷移を担う。 |
 | `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
 | `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
+| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` と `PlacementInput` 生成を公開する。 |
+| `accessors` | - | ファン向け `submit_photo` と、`Registry` / `Unit` / `MasterPortrait` の参照 API を集約する。 |
 
 ### 4.3 データモデル
 - `Registry`
@@ -240,7 +242,7 @@ one_portrait/
 
 - **zkLogin (Enoki):** salt管理・proof生成・署名を SaaS化（自前 ZK Prover 不要）。IdP は Google 必須、Twitter/Apple は余力で追加。Sui アドレスは zkLogin 由来の派生アドレスで、Kakera はこのアドレスに永久帰属。
 - **Sponsored Transaction:** `submit_photo` を含むファン発火の全 Tx は Enoki Sponsor API を経由し、運営スポンサーアドレスが gas を負担する。ユーザーは SUI トークンを一切保持せず参加可能。
-  - スポンサー対象は `PACKAGE_ID::unit::submit_photo` のみに `moveCallTargets` で絞り、関係ない Tx への gas 流用を防止。
+  - スポンサー対象は `PACKAGE_ID::accessors::submit_photo` のみに `moveCallTargets` で絞り、関係ない Tx への gas 流用を防止。
   - スポンサー用ウォレットは運営管理、残高はダッシュボードで監視、`gas_budget` に上限を設定。
   - `finalize` は Sponsored ではなく、AdminCap を持つ運営ウォレットが自己負担で送信。
 

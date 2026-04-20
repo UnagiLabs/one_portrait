@@ -2,6 +2,8 @@
 module one_portrait::registry_tests;
 
 use std::unit_test::assert_eq;
+use one_portrait::accessors;
+use one_portrait::admin_api;
 use one_portrait::events::{Self as portrait_events};
 use one_portrait::kakera::{Self as kakera, Kakera};
 use one_portrait::master_portrait::{Self as master_portrait, MasterPortrait};
@@ -44,7 +46,7 @@ fun create_unit_sets_initial_state_and_current_registry_entry() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -68,7 +70,7 @@ fun create_unit_sets_initial_state_and_current_registry_entry() {
     assert!(!unit::has_master_for_testing(&unit));
     assert_eq!(unit::submitter_count_for_testing(&unit), 0);
     assert_eq!(unit::submission_count_for_testing(&unit), 0);
-    assert_eq!(registry::current_unit_id(&registry, athlete_id).destroy_some(), unit_id);
+    assert_eq!(accessors::current_unit_id(&registry, athlete_id).destroy_some(), unit_id);
 
     test_scenario::return_shared(unit);
     test_scenario::return_shared(registry);
@@ -87,7 +89,7 @@ fun rotate_current_unit_switches_registry_pointer_without_auto_rotating() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let first_unit_id = unit::create_unit(
+    let first_unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -103,7 +105,7 @@ fun rotate_current_unit_switches_registry_pointer_without_auto_rotating() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let second_unit_id = unit::create_unit(
+    let second_unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -121,11 +123,17 @@ fun rotate_current_unit_switches_registry_pointer_without_auto_rotating() {
     let mut registry = scenario.take_shared<Registry>();
     let second_unit = scenario.take_shared_by_id<Unit>(second_unit_id);
 
-    assert_eq!(registry::current_unit_id(&registry, athlete_id).destroy_some(), first_unit_id);
+    assert_eq!(
+        accessors::current_unit_id(&registry, athlete_id).destroy_some(),
+        first_unit_id
+    );
 
-    unit::rotate_current_unit(&admin_cap, &mut registry, athlete_id, &second_unit);
+    admin_api::rotate_current_unit(&admin_cap, &mut registry, athlete_id, &second_unit);
 
-    assert_eq!(registry::current_unit_id(&registry, athlete_id).destroy_some(), second_unit_id);
+    assert_eq!(
+        accessors::current_unit_id(&registry, athlete_id).destroy_some(),
+        second_unit_id
+    );
 
     scenario.return_to_sender(admin_cap);
     test_scenario::return_shared(second_unit);
@@ -167,7 +175,7 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -190,7 +198,7 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
 
-    unit::submit_photo(&mut unit, walrus_blob_id, &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, walrus_blob_id, &clock, scenario.ctx());
 
     assert!(unit::is_pending_for_testing(&unit));
     assert_eq!(unit::submitter_count_for_testing(&unit), 1);
@@ -273,7 +281,7 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -295,7 +303,7 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -303,7 +311,7 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -326,7 +334,7 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -342,7 +350,7 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
 
     assert!(unit::is_pending_for_testing(&unit));
     assert_eq!(event::events_by_type<portrait_events::UnitFilledEvent>().length(), 0);
@@ -359,7 +367,7 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
 
     assert!(unit::is_filled_for_testing(&unit));
     assert_eq!(unit::submission_count_for_testing(&unit), max_slots);
@@ -416,7 +424,7 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -432,7 +440,7 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -440,7 +448,7 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -448,7 +456,7 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-3", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-3", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -471,7 +479,7 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         athlete_id,
@@ -487,7 +495,7 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -500,7 +508,7 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -514,11 +522,11 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let placements = vector[
-        master_portrait::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
-        master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+        admin_api::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
+        admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
     ];
 
-    unit::finalize(&admin_cap, &mut unit, mosaic_blob_id, placements, scenario.ctx());
+    admin_api::finalize(&admin_cap, &mut unit, mosaic_blob_id, placements, scenario.ctx());
 
     assert!(unit::is_finalized_for_testing(&unit));
     let master_id = unit::master_id_for_testing(&unit);
@@ -607,7 +615,7 @@ fun finalize_rejects_pending_unit() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         16,
@@ -623,7 +631,7 @@ fun finalize_rejects_pending_unit() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
-    unit::finalize(
+    admin_api::finalize(
         &admin_cap,
         &mut unit,
         b"mosaic-blob",
@@ -650,7 +658,7 @@ fun finalize_rejects_double_finalize() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         17,
@@ -666,7 +674,7 @@ fun finalize_rejects_double_finalize() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -679,7 +687,7 @@ fun finalize_rejects_double_finalize() {
 
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
 
@@ -692,13 +700,13 @@ fun finalize_rejects_double_finalize() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
-    unit::finalize(
+    admin_api::finalize(
         &admin_cap,
         &mut unit,
         b"mosaic-blob",
         vector[
-            master_portrait::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
-            master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+            admin_api::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
+            admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
         ],
         scenario.ctx(),
     );
@@ -714,7 +722,7 @@ fun finalize_rejects_double_finalize() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
-    unit::finalize(
+    admin_api::finalize(
         &admin_cap,
         &mut unit,
         b"mosaic-blob-2",
@@ -741,7 +749,7 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
     scenario.next_tx(publisher);
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         18,
@@ -755,7 +763,7 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
     scenario.next_tx(first_submitter);
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
     let first_effects = scenario.next_tx(first_submitter);
@@ -766,7 +774,7 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
     scenario.next_tx(second_submitter);
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
     scenario.end();
@@ -785,7 +793,7 @@ fun finalize_rejects_mismatched_placements() {
     scenario.next_tx(publisher);
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut registry = scenario.take_shared<Registry>();
-    let unit_id = unit::create_unit(
+    let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
         19,
@@ -799,7 +807,7 @@ fun finalize_rejects_mismatched_placements() {
     scenario.next_tx(first_submitter);
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
     let first_effects = scenario.next_tx(first_submitter);
@@ -810,7 +818,7 @@ fun finalize_rejects_mismatched_placements() {
     scenario.next_tx(second_submitter);
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let clock = scenario.take_shared<Clock>();
-    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
     let second_effects = scenario.next_tx(second_submitter);
@@ -821,13 +829,13 @@ fun finalize_rejects_mismatched_placements() {
     scenario.next_tx(publisher);
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
-    unit::finalize(
+    admin_api::finalize(
         &admin_cap,
         &mut unit,
         b"mosaic-blob",
         vector[
-            master_portrait::new_placement_input(b"photo-1", 10, 20, second_submitter, 1),
-            master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+            admin_api::new_placement_input(b"photo-1", 10, 20, second_submitter, 1),
+            admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
         ],
         scenario.ctx(),
     );
