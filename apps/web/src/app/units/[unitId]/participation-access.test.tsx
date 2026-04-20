@@ -11,6 +11,7 @@ const {
   useCurrentWalletMock,
   useConnectWalletMock,
   useDisconnectWalletMock,
+  useOwnedKakeraMock,
 } = vi.hoisted(() => ({
   useEnokiConfigStateMock: vi.fn(),
   useSubmitPhotoMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   useCurrentWalletMock: vi.fn(),
   useConnectWalletMock: vi.fn(),
   useDisconnectWalletMock: vi.fn(),
+  useOwnedKakeraMock: vi.fn(),
 }));
 
 vi.mock("../../../lib/enoki/provider", () => ({
@@ -51,6 +53,14 @@ vi.mock("@mysten/dapp-kit", () => ({
   useDisconnectWallet: () => useDisconnectWalletMock(),
 }));
 
+vi.mock("../../../lib/sui/react", () => ({
+  useOwnedKakera: (args: unknown) => useOwnedKakeraMock(args),
+}));
+
+vi.mock("../../../lib/sui", () => ({
+  getSuiClient: () => ({}),
+}));
+
 import { ParticipationAccess } from "./participation-access";
 
 const FILE_INPUT_LABEL = "写真を選択";
@@ -74,6 +84,10 @@ function setupSignedInEnv(): void {
     isSubmitting: false,
     submitPhoto: vi.fn(),
   });
+  useOwnedKakeraMock.mockReturnValue({
+    status: "idle",
+    kakera: null,
+  });
 }
 
 afterEach(() => {
@@ -84,6 +98,7 @@ afterEach(() => {
   useCurrentWalletMock.mockReset();
   useConnectWalletMock.mockReset();
   useDisconnectWalletMock.mockReset();
+  useOwnedKakeraMock.mockReset();
 });
 
 describe("ParticipationAccess", () => {
@@ -373,7 +388,8 @@ describe("ParticipationAccess", () => {
         callOrder.push("put");
         return {
           blobId: "walrus-blob-123",
-          aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-123",
+          aggregatorUrl:
+            "https://aggregator.example.com/v1/blobs/walrus-blob-123",
         };
       });
       submitPhoto.mockImplementation(async (_blobId: string) => {
@@ -443,7 +459,8 @@ describe("ParticipationAccess", () => {
 
       resolvePut({
         blobId: "walrus-blob-789",
-        aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-789",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-789",
       });
 
       await waitFor(() => {
@@ -496,7 +513,8 @@ describe("ParticipationAccess", () => {
       );
       const putBlob = vi.fn<PutMock>(async () => ({
         blobId: "walrus-blob-xyz",
-        aggregatorUrl: "https://aggregator.example.com/v1/blobs/walrus-blob-xyz",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-xyz",
       }));
       submitPhoto.mockRejectedValue(
         new EnokiSubmitClientError(
@@ -563,6 +581,146 @@ describe("ParticipationAccess", () => {
         expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
+    });
+
+    it("renders the participation card with preview, sender, and a pending submission_no while Kakera is being confirmed", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      useOwnedKakeraMock.mockReturnValue({
+        status: "searching",
+        kakera: null,
+      });
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-card",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-card",
+      }));
+      submitPhoto.mockResolvedValue({
+        digest: "digest-card",
+        sender: "0xabc123",
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+
+      // 参加証 card shows the locally-preprocessed preview image.
+      const previews = screen.getAllByAltText(
+        "投稿プレビュー",
+      ) as HTMLImageElement[];
+      expect(previews.some((img) => img.src.includes("blob:preview-xyz"))).toBe(
+        true,
+      );
+
+      // Sender address is visible (appears both in the login strip and
+      // inside the participation card, so just assert at least one).
+      expect(screen.getAllByText(/0xabc123/).length).toBeGreaterThan(0);
+
+      // submission_no is still being confirmed: show a pending indicator.
+      const submissionHeading = screen.getByText(/submission_no/i);
+      const submissionValue = submissionHeading.nextElementSibling;
+      expect(submissionValue?.textContent).toMatch(/確認中/);
+      expect(
+        screen.getByText(/Kakera.*確認しています|Kakera を確認しています/),
+      ).toBeTruthy();
+    });
+
+    it("shows the Kakera submission_no once the hook reports 'found'", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      useOwnedKakeraMock.mockReturnValue({
+        status: "found",
+        kakera: {
+          objectId: "0xkakera-7",
+          unitId: "0xunit-1",
+          walrusBlobId: "walrus-blob-card",
+          submissionNo: 128,
+        },
+      });
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-card",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-card",
+      }));
+      submitPhoto.mockResolvedValue({
+        digest: "digest-card",
+        sender: "0xabc123",
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+      await waitFor(() => {
+        expect(screen.getByText(/#128/)).toBeTruthy();
+      });
+      expect(screen.getByText(/Kakera を受け取りました/)).toBeTruthy();
+    });
+
+    it("shows a timeout notice when the Kakera lookup hits its retry budget", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      useOwnedKakeraMock.mockReturnValue({
+        status: "timeout",
+        kakera: null,
+      });
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-card",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-card",
+      }));
+      submitPhoto.mockResolvedValue({
+        digest: "digest-card",
+        sender: "0xabc123",
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+      await waitFor(() => {
+        expect(screen.getByText(/確認できませんでした/)).toBeTruthy();
+      });
     });
   });
 });

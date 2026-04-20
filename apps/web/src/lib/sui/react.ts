@@ -12,5 +12,16 @@
  * `"use client"`). Anything else should import from `@/lib/sui`.
  */
 
+export type { KakeraOwnedClient, OwnedKakera } from "./kakera";
+export type {
+  UseOwnedKakeraArgs,
+  UseOwnedKakeraResult,
+  UseOwnedKakeraStatus,
+} from "./use-owned-kakera";
+export {
+  OWNED_KAKERA_DEFAULT_INTERVAL_MS,
+  OWNED_KAKERA_DEFAULT_MAX_ATTEMPTS,
+  useOwnedKakera,
+} from "./use-owned-kakera";
 export type { UseUnitEventsArgs } from "./use-unit-events";
 export { useUnitEvents } from "./use-unit-events";

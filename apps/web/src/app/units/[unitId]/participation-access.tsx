@@ -16,10 +16,13 @@ import {
   useSubmitPhoto,
 } from "../../../lib/enoki/client-submit";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
+import { loadPublicEnv } from "../../../lib/env";
 import {
-  type PreprocessedPhoto,
   preprocessPhoto as defaultPreprocessPhoto,
+  type PreprocessedPhoto,
 } from "../../../lib/image/preprocess";
+import { getSuiClient } from "../../../lib/sui";
+import { useOwnedKakera } from "../../../lib/sui/react";
 import {
   putBlobToWalrus as defaultPutBlobToWalrus,
   type WalrusEnv,
@@ -68,7 +71,12 @@ type UploadPhase =
       readonly photo: PreprocessedPhoto;
       readonly blobId: string;
     }
-  | { readonly kind: "done"; readonly result: SubmitPhotoSuccess }
+  | {
+      readonly kind: "done";
+      readonly result: SubmitPhotoSuccess;
+      readonly photo: PreprocessedPhoto;
+      readonly blobId: string;
+    }
   | { readonly kind: "error"; readonly message: string };
 
 export function ParticipationAccess({
@@ -132,6 +140,20 @@ function ParticipationAccessEnabled({
   const googleWallet = wallets.find(isGoogleWallet) ?? null;
   const isConnecting = currentWallet.connectionStatus === "connecting";
 
+  // Kakera polling kicks in only once we know the Walrus blob id and the
+  // zkLogin address. The hook stays idle while any of the inputs are
+  // missing (`ownerAddress: null` branch inside `useOwnedKakera`).
+  const doneBlobId = phase.kind === "done" ? phase.blobId : "";
+  const packageId = safeReadPackageId();
+  const ownedKakera = useOwnedKakera({
+    suiClient: getSuiClient(),
+    ownerAddress:
+      phase.kind === "done" ? (currentAccount?.address ?? null) : null,
+    unitId,
+    walrusBlobId: doneBlobId,
+    packageId: packageId ?? "",
+  });
+
   async function handleLogin(): Promise<void> {
     if (!googleWallet) {
       setConnectError("Google ログインの設定が見つかりません。");
@@ -176,7 +198,12 @@ function ParticipationAccessEnabled({
 
     try {
       const result = await submitPhoto(putResult.blobId);
-      setPhase({ kind: "done", result });
+      setPhase({
+        kind: "done",
+        result,
+        photo,
+        blobId: putResult.blobId,
+      });
     } catch (error) {
       if (isAuthExpired(error)) {
         // 認証切れは再ログイン導線へ戻す。wallet を切断して
@@ -206,9 +233,8 @@ function ParticipationAccessEnabled({
     phase.kind === "previewing" ||
     phase.kind === "uploading" ||
     phase.kind === "submitting";
-  const phaseErrorMessage =
-    phase.kind === "error" ? phase.message : null;
-  const doneResult = phase.kind === "done" ? phase.result : null;
+  const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
+  const donePhase = phase.kind === "done" ? phase : null;
 
   return (
     <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
@@ -239,8 +265,8 @@ function ParticipationAccessEnabled({
             />
             <span>
               投稿した原画像は Walrus に保存され、blob_id
-              を知る人は誰でも取得できます。
-              また、参加の証として Soulbound（譲渡不可）の Kakera NFT
+              を知る人は誰でも取得できます。 また、参加の証として
+              Soulbound（譲渡不可）の Kakera NFT
               が自分のウォレットに発行されることに同意します。
             </span>
           </label>
@@ -304,14 +330,53 @@ function ParticipationAccessEnabled({
             </div>
           ) : null}
 
-          {doneResult ? (
+          {donePhase ? (
             <div
-              className="grid gap-1 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100"
+              className="grid gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100"
               role="status"
             >
-              <p>投稿が完了しました。</p>
-              <p className="font-mono text-xs break-all">
-                digest: {doneResult.digest}
+              <p className="text-base">投稿が完了しました。</p>
+
+              {/* biome-ignore lint: local object URL preview, next/image N/A. */}
+              <img
+                alt="投稿プレビュー"
+                className="max-w-full rounded-xl border border-white/10"
+                src={donePhase.photo.previewUrl}
+              />
+
+              <dl className="grid gap-2">
+                <div className="grid gap-0.5">
+                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                    送信アドレス
+                  </dt>
+                  <dd className="font-mono text-xs break-all">
+                    {donePhase.result.sender}
+                  </dd>
+                </div>
+
+                <div className="grid gap-0.5">
+                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                    submission_no
+                  </dt>
+                  <dd className="font-mono text-sm">
+                    {ownedKakera.kakera
+                      ? `#${ownedKakera.kakera.submissionNo}`
+                      : "確認中…"}
+                  </dd>
+                </div>
+
+                <div className="grid gap-0.5">
+                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                    digest
+                  </dt>
+                  <dd className="font-mono text-xs break-all">
+                    {donePhase.result.digest}
+                  </dd>
+                </div>
+              </dl>
+
+              <p aria-live="polite" className="text-xs text-emerald-100/90">
+                {describeKakeraStatus(ownedKakera.status)}
               </p>
             </div>
           ) : null}
@@ -412,4 +477,33 @@ function readWalrusEnvFromProcess(): WalrusEnv {
     NEXT_PUBLIC_WALRUS_PUBLISHER: process.env.NEXT_PUBLIC_WALRUS_PUBLISHER,
     NEXT_PUBLIC_WALRUS_AGGREGATOR: process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR,
   };
+}
+
+function safeReadPackageId(): string | null {
+  try {
+    return loadPublicEnv(process.env).packageId;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * User-facing narration of the Kakera polling state. The `idle` case only
+ * appears while we don't yet have an owner + blob id pair, so the card
+ * uses empty wording; the rest map to the three visible states listed in
+ * the STEP 5 spec.
+ */
+function describeKakeraStatus(
+  status: "idle" | "searching" | "found" | "timeout",
+): string {
+  switch (status) {
+    case "found":
+      return "Kakera を受け取りました。";
+    case "timeout":
+      return "Kakera を確認できませんでした（タイムアウト）。時間を置いてから再読み込みしてください。";
+    case "searching":
+      return "Kakera を確認しています…";
+    default:
+      return "";
+  }
 }
