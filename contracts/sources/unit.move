@@ -38,7 +38,7 @@ public struct SubmissionRef has copy, drop, store {
     submitted_at_ms: u64,
 }
 
-public fun create_unit(
+public(package) fun create_unit(
     _admin_cap: &AdminCap,
     registry: &mut Registry,
     athlete_id: u16,
@@ -65,7 +65,7 @@ public fun create_unit(
     unit_id
 }
 
-public fun rotate_current_unit(
+public(package) fun rotate_current_unit(
     _admin_cap: &AdminCap,
     registry: &mut Registry,
     athlete_id: u16,
@@ -75,7 +75,7 @@ public fun rotate_current_unit(
     registry::set_current_unit(registry, athlete_id, object::id(next_unit));
 }
 
-public fun submit_photo(
+public(package) fun submit_photo(
     unit: &mut Unit,
     walrus_blob_id: vector<u8>,
     clock: &Clock,
@@ -248,7 +248,7 @@ fun validate_placements(unit: &Unit, placements: &vector<PlacementInput>) {
 }
 
 #[allow(lint(self_transfer))]
-public fun finalize(
+public(package) fun finalize(
     _admin_cap: &AdminCap,
     unit: &mut Unit,
     mosaic_blob_id: vector<u8>,
@@ -288,4 +288,48 @@ fun has_blob_id(submissions: &vector<SubmissionRef>, walrus_blob_id: &vector<u8>
         i = i + 1;
     };
     false
+}
+
+public(package) fun athlete_id(unit: &Unit): u16 {
+    unit.athlete_id
+}
+
+public(package) fun target_walrus_blob(unit: &Unit): vector<u8> {
+    copy unit.target_walrus_blob
+}
+
+public(package) fun max_slots(unit: &Unit): u64 {
+    unit.max_slots
+}
+
+public(package) fun status(unit: &Unit): u8 {
+    unit.status
+}
+
+public(package) fun master_id(unit: &Unit): Option<ID> {
+    copy unit.master_id
+}
+
+public(package) fun submission_count(unit: &Unit): u64 {
+    vector::length(&unit.submissions)
+}
+
+public(package) fun submission_ref(unit: &Unit, index: u64): SubmissionRef {
+    *vector::borrow(&unit.submissions, index)
+}
+
+public(package) fun submission_ref_submission_no(submission: &SubmissionRef): u64 {
+    submission.submission_no
+}
+
+public(package) fun submission_ref_submitter(submission: &SubmissionRef): address {
+    submission.submitter
+}
+
+public(package) fun submission_ref_walrus_blob_id(submission: &SubmissionRef): vector<u8> {
+    copy submission.walrus_blob_id
+}
+
+public(package) fun submission_ref_submitted_at_ms(submission: &SubmissionRef): u64 {
+    submission.submitted_at_ms
 }
