@@ -59,4 +59,59 @@ describe("useUnitEvents", () => {
     expect(subscribeMock).not.toHaveBeenCalled();
     unmount();
   });
+
+  it("does not resubscribe when only handler identity changes", () => {
+    const unsubscribe = vi.fn();
+    subscribeMock.mockReturnValue(unsubscribe);
+
+    const { rerender, unmount } = renderHook(
+      ({ onSubmitted }: { onSubmitted: () => void }) =>
+        useUnitEvents({
+          packageId: "0xpkg",
+          unitId: "0xunit-1",
+          onSubmitted,
+        }),
+      { initialProps: { onSubmitted: vi.fn() } },
+    );
+
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+
+    rerender({ onSubmitted: vi.fn() });
+    rerender({ onSubmitted: vi.fn() });
+
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+    expect(unsubscribe).not.toHaveBeenCalled();
+
+    unmount();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispatches to the latest handler after a handler swap", () => {
+    let capturedOnSubmitted: ((e: unknown) => void) | undefined;
+    subscribeMock.mockImplementation((args: SubscribeToUnitEventsArgs) => {
+      capturedOnSubmitted = args.handlers.onSubmitted as (e: unknown) => void;
+      return vi.fn();
+    });
+
+    const initial = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ onSubmitted }: { onSubmitted: () => void }) =>
+        useUnitEvents({
+          packageId: "0xpkg",
+          unitId: "0xunit-1",
+          onSubmitted,
+        }),
+      { initialProps: { onSubmitted: initial } },
+    );
+
+    const latest = vi.fn();
+    rerender({ onSubmitted: latest });
+
+    capturedOnSubmitted?.({ kind: "submitted" });
+
+    expect(initial).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledTimes(1);
+
+    unmount();
+  });
 });

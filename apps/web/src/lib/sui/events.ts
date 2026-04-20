@@ -16,8 +16,8 @@
  *     the screen side).
  *   - `unit_id` filtering happens client-side: the on-chain filter granularity
  *     is module, not object id.
- *   - Errors during a poll are swallowed so a transient RPC blip doesn't kill
- *     the subscription. Hard failures should surface via UI-level retries.
+ *   - Poll errors are reported via the optional `onError` handler so the UI
+ *     can surface transient failures without killing the subscription.
  *
  * Out of scope (deferred to later issues):
  *   - Reconnect / exponential backoff.
@@ -37,6 +37,10 @@ import {
 } from "./event-types";
 
 const EVENTS_MODULE_NAME = "events";
+// Demo scale: 500 slots × 1 unit live during reveal. At 4s poll + 50 events/page
+// the worst-case throughput is 12.5 events/s before we start paging — well
+// above expected submission cadence. Bump if we ever host multiple units
+// concurrently.
 const DEFAULT_POLL_INTERVAL_MS = 4_000;
 const MAX_PAGE_SIZE = 50;
 
@@ -52,6 +56,7 @@ export type SubscribeToUnitEventsArgs = {
   readonly handlers: UnitEventHandlers;
   readonly client?: SuiSubscriptionClient;
   readonly intervalMs?: number;
+  readonly onError?: (error: unknown) => void;
 };
 
 export type Unsubscribe = () => void;
@@ -90,15 +95,30 @@ export function subscribeToUnitEvents(
         }
 
         const next = response.nextCursor;
-        if (next && typeof next.txDigest === "string") {
-          cursor = { txDigest: next.txDigest, eventSeq: next.eventSeq };
+        const nextCursor =
+          next &&
+          typeof next.txDigest === "string" &&
+          typeof next.eventSeq === "string"
+            ? { txDigest: next.txDigest, eventSeq: next.eventSeq }
+            : null;
+
+        // Guard against a misbehaving fullnode that reports hasNextPage=true
+        // but fails to advance the cursor — without this check we'd loop
+        // forever on the same page.
+        if (
+          response.hasNextPage === true &&
+          nextCursor !== null &&
+          !cursorsEqual(cursor, nextCursor)
+        ) {
+          cursor = nextCursor;
+          hasNextPage = true;
+        } else {
+          if (nextCursor !== null) cursor = nextCursor;
+          hasNextPage = false;
         }
-        hasNextPage = response.hasNextPage === true;
       }
-    } catch {
-      // Swallow transient RPC failures — the next tick will retry. We
-      // intentionally don't log here; surfacing transport errors to the UI
-      // belongs to a higher layer.
+    } catch (error) {
+      args.onError?.(error);
     } finally {
       if (!stopped) {
         timer = setTimeout(() => {
@@ -121,6 +141,11 @@ export function subscribeToUnitEvents(
       timer = null;
     }
   };
+}
+
+function cursorsEqual(a: CursorLike | null, b: CursorLike | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.txDigest === b.txDigest && a.eventSeq === b.eventSeq;
 }
 
 function dispatchEvent(

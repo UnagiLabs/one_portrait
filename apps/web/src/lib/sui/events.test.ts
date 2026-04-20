@@ -205,6 +205,75 @@ describe("subscribeToUnitEvents", () => {
     unsubscribe();
   });
 
+  it("calls onError when queryEvents throws and keeps the subscription alive", async () => {
+    const failure = new Error("rpc blip");
+    const queryEvents = vi
+      .fn()
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValue({
+        data: [],
+        nextCursor: null,
+        hasNextPage: false,
+      });
+    const client = {
+      network: "testnet",
+      queryEvents,
+    } as unknown as SuiSubscriptionClient;
+
+    const onError = vi.fn();
+
+    const unsubscribe = subscribeToUnitEvents({
+      packageId: PACKAGE_ID,
+      unitId: UNIT_ID,
+      handlers: {},
+      client,
+      intervalMs: 1_000_000,
+      onError,
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(failure);
+
+    unsubscribe();
+  });
+
+  it("breaks out of a page loop when the fullnode fails to advance the cursor", async () => {
+    // Simulate a misbehaving fullnode: hasNextPage=true but nextCursor is
+    // identical across pages. Without a guard the helper would spin forever.
+    const stuckPage = {
+      data: [],
+      nextCursor: { txDigest: "tx", eventSeq: "1" },
+      hasNextPage: true,
+    };
+    const queryEvents = vi.fn().mockResolvedValue(stuckPage);
+    const client = {
+      network: "testnet",
+      queryEvents,
+    } as unknown as SuiSubscriptionClient;
+
+    const unsubscribe = subscribeToUnitEvents({
+      packageId: PACKAGE_ID,
+      unitId: UNIT_ID,
+      handlers: {},
+      client,
+      intervalMs: 1_000_000,
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Two calls max: first one consumes the page, second would loop forever
+    // without the guard. We allow up to 3 to account for the initial poll.
+    expect(queryEvents.mock.calls.length).toBeLessThanOrEqual(3);
+
+    unsubscribe();
+  });
+
   it("returns an unsubscribe function that prevents further polling", async () => {
     vi.useFakeTimers();
     try {

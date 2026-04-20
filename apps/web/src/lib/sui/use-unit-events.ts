@@ -2,17 +2,12 @@
  * React adapter around {@link subscribeToUnitEvents}.
  *
  * Mounts a per-unit subscription on mount and tears it down on unmount.
- * Handlers are invoked synchronously inside the polling loop's microtask;
- * callers are expected to wrap any state updates with React's batching
- * rules (the standard `setState` in a handler is fine).
- *
- * The hook intentionally does **not** own the handler identity (no
- * memoised wrapper). Callers should pass stable handlers if they want
- * to avoid resubscription churn — for the MVP a single subscription per
- * mount is enough.
+ * Handlers are captured in a ref so callers can pass inline arrow
+ * functions without triggering resubscription on every render — only
+ * `packageId` / `unitId` changes trigger a new subscription.
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import type {
   MosaicReadyEvent,
@@ -33,8 +28,25 @@ export type UseUnitEventsArgs = {
   readonly onMosaicReady?: (event: MosaicReadyEvent) => void;
 };
 
+type HandlerSet = Pick<
+  UseUnitEventsArgs,
+  "onSubmitted" | "onFilled" | "onMosaicReady"
+>;
+
 export function useUnitEvents(args: UseUnitEventsArgs): void {
-  const { packageId, unitId, onSubmitted, onFilled, onMosaicReady } = args;
+  const { packageId, unitId } = args;
+
+  const handlersRef = useRef<HandlerSet>({
+    onSubmitted: args.onSubmitted,
+    onFilled: args.onFilled,
+    onMosaicReady: args.onMosaicReady,
+  });
+
+  handlersRef.current = {
+    onSubmitted: args.onSubmitted,
+    onFilled: args.onFilled,
+    onMosaicReady: args.onMosaicReady,
+  };
 
   useEffect(() => {
     if (!packageId || !unitId) return;
@@ -43,15 +55,13 @@ export function useUnitEvents(args: UseUnitEventsArgs): void {
       packageId,
       unitId,
       handlers: {
-        onSubmitted: onSubmitted ? (event) => onSubmitted(event) : undefined,
-        onFilled: onFilled ? (event) => onFilled(event) : undefined,
-        onMosaicReady: onMosaicReady
-          ? (event) => onMosaicReady(event)
-          : undefined,
+        onSubmitted: (event) => handlersRef.current.onSubmitted?.(event),
+        onFilled: (event) => handlersRef.current.onFilled?.(event),
+        onMosaicReady: (event) => handlersRef.current.onMosaicReady?.(event),
       },
     };
 
     const unsubscribe: Unsubscribe = subscribeToUnitEvents(subscribeArgs);
     return unsubscribe;
-  }, [packageId, unitId, onSubmitted, onFilled, onMosaicReady]);
+  }, [packageId, unitId]);
 }
