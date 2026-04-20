@@ -7,10 +7,16 @@
  * from Sui at request time; from there `useUnitEvents` keeps the number
  * ticking in real time via `SubmittedEvent`s. `UnitFilledEvent` and
  * `MosaicReadyEvent` are logged as hooks for the later finalize / reveal
- * flows but intentionally do not drive UI yet (out of scope for STEP 5/5).
+ * flows but intentionally do not drive UI yet.
+ *
+ * Invariant (see CLAUDE.md / docs/tech.md §10, §11):
+ *   `SubmittedEvent` is the ONLY source of truth for `submittedCount`.
+ *   The submit flow (`ParticipationAccess`) must NOT optimistically bump this
+ *   counter — the participant sees the number advance only after the chain
+ *   event is observed. This keeps the waiting-room narrative ("観測できる
+ *   まで待ち、駄目なら案内付きで再試行") honest.
  *
  * Follow-up issues can plug:
- *   - submit button (zkLogin + Enoki Sponsored Tx)
  *   - reveal animation (listen for MosaicReadyEvent here and fan out)
  */
 

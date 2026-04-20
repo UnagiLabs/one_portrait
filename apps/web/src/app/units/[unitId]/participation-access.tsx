@@ -61,6 +61,20 @@ type PutBlobFn = (
   deps: { readonly env: WalrusEnv },
 ) => Promise<WalrusPutResult>;
 
+/**
+ * Recoverable error context.
+ *
+ * `retry.kind === "upload"` means the Walrus PUT failed after our internal
+ * retries were exhausted, but the locally preprocessed photo is still valid.
+ * The UI can offer a "もう一度送信する" button that jumps straight back to
+ * the uploading phase with the same {@link PreprocessedPhoto}, skipping
+ * preprocessing.
+ */
+type RetryContext = {
+  readonly kind: "upload";
+  readonly photo: PreprocessedPhoto;
+};
+
 type UploadPhase =
   | { readonly kind: "ready" }
   | { readonly kind: "processing" }
@@ -77,7 +91,11 @@ type UploadPhase =
       readonly photo: PreprocessedPhoto;
       readonly blobId: string;
     }
-  | { readonly kind: "error"; readonly message: string };
+  | {
+      readonly kind: "error";
+      readonly message: string;
+      readonly retry?: RetryContext;
+    };
 
 export function ParticipationAccess({
   unitId,
@@ -190,6 +208,9 @@ function ParticipationAccessEnabled({
       setPhase({
         kind: "error",
         message: classifyWalrusError(error),
+        // Keep the preprocessed photo so the "もう一度送信する" button can
+        // retry the Walrus PUT without re-running preprocessing.
+        retry: isWalrusRetryable(error) ? { kind: "upload", photo } : undefined,
       });
       return;
     }
@@ -234,6 +255,7 @@ function ParticipationAccessEnabled({
     phase.kind === "uploading" ||
     phase.kind === "submitting";
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
+  const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
 
   return (
@@ -430,6 +452,23 @@ function ParticipationAccessEnabled({
           {phaseErrorMessage}
         </p>
       ) : null}
+
+      {phaseRetry ? (
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200"
+            onClick={() => {
+              // Jump straight back into the Walrus upload step with the same
+              // PreprocessedPhoto; the user does not have to re-select or
+              // re-preprocess the image.
+              void handleSubmit(phaseRetry.photo);
+            }}
+            type="button"
+          >
+            もう一度送信する
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -453,6 +492,25 @@ function classifyWalrusError(error: unknown): string {
     return error.message;
   }
   return toMessage(error);
+}
+
+/**
+ * Whether a Walrus PUT failure is worth offering a "retry" button for.
+ *
+ * `config_missing` is a deploy-time misconfiguration (missing publisher /
+ * aggregator URL), so clicking retry will only produce the same error. The
+ * internal retry loop in `putBlobToWalrus` already surfaces `transient` only
+ * after exhausting 3 attempts — but the user may still recover by getting to
+ * a better network, so we treat it as retryable. `final` covers genuine
+ * Walrus-side failures and is likewise retryable from the user's perspective.
+ */
+function isWalrusRetryable(error: unknown): boolean {
+  if (!(error instanceof WalrusPutError)) {
+    // Non-Walrus errors (e.g. a thrown string from a test fixture) are not
+    // something the retry path can fix; be conservative and hide the button.
+    return false;
+  }
+  return error.kind === "final" || error.kind === "transient";
 }
 
 function isAuthExpired(error: unknown): boolean {

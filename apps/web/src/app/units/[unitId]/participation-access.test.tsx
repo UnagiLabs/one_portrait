@@ -1,7 +1,16 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { SubmittedEvent } from "../../../lib/sui";
+import type { UseUnitEventsArgs } from "../../../lib/sui/react";
 
 const {
   useEnokiConfigStateMock,
@@ -12,6 +21,7 @@ const {
   useConnectWalletMock,
   useDisconnectWalletMock,
   useOwnedKakeraMock,
+  useUnitEventsMock,
 } = vi.hoisted(() => ({
   useEnokiConfigStateMock: vi.fn(),
   useSubmitPhotoMock: vi.fn(),
@@ -21,6 +31,7 @@ const {
   useConnectWalletMock: vi.fn(),
   useDisconnectWalletMock: vi.fn(),
   useOwnedKakeraMock: vi.fn(),
+  useUnitEventsMock: vi.fn(),
 }));
 
 vi.mock("../../../lib/enoki/provider", () => ({
@@ -55,12 +66,14 @@ vi.mock("@mysten/dapp-kit", () => ({
 
 vi.mock("../../../lib/sui/react", () => ({
   useOwnedKakera: (args: unknown) => useOwnedKakeraMock(args),
+  useUnitEvents: (args: UseUnitEventsArgs) => useUnitEventsMock(args),
 }));
 
 vi.mock("../../../lib/sui", () => ({
   getSuiClient: () => ({}),
 }));
 
+import { LiveProgress } from "./live-progress";
 import { ParticipationAccess } from "./participation-access";
 
 const FILE_INPUT_LABEL = "写真を選択";
@@ -99,6 +112,7 @@ afterEach(() => {
   useConnectWalletMock.mockReset();
   useDisconnectWalletMock.mockReset();
   useOwnedKakeraMock.mockReset();
+  useUnitEventsMock.mockReset();
 });
 
 describe("ParticipationAccess", () => {
@@ -504,6 +518,77 @@ describe("ParticipationAccess", () => {
       expect(submitPhoto).not.toHaveBeenCalled();
     });
 
+    it("offers a retry button after a Walrus final error that reuses the preprocessed photo", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const { WalrusPutError } = await import("../../../lib/walrus/put");
+      const putBlob = vi
+        .fn<PutMock>()
+        .mockRejectedValueOnce(
+          new WalrusPutError(
+            "final",
+            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+          ),
+        )
+        .mockResolvedValueOnce({
+          blobId: "walrus-blob-retry",
+          aggregatorUrl:
+            "https://aggregator.example.com/v1/blobs/walrus-blob-retry",
+        });
+      submitPhoto.mockResolvedValue({
+        digest: "retry-digest",
+        sender: "0xabc123",
+      });
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert").textContent).toContain(
+          "Walrus への写真の保存に失敗",
+        );
+      });
+
+      const retryButton = screen.getByRole("button", {
+        name: /もう一度送信する/,
+      });
+      expect(retryButton).toBeTruthy();
+
+      // preprocessPhoto should not be called again: the previously preprocessed
+      // photo is reused and we jump straight back to the Walrus upload step.
+      const preprocessCallsBefore = preprocessPhoto.mock.calls.length;
+
+      fireEvent.click(retryButton);
+
+      await waitFor(() => {
+        expect(putBlob).toHaveBeenCalledTimes(2);
+      });
+      expect(preprocessPhoto.mock.calls.length).toBe(preprocessCallsBefore);
+
+      // Retry should carry the same preprocessed photo that the first attempt
+      // used (same previewUrl proves identity).
+      expect(putBlob.mock.calls[1][0].previewUrl).toBe("blob:preview-xyz");
+
+      await waitFor(() => {
+        expect(submitPhoto).toHaveBeenCalledWith("walrus-blob-retry");
+      });
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+    });
+
     it("disconnects and returns to the login step when submitPhoto fails with auth_expired", async () => {
       const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
       const disconnectMutate = vi.fn();
@@ -721,6 +806,107 @@ describe("ParticipationAccess", () => {
       await waitFor(() => {
         expect(screen.getByText(/確認できませんでした/)).toBeTruthy();
       });
+    });
+  });
+
+  /**
+   * End-to-end waiting-room integration: renders both `ParticipationAccess`
+   * and `LiveProgress` together, walks the user through a full submission,
+   * and asserts the contract that:
+   *   - After `submit_photo` succeeds the progress counter stays flat
+   *     (no optimistic update).
+   *   - Only a `SubmittedEvent` observation increments the counter.
+   */
+  describe("integration with LiveProgress (SubmittedEvent is source of truth)", () => {
+    const SUBMIT_BUTTON_NAME = /投稿を確定/;
+
+    it("keeps the counter flat after submit success, then increments on SubmittedEvent", async () => {
+      setupSignedInEnv();
+
+      let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+      useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+        capturedOnSubmitted = args.onSubmitted;
+      });
+
+      const preprocessPhoto = vi.fn().mockResolvedValue({
+        blob: new Blob(["encoded"], { type: "image/jpeg" }),
+        width: 1024,
+        height: 768,
+        contentType: "image/jpeg",
+        sha256: "deadbeef",
+        previewUrl: "blob:preview-integration",
+      });
+      const submitPhoto = vi.fn().mockResolvedValue({
+        digest: "integration-digest",
+        sender: "0xabc123",
+      });
+      useSubmitPhotoMock.mockReturnValue({
+        isSubmitting: false,
+        submitPhoto,
+      });
+      const putBlob = vi.fn().mockResolvedValue({
+        blobId: "walrus-blob-int",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-int",
+      });
+
+      render(
+        <div>
+          <LiveProgress
+            initialSubmittedCount={41}
+            maxSlots={500}
+            packageId="0xpkg"
+            unitId="0xunit-1"
+          />
+          <ParticipationAccess
+            preprocessPhoto={preprocessPhoto}
+            putBlob={putBlob}
+            unitId="0xunit-1"
+            walrusEnv={{
+              NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+              NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+            }}
+          />
+        </div>,
+      );
+
+      expect(screen.getByText(/41\s*\/\s*500/)).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
+        target: { files: [makeFile()] },
+      });
+      await waitFor(() => {
+        expect(screen.getByAltText("投稿プレビュー")).toBeTruthy();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+
+      // Progress counter MUST still be at its initial value — no optimistic
+      // increment is allowed. This is the STEP 6 contract.
+      expect(screen.getByText(/41\s*\/\s*500/)).toBeTruthy();
+      expect(screen.queryByText(/42\s*\/\s*500/)).toBeNull();
+
+      // Deliver the SubmittedEvent through the captured hook and verify the
+      // counter catches up.
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          athletePublicId: "1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 42,
+          submittedCount: 42,
+          maxSlots: 500,
+        });
+      });
+
+      expect(screen.getByText(/42\s*\/\s*500/)).toBeTruthy();
     });
   });
 });
