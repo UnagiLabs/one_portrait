@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { PreprocessedPhoto } from "../image/preprocess";
 import { putBlobToWalrus, WalrusPutError } from "./put";
 
 const PUBLISHER = "https://publisher.example.com";
@@ -57,6 +58,18 @@ function blob() {
   return new Blob([new Uint8Array(16)], { type: "image/jpeg" });
 }
 
+function photo(override: Partial<PreprocessedPhoto> = {}): PreprocessedPhoto {
+  const b = override.blob ?? blob();
+  return {
+    blob: b,
+    width: override.width ?? 1024,
+    height: override.height ?? 768,
+    contentType: "image/jpeg",
+    sha256: override.sha256 ?? "a".repeat(64),
+    previewUrl: override.previewUrl ?? "blob:preview",
+  };
+}
+
 function baseDeps(fetchFn: typeof fetch) {
   return {
     fetchFn,
@@ -71,7 +84,7 @@ function baseDeps(fetchFn: typeof fetch) {
 }
 
 describe("putBlobToWalrus", () => {
-  it("PUTs the blob to <publisher>/v1/blobs?epochs=5 with the raw body", async () => {
+  it("PUTs the preprocessed blob to <publisher>/v1/blobs?epochs=5", async () => {
     const { fetchFn, calls } = queuedFetch([
       {
         kind: "ok",
@@ -85,7 +98,7 @@ describe("putBlobToWalrus", () => {
 
     const body = blob();
     const result = await putBlobToWalrus(
-      body,
+      photo({ blob: body }),
       baseDeps(fetchFn as typeof fetch),
     );
 
@@ -93,6 +106,8 @@ describe("putBlobToWalrus", () => {
     expect(calls[0]?.url).toBe(`${PUBLISHER}/v1/blobs?epochs=5`);
     expect(calls[0]?.init?.method).toBe("PUT");
     expect(calls[0]?.init?.body).toBe(body);
+    // AbortSignal must be attached so a hung request can be cancelled.
+    expect(calls[0]?.init?.signal).toBeInstanceOf(AbortSignal);
     expect(result.blobId).toBe("blob-xyz");
     expect(result.aggregatorUrl).toBe(`${AGGREGATOR}/v1/blobs/blob-xyz`);
   });
@@ -108,7 +123,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     const result = await putBlobToWalrus(
-      blob(),
+      photo(),
       baseDeps(fetchFn as typeof fetch),
     );
 
@@ -129,7 +144,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     const deps = baseDeps(fetchFn as typeof fetch);
-    const result = await putBlobToWalrus(blob(), deps);
+    const result = await putBlobToWalrus(photo(), deps);
 
     expect(calls).toHaveLength(3);
     expect(result.blobId).toBe("blob-final");
@@ -150,7 +165,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     const result = await putBlobToWalrus(
-      blob(),
+      photo(),
       baseDeps(fetchFn as typeof fetch),
     );
 
@@ -166,7 +181,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     try {
-      await putBlobToWalrus(blob(), baseDeps(fetchFn as typeof fetch));
+      await putBlobToWalrus(photo(), baseDeps(fetchFn as typeof fetch));
       expect.unreachable("putBlobToWalrus should have thrown");
     } catch (error) {
       expect(error).toBeInstanceOf(WalrusPutError);
@@ -184,7 +199,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     try {
-      await putBlobToWalrus(blob(), baseDeps(fetchFn as typeof fetch));
+      await putBlobToWalrus(photo(), baseDeps(fetchFn as typeof fetch));
       expect.unreachable("putBlobToWalrus should have thrown");
     } catch (error) {
       expect(error).toBeInstanceOf(WalrusPutError);
@@ -207,7 +222,7 @@ describe("putBlobToWalrus", () => {
     };
 
     try {
-      await putBlobToWalrus(blob(), deps);
+      await putBlobToWalrus(photo(), deps);
       expect.unreachable("putBlobToWalrus should have thrown");
     } catch (error) {
       expect(error).toBeInstanceOf(WalrusPutError);
@@ -230,7 +245,7 @@ describe("putBlobToWalrus", () => {
       },
     };
 
-    await expect(putBlobToWalrus(blob(), deps)).rejects.toMatchObject({
+    await expect(putBlobToWalrus(photo(), deps)).rejects.toMatchObject({
       kind: "config_missing",
     });
     expect(fetchFn).not.toHaveBeenCalled();
@@ -249,7 +264,7 @@ describe("putBlobToWalrus", () => {
     ]);
 
     const deps = baseDeps(fetchFn as typeof fetch);
-    await putBlobToWalrus(blob(), deps);
+    await putBlobToWalrus(photo(), deps);
 
     // Exponential backoff: the second delay should be strictly larger than
     // the first. We don't pin exact numbers so we don't fight the clock.
@@ -280,7 +295,7 @@ describe("putBlobToWalrus", () => {
       },
     };
 
-    const result = await putBlobToWalrus(blob(), deps);
+    const result = await putBlobToWalrus(photo(), deps);
 
     expect(calls[0]?.url).toBe(`${PUBLISHER}/v1/blobs?epochs=5`);
     expect(result.aggregatorUrl).toBe(`${AGGREGATOR}/v1/blobs/blob-trim`);
@@ -300,7 +315,7 @@ describe("putBlobToWalrus", () => {
     const deps = baseDeps(fetchFn as typeof fetch);
     const onRetry = vi.fn();
 
-    const result = await putBlobToWalrus(blob(), {
+    const result = await putBlobToWalrus(photo(), {
       ...deps,
       onRetry,
     });
@@ -311,5 +326,56 @@ describe("putBlobToWalrus", () => {
       kind: "transient",
       attempt: 1,
     });
+  });
+
+  it("aborts a hung request via the timeout and treats it as transient", async () => {
+    // fetchFn that never resolves on its own. It only settles when the
+    // AbortSignal fires, which mirrors how `fetch` behaves on a real abort.
+    // Without the timeout + AbortController wiring in put.ts, this test would
+    // hang the vitest worker.
+    const callSignals: AbortSignal[] = [];
+    const fetchFn = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (!signal) {
+            reject(new Error("signal missing"));
+            return;
+          }
+          callSignals.push(signal);
+          signal.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }),
+    );
+
+    const deps = {
+      fetchFn: fetchFn as unknown as typeof fetch,
+      sleep: vi.fn(async (_ms: number) => {}),
+      env: {
+        NEXT_PUBLIC_WALRUS_PUBLISHER: PUBLISHER,
+        NEXT_PUBLIC_WALRUS_AGGREGATOR: AGGREGATOR,
+      },
+      // Keep the timeout small so the test runs fast.
+      requestTimeoutMs: 5,
+    };
+
+    try {
+      await putBlobToWalrus(photo(), deps);
+      expect.unreachable("putBlobToWalrus should have thrown on final timeout");
+    } catch (error) {
+      expect(error).toBeInstanceOf(WalrusPutError);
+      const e = error as WalrusPutError;
+      expect(e.kind).toBe("final");
+      expect(e.attempts).toBe(3);
+    }
+
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+    // Every attempt received its own AbortSignal and every one of them
+    // eventually aborted — that's what allowed the retry loop to advance.
+    expect(callSignals).toHaveLength(3);
+    for (const signal of callSignals) {
+      expect(signal.aborted).toBe(true);
+    }
   });
 });

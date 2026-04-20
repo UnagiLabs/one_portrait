@@ -1,13 +1,20 @@
 "use client";
 
+import type { PreprocessedPhoto } from "../image/preprocess";
+
 /**
  * Thin client for uploading a preprocessed photo to a Walrus Publisher.
  *
  * Spec (see `docs/tech.md` §5.3 / §6 / §10):
  * - ブラウザから Walrus Publisher へ直接 `PUT /v1/blobs?epochs=5` で送る。
- * - 一時的な失敗（ネットワーク / 5xx）は指数バックオフで合計 3 回まで再試行。
+ * - 一時的な失敗（ネットワーク / 5xx / タイムアウト）は指数バックオフで
+ *   合計 3 回まで再試行。
  * - 最終的な失敗は UI が再試行ボタンを出せるよう分類済みのエラーで投げる。
  * - 成功時は `blob_id` と Aggregator 参照 URL を返す。
+ *
+ * 入力は {@link PreprocessedPhoto} に絞っており、10MB 検証・長辺 1024px・
+ * JPEG 再エンコード・EXIF 除去を通過した Blob のみが PUT される。原画像が
+ * そのまま Walrus に載らないよう型レベルで守る。
  *
  * `fetch` と `setTimeout` は DI で差し替え可能にしている。テストは実時計や実
  * ネットワークに依存せず、リトライ回数・URL 組み立て・エラー分類だけを検証
@@ -18,6 +25,9 @@ export const WALRUS_EPOCHS = 5;
 export const WALRUS_MAX_ATTEMPTS = 3;
 /** Base delay for exponential backoff. Kept small – retries are cheap. */
 export const WALRUS_BASE_BACKOFF_MS = 200;
+/** Per-attempt request timeout. 30s covers mobile uploads; beyond that we
+ * abort and classify as transient so the retry loop / final error kicks in. */
+export const WALRUS_REQUEST_TIMEOUT_MS = 30_000;
 
 export type WalrusPutErrorKind = "transient" | "final" | "config_missing";
 
@@ -60,6 +70,8 @@ export type WalrusPutDeps = {
   readonly sleep?: (ms: number) => Promise<void>;
   readonly env: WalrusEnv;
   readonly onRetry?: (info: WalrusPutRetryInfo) => void;
+  /** Per-attempt timeout in ms. Defaults to {@link WALRUS_REQUEST_TIMEOUT_MS}. */
+  readonly requestTimeoutMs?: number;
 };
 
 export type WalrusPutResult = {
@@ -68,11 +80,16 @@ export type WalrusPutResult = {
 };
 
 /**
- * Upload a blob to the configured Walrus Publisher and return the resulting
- * `blobId` + an Aggregator URL usable for immediate preview.
+ * Upload a preprocessed photo to the configured Walrus Publisher and return
+ * the resulting `blobId` + an Aggregator URL usable for immediate preview.
+ *
+ * Accepting {@link PreprocessedPhoto} (not a raw `Blob`) enforces at the type
+ * level that 10MB validation, 1024px downscaling, JPEG re-encoding, and EXIF
+ * stripping have all been performed. Raw originals cannot accidentally be
+ * uploaded to Walrus — which would violate `docs/tech.md` §5.3 / §11.
  */
 export async function putBlobToWalrus(
-  body: Blob,
+  photo: PreprocessedPhoto,
   deps: WalrusPutDeps,
 ): Promise<WalrusPutResult> {
   const endpoints = resolveEndpoints(deps.env);
@@ -86,16 +103,19 @@ export async function putBlobToWalrus(
   }
 
   const sleep = deps.sleep ?? defaultSleep;
+  const requestTimeoutMs = deps.requestTimeoutMs ?? WALRUS_REQUEST_TIMEOUT_MS;
 
   let lastError: unknown = null;
   let lastStatus: number | null = null;
 
   for (let attempt = 1; attempt <= WALRUS_MAX_ATTEMPTS; attempt += 1) {
     try {
-      const response = await fetchFn(endpoints.putUrl, {
-        method: "PUT",
-        body,
-      });
+      const response = await fetchWithTimeout(
+        fetchFn,
+        endpoints.putUrl,
+        photo.blob,
+        requestTimeoutMs,
+      );
 
       if (response.ok) {
         const blobId = await extractBlobId(response);
@@ -121,6 +141,8 @@ export async function putBlobToWalrus(
       if (error instanceof WalrusPutError) {
         throw error;
       }
+      // AbortError（タイムアウトで自発的に中断）は一時失敗として扱う。
+      // fetch がハングしたまま永遠に待つのを防ぐ。
       lastError = error;
     }
 
@@ -257,4 +279,30 @@ function defaultSleep(ms: number): Promise<void> {
 function resolveDefaultFetch(): typeof fetch | undefined {
   const value = (globalThis as Record<string, unknown>).fetch;
   return typeof value === "function" ? (value as typeof fetch) : undefined;
+}
+
+/**
+ * Wrap a single fetch attempt with an AbortController so that a hung request
+ * cannot stall the retry loop indefinitely. The signal is aborted after
+ * `timeoutMs` elapses; the aborted fetch rejects and is treated as transient.
+ */
+async function fetchWithTimeout(
+  fetchFn: typeof fetch,
+  url: string,
+  body: Blob,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await fetchFn(url, {
+      method: "PUT",
+      body,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
