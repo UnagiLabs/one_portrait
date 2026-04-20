@@ -104,7 +104,7 @@ export default async function UnitPage(
           )}
         </section>
 
-        <ParticipationAccess />
+        <ParticipationAccess unitId={unitId} />
 
         {/*
          * Hook points for follow-up issues (kept as comments so reviewers can

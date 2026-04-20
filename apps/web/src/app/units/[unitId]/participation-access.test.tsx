@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
   useEnokiConfigStateMock,
+  useSubmitPhotoMock,
   useWalletsMock,
   useCurrentAccountMock,
   useCurrentWalletMock,
@@ -12,6 +13,7 @@ const {
   useDisconnectWalletMock,
 } = vi.hoisted(() => ({
   useEnokiConfigStateMock: vi.fn(),
+  useSubmitPhotoMock: vi.fn(),
   useWalletsMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
   useCurrentWalletMock: vi.fn(),
@@ -21,6 +23,20 @@ const {
 
 vi.mock("../../../lib/enoki/provider", () => ({
   useEnokiConfigState: () => useEnokiConfigStateMock(),
+}));
+
+vi.mock("../../../lib/enoki/client-submit", () => ({
+  EnokiSubmitClientError: class extends Error {
+    code: string;
+    status: number;
+
+    constructor(status: number, code: string, message: string) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  },
+  useSubmitPhoto: () => useSubmitPhotoMock(),
 }));
 
 vi.mock("@mysten/enoki", () => ({
@@ -39,6 +55,7 @@ import { ParticipationAccess } from "./participation-access";
 
 afterEach(() => {
   useEnokiConfigStateMock.mockReset();
+  useSubmitPhotoMock.mockReset();
   useWalletsMock.mockReset();
   useCurrentAccountMock.mockReset();
   useCurrentWalletMock.mockReset();
@@ -53,7 +70,7 @@ describe("ParticipationAccess", () => {
       reason: "submit-env-missing",
     });
 
-    render(<ParticipationAccess />);
+    render(<ParticipationAccess unitId="0xunit-1" />);
 
     expect(screen.getByText(/進捗の確認だけ使えます/)).toBeTruthy();
   });
@@ -77,10 +94,15 @@ describe("ParticipationAccess", () => {
     useDisconnectWalletMock.mockReturnValue({
       mutate: disconnectMutate,
     });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
 
-    render(<ParticipationAccess />);
+    render(<ParticipationAccess unitId="0xunit-1" />);
 
     expect(screen.getByText("0xabc123")).toBeTruthy();
+    expect(screen.getByPlaceholderText("walrus-blob-id")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "ログイン解除" }));
     expect(disconnectMutate).toHaveBeenCalled();
   });
@@ -101,8 +123,12 @@ describe("ParticipationAccess", () => {
     useDisconnectWalletMock.mockReturnValue({
       mutate: vi.fn(),
     });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
 
-    render(<ParticipationAccess />);
+    render(<ParticipationAccess unitId="0xunit-1" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
 
