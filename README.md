@@ -14,7 +14,7 @@
 
 </div>
 
-ONE Championship のファン **500人がそれぞれ1枚ずつ写真を投稿**し、**1枚の選手モザイク肖像画**を共同制作する非営利プロジェクト。完成までモザイク全体は伏せられ、500枚到達の瞬間に**全員一斉にリビール**される。各参加者には自分の担当マスを刻んだ**Soulbound NFT「欠片 (かけら / Kakera)」**が永久に届く。
+ONE Championship のファン **500人がそれぞれ1枚ずつ写真を投稿**し、**1枚の選手モザイク肖像画**を共同制作する非営利プロジェクト。完成までモザイク全体は伏せられ、500枚到達の瞬間に**全員一斉にリビール**される。各参加者には自分の担当マスを刻んだSoulbound NFT「欠片 (かけら / Kakera)」が永久に届く。
 
 > A non-profit, on-chain co-creation experience: 500 ONE Championship fans each upload one photo, and the moment the 500th lands, a single high-resolution mosaic portrait of an athlete is revealed simultaneously to everyone — and a soulbound "Kakera" NFT carrying their own tile is minted to each participant.
 
