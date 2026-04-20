@@ -1,6 +1,8 @@
 #[allow(unused_field)]
 module one_portrait::events;
 
+use sui::event;
+
 public struct SubmittedEvent has copy, drop {
     unit_id: ID,
     athlete_id: u16,
@@ -23,4 +25,59 @@ public struct MosaicReadyEvent has copy, drop {
     athlete_id: u16,
     master_id: ID,
     mosaic_walrus_blob_id: vector<u8>,
+}
+
+public(package) fun emit_submitted(
+    unit_id: ID,
+    athlete_id: u16,
+    submitter: address,
+    walrus_blob_id: vector<u8>,
+    submission_no: u64,
+    submitted_count: u64,
+    max_slots: u64,
+) {
+    event::emit(SubmittedEvent {
+        unit_id,
+        athlete_id,
+        submitter,
+        walrus_blob_id,
+        submission_no,
+        submitted_count,
+        max_slots,
+    });
+}
+
+#[test_only]
+public fun submitted_event_unit_id_for_testing(event: &SubmittedEvent): ID {
+    event.unit_id
+}
+
+#[test_only]
+public fun submitted_event_athlete_id_for_testing(event: &SubmittedEvent): u16 {
+    event.athlete_id
+}
+
+#[test_only]
+public fun submitted_event_submitter_for_testing(event: &SubmittedEvent): address {
+    event.submitter
+}
+
+#[test_only]
+public fun submitted_event_walrus_blob_id_for_testing(event: &SubmittedEvent): vector<u8> {
+    copy event.walrus_blob_id
+}
+
+#[test_only]
+public fun submitted_event_submission_no_for_testing(event: &SubmittedEvent): u64 {
+    event.submission_no
+}
+
+#[test_only]
+public fun submitted_event_submitted_count_for_testing(event: &SubmittedEvent): u64 {
+    event.submitted_count
+}
+
+#[test_only]
+public fun submitted_event_max_slots_for_testing(event: &SubmittedEvent): u64 {
+    event.max_slots
 }

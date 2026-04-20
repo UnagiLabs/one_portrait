@@ -1,7 +1,10 @@
 #[allow(unused_const, unused_field)]
 module one_portrait::unit;
 
+use one_portrait::events;
+use one_portrait::kakera;
 use one_portrait::registry::{Self as registry, AdminCap, Registry};
+use sui::clock::{Self as clock, Clock};
 use sui::table::{Self as table, Table};
 
 const STATUS_PENDING: u8 = 0;
@@ -10,6 +13,8 @@ const STATUS_FINALIZED: u8 = 2;
 const ENOT_IMPLEMENTED: u64 = 0;
 const EINVALID_MAX_SLOTS: u64 = 1;
 const ENEXT_UNIT_ATHLETE_MISMATCH: u64 = 2;
+const EUNIT_NOT_PENDING: u64 = 3;
+const EALREADY_SUBMITTED: u64 = 4;
 
 public struct Unit has key {
     id: UID,
@@ -67,11 +72,48 @@ public fun rotate_current_unit(
 }
 
 public fun submit_photo(
-    _unit: &mut Unit,
-    _walrus_blob_id: vector<u8>,
-    _ctx: &mut TxContext,
+    unit: &mut Unit,
+    walrus_blob_id: vector<u8>,
+    clock: &Clock,
+    ctx: &mut TxContext,
 ) {
-    abort ENOT_IMPLEMENTED
+    assert!(unit.status == STATUS_PENDING, EUNIT_NOT_PENDING);
+
+    let submitter = tx_context::sender(ctx);
+    assert!(!table::contains(&unit.submitters, submitter), EALREADY_SUBMITTED);
+
+    let submission_no = vector::length(&unit.submissions) + 1;
+    let submitted_at_ms = clock::timestamp_ms(clock);
+
+    table::add(&mut unit.submitters, submitter, true);
+    vector::push_back(
+        &mut unit.submissions,
+        SubmissionRef {
+            submission_no,
+            submitter,
+            walrus_blob_id: copy walrus_blob_id,
+            submitted_at_ms,
+        },
+    );
+
+    kakera::mint_and_transfer(
+        object::id(unit),
+        unit.athlete_id,
+        submitter,
+        copy walrus_blob_id,
+        submission_no,
+        submitted_at_ms,
+        ctx,
+    );
+    events::emit_submitted(
+        object::id(unit),
+        unit.athlete_id,
+        submitter,
+        walrus_blob_id,
+        submission_no,
+        vector::length(&unit.submissions),
+        unit.max_slots,
+    );
 }
 
 #[test_only]
@@ -102,6 +144,31 @@ public fun submitter_count_for_testing(unit: &Unit): u64 {
 #[test_only]
 public fun submission_count_for_testing(unit: &Unit): u64 {
     vector::length(&unit.submissions)
+}
+
+#[test_only]
+public fun submission_ref_for_testing(unit: &Unit, index: u64): SubmissionRef {
+    *vector::borrow(&unit.submissions, index)
+}
+
+#[test_only]
+public fun submission_ref_submission_no_for_testing(submission: &SubmissionRef): u64 {
+    submission.submission_no
+}
+
+#[test_only]
+public fun submission_ref_submitter_for_testing(submission: &SubmissionRef): address {
+    submission.submitter
+}
+
+#[test_only]
+public fun submission_ref_walrus_blob_id_for_testing(submission: &SubmissionRef): vector<u8> {
+    copy submission.walrus_blob_id
+}
+
+#[test_only]
+public fun submission_ref_submitted_at_ms_for_testing(submission: &SubmissionRef): u64 {
+    submission.submitted_at_ms
 }
 
 public fun finalize(
