@@ -308,3 +308,148 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
 
     scenario.end();
 }
+
+#[test]
+fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
+    let publisher = @0xA11CE;
+    let first_submitter = @0xF01;
+    let second_submitter = @0xF02;
+    let athlete_id = 13;
+    let max_slots = 2;
+
+    let mut scenario = test_scenario::begin(publisher);
+    test_scenario::create_system_objects(&mut scenario);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = unit::create_unit(
+        &admin_cap,
+        &mut registry,
+        athlete_id,
+        b"target-blob",
+        max_slots,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(first_submitter);
+
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+
+    assert!(unit::is_pending_for_testing(&unit));
+    assert_eq!(event::events_by_type<portrait_events::UnitFilledEvent>().length(), 0);
+
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    let first_effects = scenario.next_tx(first_submitter);
+    assert_eq!(first_effects.num_user_events(), 1);
+    let first_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(first_kakera);
+
+    scenario.next_tx(second_submitter);
+
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+
+    assert!(unit::is_filled_for_testing(&unit));
+    assert_eq!(unit::submission_count_for_testing(&unit), max_slots);
+    assert_eq!(event::num_events(), 2);
+
+    let filled_events = event::events_by_type<portrait_events::UnitFilledEvent>();
+    assert_eq!(filled_events.length(), 1);
+    let filled_event = filled_events[0];
+    assert_eq!(portrait_events::unit_filled_event_unit_id_for_testing(&filled_event), unit_id);
+    assert_eq!(
+        portrait_events::unit_filled_event_athlete_id_for_testing(&filled_event),
+        athlete_id
+    );
+    assert_eq!(
+        portrait_events::unit_filled_event_filled_count_for_testing(&filled_event),
+        max_slots
+    );
+    assert_eq!(
+        portrait_events::unit_filled_event_max_slots_for_testing(&filled_event),
+        max_slots
+    );
+
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    let second_effects = scenario.next_tx(second_submitter);
+    assert_eq!(second_effects.num_user_events(), 2);
+    let second_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(second_kakera);
+
+    scenario.next_tx(publisher);
+
+    let unit = scenario.take_shared_by_id<Unit>(unit_id);
+    assert!(unit::is_filled_for_testing(&unit));
+    assert_eq!(unit::submission_count_for_testing(&unit), max_slots);
+    test_scenario::return_shared(unit);
+
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = unit::EUNIT_NOT_PENDING)]
+fun submit_photo_rejects_submission_after_unit_is_filled() {
+    let publisher = @0xA11CE;
+    let first_submitter = @0xF11;
+    let second_submitter = @0xF12;
+    let third_submitter = @0xF13;
+    let athlete_id = 14;
+
+    let mut scenario = test_scenario::begin(publisher);
+    test_scenario::create_system_objects(&mut scenario);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = unit::create_unit(
+        &admin_cap,
+        &mut registry,
+        athlete_id,
+        b"target-blob",
+        2,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(first_submitter);
+
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    scenario.next_tx(second_submitter);
+
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    scenario.next_tx(third_submitter);
+
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-3", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    scenario.end();
+}

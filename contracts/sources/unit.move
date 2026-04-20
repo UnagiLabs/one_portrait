@@ -95,6 +95,11 @@ public fun submit_photo(
             submitted_at_ms,
         },
     );
+    let submitted_count = vector::length(&unit.submissions);
+    let filled_now = submitted_count == unit.max_slots;
+    if (filled_now) {
+        unit.status = STATUS_FILLED;
+    };
 
     kakera::mint_and_transfer(
         object::id(unit),
@@ -111,9 +116,17 @@ public fun submit_photo(
         submitter,
         walrus_blob_id,
         submission_no,
-        vector::length(&unit.submissions),
+        submitted_count,
         unit.max_slots,
     );
+    if (filled_now) {
+        events::emit_unit_filled(
+            object::id(unit),
+            unit.athlete_id,
+            submitted_count,
+            unit.max_slots,
+        );
+    };
 }
 
 #[test_only]
@@ -129,6 +142,11 @@ public fun max_slots_for_testing(unit: &Unit): u64 {
 #[test_only]
 public fun is_pending_for_testing(unit: &Unit): bool {
     unit.status == STATUS_PENDING
+}
+
+#[test_only]
+public fun is_filled_for_testing(unit: &Unit): bool {
+    unit.status == STATUS_FILLED
 }
 
 #[test_only]

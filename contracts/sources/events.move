@@ -47,6 +47,20 @@ public(package) fun emit_submitted(
     });
 }
 
+public(package) fun emit_unit_filled(
+    unit_id: ID,
+    athlete_id: u16,
+    filled_count: u64,
+    max_slots: u64,
+) {
+    event::emit(UnitFilledEvent {
+        unit_id,
+        athlete_id,
+        filled_count,
+        max_slots,
+    });
+}
+
 #[test_only]
 public fun submitted_event_unit_id_for_testing(event: &SubmittedEvent): ID {
     event.unit_id
@@ -79,5 +93,25 @@ public fun submitted_event_submitted_count_for_testing(event: &SubmittedEvent): 
 
 #[test_only]
 public fun submitted_event_max_slots_for_testing(event: &SubmittedEvent): u64 {
+    event.max_slots
+}
+
+#[test_only]
+public fun unit_filled_event_unit_id_for_testing(event: &UnitFilledEvent): ID {
+    event.unit_id
+}
+
+#[test_only]
+public fun unit_filled_event_athlete_id_for_testing(event: &UnitFilledEvent): u16 {
+    event.athlete_id
+}
+
+#[test_only]
+public fun unit_filled_event_filled_count_for_testing(event: &UnitFilledEvent): u64 {
+    event.filled_count
+}
+
+#[test_only]
+public fun unit_filled_event_max_slots_for_testing(event: &UnitFilledEvent): u64 {
     event.max_slots
 }
