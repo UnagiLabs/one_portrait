@@ -8,7 +8,7 @@ import {
   useWallets,
 } from "@mysten/dapp-kit";
 import { isGoogleWallet } from "@mysten/enoki";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   EnokiSubmitClientError,
@@ -155,6 +155,46 @@ function ParticipationAccessEnabled({
   const [consented, setConsented] = useState(false);
   const [phase, setPhase] = useState<UploadPhase>({ kind: "ready" });
 
+  // Tracks every object URL we have handed out so we can reliably
+  // `URL.revokeObjectURL` it when the user picks a different file or the
+  // component unmounts. Without this, re-selecting a photo (or sitting on a
+  // long-running session) leaks the encoded JPEG Blob inside the browser.
+  const previewUrlsRef = useRef<Set<string>>(new Set());
+  const registerPreviewUrl = (url: string): void => {
+    previewUrlsRef.current.add(url);
+  };
+  const revokePreviewUrls = (): void => {
+    const set = previewUrlsRef.current;
+    for (const url of Array.from(set)) {
+      if (
+        typeof URL !== "undefined" &&
+        typeof URL.revokeObjectURL === "function"
+      ) {
+        URL.revokeObjectURL(url);
+      }
+      set.delete(url);
+    }
+  };
+
+  // Final cleanup on unmount so the page-level navigation away from the
+  // waiting room does not leave preview blobs pinned. The cleanup reads
+  // the ref directly so it has no external dependencies — React hooks
+  // lint is satisfied with an empty dep list.
+  useEffect(() => {
+    const set = previewUrlsRef.current;
+    return () => {
+      for (const url of Array.from(set)) {
+        if (
+          typeof URL !== "undefined" &&
+          typeof URL.revokeObjectURL === "function"
+        ) {
+          URL.revokeObjectURL(url);
+        }
+        set.delete(url);
+      }
+    };
+  }, []);
+
   const googleWallet = wallets.find(isGoogleWallet) ?? null;
   const isConnecting = currentWallet.connectionStatus === "connecting";
 
@@ -188,10 +228,15 @@ function ParticipationAccessEnabled({
   }
 
   async function handleFileChange(file: File): Promise<void> {
+    // Revoke any preview from an earlier attempt before kicking off a new
+    // preprocess run — the old Blob/object URL is no longer referenced by
+    // the UI once we enter "processing".
+    revokePreviewUrls();
     setPhase({ kind: "processing" });
 
     try {
       const photo = await preprocessPhoto(file);
+      registerPreviewUrl(photo.previewUrl);
       setPhase({ kind: "previewing", photo });
     } catch (error) {
       setPhase({ kind: "error", message: toMessage(error) });
@@ -241,8 +286,14 @@ function ParticipationAccessEnabled({
   const isProcessing = phase.kind === "processing";
   const isUploading = phase.kind === "uploading";
   const isSubmitting = phase.kind === "submitting";
+  const isDone = phase.kind === "done";
+  // Submission is one-shot: once the on-chain `submit_photo` lands, the Move
+  // side rejects any further attempt from the same sender, but the UI must
+  // also stop offering an input that would let the user overwrite the
+  // participation card with an error state. Gate every interactive control
+  // on `isDone` so the success card is the terminal view for this unit.
   const fileInputDisabled =
-    !consented || isProcessing || isUploading || isSubmitting;
+    !consented || isProcessing || isUploading || isSubmitting || isDone;
   const previewPhoto =
     phase.kind === "previewing" ||
     phase.kind === "uploading" ||
@@ -254,6 +305,7 @@ function ParticipationAccessEnabled({
     phase.kind === "previewing" ||
     phase.kind === "uploading" ||
     phase.kind === "submitting";
+  const showConsentAndFilePicker = !isDone;
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
   const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
@@ -276,37 +328,41 @@ function ParticipationAccessEnabled({
             {currentAccount.address}
           </p>
 
-          <label className="flex items-start gap-2 text-sm text-slate-200">
-            <input
-              checked={consented}
-              className="mt-1"
-              onChange={(event) => {
-                setConsented(event.target.checked);
-              }}
-              type="checkbox"
-            />
-            <span>
-              投稿した原画像は Walrus に保存され、blob_id
-              を知る人は誰でも取得できます。 また、参加の証として
-              Soulbound（譲渡不可）の Kakera NFT
-              が自分のウォレットに発行されることに同意します。
-            </span>
-          </label>
+          {showConsentAndFilePicker ? (
+            <>
+              <label className="flex items-start gap-2 text-sm text-slate-200">
+                <input
+                  checked={consented}
+                  className="mt-1"
+                  onChange={(event) => {
+                    setConsented(event.target.checked);
+                  }}
+                  type="checkbox"
+                />
+                <span>
+                  投稿した原画像は Walrus に保存され、blob_id
+                  を知る人は誰でも取得できます。 また、参加の証として
+                  Soulbound（譲渡不可）の Kakera NFT
+                  が自分のウォレットに発行されることに同意します。
+                </span>
+              </label>
 
-          <label className="grid gap-2 text-sm text-slate-200">
-            <span>写真を選択</span>
-            <input
-              accept="image/*"
-              disabled={fileInputDisabled}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleFileChange(file);
-                }
-              }}
-              type="file"
-            />
-          </label>
+              <label className="grid gap-2 text-sm text-slate-200">
+                <span>写真を選択</span>
+                <input
+                  accept="image/*"
+                  disabled={fileInputDisabled}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void handleFileChange(file);
+                    }
+                  }}
+                  type="file"
+                />
+              </label>
+            </>
+          ) : null}
 
           {isProcessing ? (
             <p className="text-sm text-slate-300" role="status">

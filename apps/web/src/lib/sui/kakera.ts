@@ -38,6 +38,14 @@ export type FindKakeraForSubmissionArgs = {
 };
 
 /**
+ * Safety cap on pagination. A participant never legitimately holds more
+ * than a few Kakera at once (one per unit they've completed), but we guard
+ * against an attacker / unrelated object spam inflating the fullnode
+ * response so the hook cannot spin indefinitely.
+ */
+const MAX_OWNED_OBJECT_PAGES = 20;
+
+/**
  * Locate the Kakera that matches a specific submission, or `null` if the
  * owner does not (yet) hold such an object.
  *
@@ -50,38 +58,57 @@ export type FindKakeraForSubmissionArgs = {
  * the type in TS because stubs (and some RPC shapes) don't always honour
  * the filter perfectly — defence in depth keeps the helper safe against
  * unrelated objects that happen to slip through.
+ *
+ * Pagination: `getOwnedObjects` is a paginated RPC. A participant who has
+ * already received one or more Kakera from other units (multi-unit
+ * lifecycle) can legitimately hold multiple matching objects, and fullnode
+ * page sizes are not guaranteed large enough to fit everything. We walk
+ * `hasNextPage` / `nextCursor` until we find the target or exhaust the
+ * safety cap.
  */
 export async function findKakeraForSubmission(
   args: FindKakeraForSubmissionArgs,
 ): Promise<OwnedKakera | null> {
   const expectedType = `${args.packageId}::kakera::Kakera`;
 
-  const response = await args.suiClient.getOwnedObjects({
-    owner: args.ownerAddress,
-    filter: {
-      StructType: expectedType,
-    },
-    options: { showContent: true, showType: true },
-  });
+  let cursor: string | null | undefined;
+  for (let page = 0; page < MAX_OWNED_OBJECT_PAGES; page += 1) {
+    const response = await args.suiClient.getOwnedObjects({
+      owner: args.ownerAddress,
+      filter: {
+        StructType: expectedType,
+      },
+      options: { showContent: true, showType: true },
+      cursor: cursor ?? null,
+    });
 
-  for (const entry of response.data ?? []) {
-    const data = entry.data;
-    if (!data?.content) continue;
-    if (data.type !== expectedType) continue;
+    for (const entry of response.data ?? []) {
+      const data = entry.data;
+      if (!data?.content) continue;
+      if (data.type !== expectedType) continue;
 
-    const fields = extractMoveObjectFields(data.content);
-    const unitId = readIdField(fields.unit_id);
-    if (unitId !== args.unitId) continue;
+      const fields = extractMoveObjectFields(data.content);
+      const unitId = readIdField(fields.unit_id);
+      if (unitId !== args.unitId) continue;
 
-    const blobId = readVectorU8AsString(fields.walrus_blob_id);
-    if (blobId !== args.walrusBlobId) continue;
+      const blobId = readVectorU8AsString(fields.walrus_blob_id);
+      if (blobId !== args.walrusBlobId) continue;
 
-    return {
-      objectId: data.objectId,
-      unitId,
-      walrusBlobId: blobId,
-      submissionNo: readIntegerField(fields.submission_no),
-    };
+      return {
+        objectId: data.objectId,
+        unitId,
+        walrusBlobId: blobId,
+        submissionNo: readIntegerField(fields.submission_no),
+      };
+    }
+
+    if (!response.hasNextPage) {
+      return null;
+    }
+    cursor = response.nextCursor ?? null;
+    if (cursor == null) {
+      return null;
+    }
   }
 
   return null;

@@ -166,4 +166,78 @@ describe("findKakeraForSubmission", () => {
 
     expect(result?.objectId).toBe("0xkakera-real");
   });
+
+  it("walks pagination cursors until the matching Kakera is found", async () => {
+    // A participant who has previously joined another unit can legitimately
+    // hold multiple Kakera; the target may sit on the second page of a
+    // paginated `getOwnedObjects` response. The helper must not declare
+    // "not found" as soon as the first page fails to match.
+    const otherUnitKakera = kakeraObject({
+      objectId: "0xkakera-other",
+      fields: { unit_id: "0xunit-other" },
+    });
+    const matchingKakera = kakeraObject({ objectId: "0xkakera-match" });
+
+    const getOwnedObjects = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [otherUnitKakera],
+        hasNextPage: true,
+        nextCursor: "cursor-1",
+      })
+      .mockResolvedValueOnce({
+        data: [matchingKakera],
+        hasNextPage: false,
+        nextCursor: null,
+      });
+
+    const client = {
+      getOwnedObjects,
+    } as unknown as KakeraOwnedClient;
+
+    const result = await findKakeraForSubmission({
+      suiClient: client,
+      ownerAddress: OWNER,
+      unitId: UNIT_ID,
+      walrusBlobId: WALRUS_BLOB_ID,
+      packageId: PACKAGE_ID,
+    });
+
+    expect(result?.objectId).toBe("0xkakera-match");
+    expect(getOwnedObjects).toHaveBeenCalledTimes(2);
+    const firstCall = getOwnedObjects.mock.calls[0]?.[0];
+    const secondCall = getOwnedObjects.mock.calls[1]?.[0];
+    expect(firstCall?.cursor).toBeNull();
+    expect(secondCall?.cursor).toBe("cursor-1");
+  });
+
+  it("returns null after exhausting pagination without a match", async () => {
+    const getOwnedObjects = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [kakeraObject({ fields: { unit_id: "0xunit-other" } })],
+        hasNextPage: true,
+        nextCursor: "cursor-1",
+      })
+      .mockResolvedValueOnce({
+        data: [kakeraObject({ fields: { unit_id: "0xunit-other-2" } })],
+        hasNextPage: false,
+        nextCursor: null,
+      });
+
+    const client = {
+      getOwnedObjects,
+    } as unknown as KakeraOwnedClient;
+
+    const result = await findKakeraForSubmission({
+      suiClient: client,
+      ownerAddress: OWNER,
+      unitId: UNIT_ID,
+      walrusBlobId: WALRUS_BLOB_ID,
+      packageId: PACKAGE_ID,
+    });
+
+    expect(result).toBeNull();
+    expect(getOwnedObjects).toHaveBeenCalledTimes(2);
+  });
 });
