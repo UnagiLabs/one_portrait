@@ -1,4 +1,8 @@
-import { athleteCatalog, requiredWebEnvKeys } from "@one-portrait/shared";
+import {
+  athleteCatalog,
+  requiredWebEnvKeys,
+  unitTileCount,
+} from "@one-portrait/shared";
 
 const featuredAthlete = athleteCatalog[0];
 
@@ -12,7 +16,7 @@ export default function HomePage() {
           </p>
           <div className="grid gap-4">
             <h1 className="max-w-3xl font-serif text-5xl leading-tight text-white md:text-6xl">
-              500 faces, one reveal.
+              {unitTileCount} faces, one reveal.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-200">
               Next.js workspace is ready. The first waiting room can now be
