@@ -42,6 +42,18 @@ public fun new_placement_input(
     }
 }
 
+public(package) fun placement_input_blob_id(input: &PlacementInput): vector<u8> {
+    copy input.blob_id
+}
+
+public(package) fun placement_input_submitter(input: &PlacementInput): address {
+    input.submitter
+}
+
+public(package) fun placement_input_submission_no(input: &PlacementInput): u64 {
+    input.submission_no
+}
+
 public(package) fun create(
     unit_id: ID,
     athlete_id: u16,

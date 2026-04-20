@@ -726,3 +726,112 @@ fun finalize_rejects_double_finalize() {
     test_scenario::return_shared(unit);
     scenario.end();
 }
+
+#[test, expected_failure(abort_code = unit::EBLOB_ALREADY_SUBMITTED)]
+fun submit_photo_rejects_duplicate_blob_id_from_different_sender() {
+    let publisher = @0xA11CE;
+    let first_submitter = @0xF41;
+    let second_submitter = @0xF42;
+    let blob_id = b"shared-blob";
+
+    let mut scenario = test_scenario::begin(publisher);
+    test_scenario::create_system_objects(&mut scenario);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = unit::create_unit(
+        &admin_cap,
+        &mut registry,
+        18,
+        b"target-blob",
+        3,
+        scenario.ctx(),
+    );
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(first_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+    let first_effects = scenario.next_tx(first_submitter);
+    assert_eq!(first_effects.num_user_events(), 1);
+    let first_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(first_kakera);
+
+    scenario.next_tx(second_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, blob_id, &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = unit::EINVALID_PLACEMENTS)]
+fun finalize_rejects_mismatched_placements() {
+    let publisher = @0xA11CE;
+    let first_submitter = @0xF51;
+    let second_submitter = @0xF52;
+
+    let mut scenario = test_scenario::begin(publisher);
+    test_scenario::create_system_objects(&mut scenario);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = unit::create_unit(
+        &admin_cap,
+        &mut registry,
+        19,
+        b"target-blob",
+        2,
+        scenario.ctx(),
+    );
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(first_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+    let first_effects = scenario.next_tx(first_submitter);
+    assert_eq!(first_effects.num_user_events(), 1);
+    let first_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(first_kakera);
+
+    scenario.next_tx(second_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    unit::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+    let second_effects = scenario.next_tx(second_submitter);
+    assert_eq!(second_effects.num_user_events(), 2);
+    let second_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(second_kakera);
+
+    scenario.next_tx(publisher);
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    unit::finalize(
+        &admin_cap,
+        &mut unit,
+        b"mosaic-blob",
+        vector[
+            master_portrait::new_placement_input(b"photo-1", 10, 20, second_submitter, 1),
+            master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+        ],
+        scenario.ctx(),
+    );
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(unit);
+    scenario.end();
+}

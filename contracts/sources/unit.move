@@ -17,6 +17,8 @@ const EUNIT_NOT_PENDING: u64 = 3;
 const EALREADY_SUBMITTED: u64 = 4;
 const EUNIT_NOT_FILLED: u64 = 5;
 const EMASTER_ALREADY_SET: u64 = 6;
+const EBLOB_ALREADY_SUBMITTED: u64 = 7;
+const EINVALID_PLACEMENTS: u64 = 8;
 
 public struct Unit has key {
     id: UID,
@@ -83,6 +85,7 @@ public fun submit_photo(
 
     let submitter = tx_context::sender(ctx);
     assert!(!table::contains(&unit.submitters, submitter), EALREADY_SUBMITTED);
+    assert!(!has_blob_id(&unit.submissions, &walrus_blob_id), EBLOB_ALREADY_SUBMITTED);
 
     let submission_no = vector::length(&unit.submissions) + 1;
     let submitted_at_ms = clock::timestamp_ms(clock);
@@ -201,6 +204,49 @@ public fun submission_ref_submitted_at_ms_for_testing(submission: &SubmissionRef
     submission.submitted_at_ms
 }
 
+fun validate_placements(unit: &Unit, placements: &vector<PlacementInput>) {
+    let submission_count = vector::length(&unit.submissions);
+    assert!(vector::length(placements) == submission_count, EINVALID_PLACEMENTS);
+
+    let mut placement_index = 0;
+    while (placement_index < vector::length(placements)) {
+        let placement = vector::borrow(placements, placement_index);
+        let placement_blob_id = master_portrait::placement_input_blob_id(placement);
+
+        let mut duplicate_index = 0;
+        while (duplicate_index < placement_index) {
+            let previous = vector::borrow(placements, duplicate_index);
+            assert!(
+                master_portrait::placement_input_blob_id(previous) != placement_blob_id,
+                EINVALID_PLACEMENTS,
+            );
+            duplicate_index = duplicate_index + 1;
+        };
+
+        let mut matched = false;
+        let mut submission_index = 0;
+        while (submission_index < submission_count) {
+            let submission = vector::borrow(&unit.submissions, submission_index);
+            if (copy submission.walrus_blob_id == placement_blob_id) {
+                assert!(
+                    submission.submitter == master_portrait::placement_input_submitter(placement),
+                    EINVALID_PLACEMENTS,
+                );
+                assert!(
+                    submission.submission_no
+                        == master_portrait::placement_input_submission_no(placement),
+                    EINVALID_PLACEMENTS,
+                );
+                matched = true;
+            };
+            submission_index = submission_index + 1;
+        };
+
+        assert!(matched, EINVALID_PLACEMENTS);
+        placement_index = placement_index + 1;
+    };
+}
+
 #[allow(lint(self_transfer))]
 public fun finalize(
     _admin_cap: &AdminCap,
@@ -211,6 +257,7 @@ public fun finalize(
 ) {
     assert!(unit.status == STATUS_FILLED, EUNIT_NOT_FILLED);
     assert!(option::is_none(&unit.master_id), EMASTER_ALREADY_SET);
+    validate_placements(unit, &placements);
 
     let master_id = master_portrait::create_and_transfer(
         object::id(unit),
@@ -230,4 +277,15 @@ public fun finalize(
         master_id,
         mosaic_blob_id,
     );
+}
+
+fun has_blob_id(submissions: &vector<SubmissionRef>, walrus_blob_id: &vector<u8>): bool {
+    let mut i = 0;
+    while (i < vector::length(submissions)) {
+        if (vector::borrow(submissions, i).walrus_blob_id == *walrus_blob_id) {
+            return true
+        };
+        i = i + 1;
+    };
+    false
 }
