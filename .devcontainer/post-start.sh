@@ -22,6 +22,28 @@ sync_file() {
   fi
 }
 
+sync_dir() {
+  local src="$1"
+  local dest="$2"
+  local label="${3:-$(basename "$dest")}"
+
+  if [ ! -d "$src" ]; then
+    return 0
+  fi
+
+  mkdir -p "$dest"
+
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete "$src"/ "$dest"/
+  else
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -R "$src"/. "$dest"/
+  fi
+
+  echo "[devcontainer] Synced $label from host."
+}
+
 sync_git_identity() {
   local host_name=""
   local host_email=""
@@ -76,6 +98,16 @@ sync_file "$HOST_CLAUDE_DIR/.credentials.json" "$CONTAINER_CLAUDE_DIR/.credentia
 sync_file "$HOST_CLAUDE_DIR/.claude.json" "$CONTAINER_CLAUDE_DIR/.claude.json"
 sync_file "$HOST_CODEX_DIR/auth.json" "$CONTAINER_CODEX_DIR/auth.json"
 sync_file "$HOST_CODEX_DIR/config.toml" "$CONTAINER_CODEX_DIR/config.toml"
+sync_file "$HOST_CODEX_DIR/AGENTS.md" "$CONTAINER_CODEX_DIR/AGENTS.md"
 sync_file "$HOST_CODEX_DIR/installation_id" "$CONTAINER_CODEX_DIR/installation_id"
+sync_file "$HOST_CODEX_DIR/ecc-install-state.json" "$CONTAINER_CODEX_DIR/ecc-install-state.json"
+sync_file "$HOST_CODEX_DIR/the-security-guide.md" "$CONTAINER_CODEX_DIR/the-security-guide.md"
+sync_dir "$HOST_CODEX_DIR/prompts" "$CONTAINER_CODEX_DIR/prompts" "Codex prompts"
+sync_dir "$HOST_CODEX_DIR/agents" "$CONTAINER_CODEX_DIR/agents" "Codex agents"
+sync_dir "$HOST_CODEX_DIR/.agents" "$CONTAINER_CODEX_DIR/.agents" "Codex .agents"
+sync_dir "$HOST_CODEX_DIR/skills" "$CONTAINER_CODEX_DIR/skills" "Codex skills"
+sync_dir "$HOST_CODEX_DIR/git-hooks" "$CONTAINER_CODEX_DIR/git-hooks" "Codex git hooks"
+sync_dir "$HOST_CODEX_DIR/mcp-configs" "$CONTAINER_CODEX_DIR/mcp-configs" "Codex MCP configs"
+sync_dir "$HOST_CODEX_DIR/scripts" "$CONTAINER_CODEX_DIR/scripts" "Codex scripts"
 sync_git_identity
 sync_codex_project_trust
