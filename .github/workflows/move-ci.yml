@@ -10,8 +10,6 @@ jobs:
   move-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      XDG_CONFIG_HOME: ${{ runner.temp }}/xdg-config
 
     defaults:
       run:
@@ -25,6 +23,8 @@ jobs:
       - name: Install Sui CLI
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/xdg-config"
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/xdg-config" >> "$GITHUB_ENV"
           curl -sSfL https://raw.githubusercontent.com/MystenLabs/suiup/main/install.sh | sh
           export PATH="$HOME/.local/bin:$PATH"
           suiup install -y sui@testnet
