@@ -26,9 +26,11 @@ const WALRUS_BLOB_ID = "walrus-blob-xyz";
 function makeKakera(): OwnedKakera {
   return {
     objectId: "0xkakera-1",
+    athletePublicId: "1",
     unitId: UNIT_ID,
     walrusBlobId: WALRUS_BLOB_ID,
     submissionNo: 42,
+    mintedAtMs: 1700000000000,
   };
 }
 

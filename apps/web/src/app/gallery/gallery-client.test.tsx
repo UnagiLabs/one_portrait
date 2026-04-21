@@ -41,9 +41,11 @@ const CATALOG = [
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
+    athletePublicId: "1",
     unitId: "0xunit-1",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
+    mintedAtMs: 1700000000000,
     ...overrides,
   };
 }
@@ -58,6 +60,7 @@ function pendingEntry(
     athletePublicId: "1",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
+    mintedAtMs: 1700000000000,
     masterId: null,
     mosaicWalrusBlobId: null,
     placement: null,
@@ -76,6 +79,7 @@ function completedEntry(
     athletePublicId: "1",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
+    mintedAtMs: 1700000000000,
     masterId: "0xmaster-1",
     mosaicWalrusBlobId: "walrus-mosaic-1",
     placement: {
@@ -170,6 +174,54 @@ describe("GalleryClient", () => {
     ).toContain("/v1/blobs/walrus-mosaic-1");
   });
 
+  it("sorts entries by mintedAtMs across units", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([
+      ownedKakera({
+        objectId: "0xolder",
+        unitId: "0xunit-older",
+        walrusBlobId: "walrus-original-older",
+        submissionNo: 10,
+        mintedAtMs: 1700000000000,
+      }),
+      ownedKakera({
+        objectId: "0xnewer",
+        unitId: "0xunit-newer",
+        walrusBlobId: "walrus-original-newer",
+        submissionNo: 1,
+        mintedAtMs: 1800000000000,
+      }),
+    ]);
+    getGalleryEntryMock
+      .mockResolvedValueOnce(
+        completedEntry({
+          unitId: "0xunit-older",
+          walrusBlobId: "walrus-original-older",
+          submissionNo: 10,
+          mintedAtMs: 1700000000000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        completedEntry({
+          unitId: "0xunit-newer",
+          walrusBlobId: "walrus-original-newer",
+          submissionNo: 1,
+          mintedAtMs: 1800000000000,
+        }),
+      );
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    const headings = await screen.findAllByRole("heading", { level: 2 });
+    const unitIds = screen
+      .getAllByText(/^0xunit-/)
+      .map((element) => element.textContent);
+
+    expect(headings).toHaveLength(2);
+    expect(unitIds[0]).toBe("0xunit-newer");
+    expect(unitIds[1]).toBe("0xunit-older");
+  });
+
   it("keeps the completed card usable when the original image fails", async () => {
     useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
     listOwnedKakeraMock.mockResolvedValue([ownedKakera()]);
@@ -190,5 +242,25 @@ describe("GalleryClient", () => {
       screen.getByAltText(/Demo Athlete One completed mosaic/i),
     ).toBeTruthy();
     expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
+  });
+
+  it("keeps an unavailable card when gallery entry hydration fails", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([
+      ownedKakera({
+        unitId: "0xunit-unavailable",
+        submissionNo: 21,
+      }),
+    ]);
+    getGalleryEntryMock.mockRejectedValue(new Error("rpc down"));
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Entry unavailable right now/i)).toBeTruthy();
+    });
+
+    expect(screen.getByText(/Submission #21/i)).toBeTruthy();
+    expect(screen.queryByText(/No Kakera found for this wallet/i)).toBeNull();
   });
 });

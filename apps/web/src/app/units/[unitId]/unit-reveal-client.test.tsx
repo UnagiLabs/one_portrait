@@ -82,6 +82,7 @@ function completedEntry(
     athletePublicId: "1",
     walrusBlobId: "walrus-blob-1",
     submissionNo: 42,
+    mintedAtMs: 1700000000000,
     masterId: "0xmaster-1",
     mosaicWalrusBlobId: "mosaic-gallery-blob",
     placement: {
@@ -98,9 +99,11 @@ function completedEntry(
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
+    athletePublicId: "1",
     unitId: "0xunit-1",
     walrusBlobId: "walrus-blob-1",
     submissionNo: 42,
+    mintedAtMs: 1700000000000,
     ...overrides,
   };
 }

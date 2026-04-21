@@ -137,15 +137,19 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-1",
+        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
+        mintedAtMs: 1700000000000,
       },
       {
         objectId: "0xkakera-2",
+        athletePublicId: "1",
         unitId: "0xunit-2",
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
+        mintedAtMs: 1700000000000,
       },
     ]);
   });
@@ -168,9 +172,11 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-real",
+        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
+        mintedAtMs: 1700000000000,
       },
     ]);
   });
@@ -211,9 +217,11 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-real",
+        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
+        mintedAtMs: 1700000000000,
       },
     ]);
   });
@@ -247,9 +255,11 @@ describe("findOwnedKakeraForUnit", () => {
       }),
     ).resolves.toEqual({
       objectId: "0xunit-2-kakera",
+      athletePublicId: "1",
       unitId: "0xunit-2",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: 42,
+      mintedAtMs: 1700000000000,
     });
   });
 
@@ -286,9 +296,11 @@ describe("findKakeraForSubmission", () => {
 
     expect(result).not.toBeNull();
     expect(result?.objectId).toBe("0xkakera-1");
+    expect(result?.athletePublicId).toBe("1");
     expect(result?.unitId).toBe(UNIT_ID);
     expect(result?.walrusBlobId).toBe(WALRUS_BLOB_ID);
     expect(result?.submissionNo).toBe(42);
+    expect(result?.mintedAtMs).toBe(1700000000000);
   });
 
   it("returns null when the object type is not Kakera", async () => {

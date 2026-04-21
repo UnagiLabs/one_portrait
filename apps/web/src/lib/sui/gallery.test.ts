@@ -19,9 +19,11 @@ function encodeBytes(value: string): number[] {
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
+    athletePublicId: "7",
     unitId: UNIT_ID,
     walrusBlobId: WALRUS_BLOB_ID,
     submissionNo: SUBMISSION_NO,
+    mintedAtMs: 1700000000000,
     ...overrides,
   };
 }
@@ -168,6 +170,7 @@ describe("getGalleryEntry", () => {
       athletePublicId: "7",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
+      mintedAtMs: 1700000000000,
       masterId: null,
       mosaicWalrusBlobId: null,
       placement: null,
@@ -188,6 +191,7 @@ describe("getGalleryEntry", () => {
       athletePublicId: "7",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
+      mintedAtMs: 1700000000000,
       masterId: MASTER_ID,
       mosaicWalrusBlobId: MOSAIC_BLOB_ID,
       placement: {
@@ -217,6 +221,7 @@ describe("getGalleryEntry", () => {
       athletePublicId: "7",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
+      mintedAtMs: 1700000000000,
       masterId: MASTER_ID,
       mosaicWalrusBlobId: MOSAIC_BLOB_ID,
       placement: null,

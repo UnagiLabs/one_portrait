@@ -83,6 +83,7 @@ export type GalleryEntryView =
       readonly athletePublicId: AthletePublicId;
       readonly walrusBlobId: string;
       readonly submissionNo: number;
+      readonly mintedAtMs: number;
       readonly masterId: null;
       readonly mosaicWalrusBlobId: null;
       readonly placement: null;
@@ -93,6 +94,7 @@ export type GalleryEntryView =
       readonly athletePublicId: AthletePublicId;
       readonly walrusBlobId: string;
       readonly submissionNo: number;
+      readonly mintedAtMs: number;
       readonly masterId: string;
       readonly mosaicWalrusBlobId: string;
       readonly placement: MasterPlacementView | null;

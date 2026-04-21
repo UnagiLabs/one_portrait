@@ -4,7 +4,7 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
-import type { GalleryEntryView } from "../../lib/sui";
+import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
 type GalleryClientProps = {
@@ -12,11 +12,39 @@ type GalleryClientProps = {
   readonly packageId: string;
 };
 
+type GalleryRenderableEntry = GalleryEntryView | GalleryUnavailableEntry;
+
+type GalleryUnavailableEntry = {
+  readonly unitId: string;
+  readonly athletePublicId: string;
+  readonly walrusBlobId: string;
+  readonly submissionNo: number;
+  readonly mintedAtMs: number;
+  readonly status: { readonly kind: "unavailable" };
+};
+
+type CompletedGalleryEntry = Extract<
+  GalleryEntryView,
+  { readonly status: { readonly kind: "completed" } }
+>;
+
 type LoadState =
-  | { readonly kind: "idle"; readonly entries: readonly GalleryEntryView[] }
-  | { readonly kind: "loading"; readonly entries: readonly GalleryEntryView[] }
-  | { readonly kind: "ready"; readonly entries: readonly GalleryEntryView[] }
-  | { readonly kind: "error"; readonly entries: readonly GalleryEntryView[] };
+  | {
+      readonly kind: "idle";
+      readonly entries: readonly GalleryRenderableEntry[];
+    }
+  | {
+      readonly kind: "loading";
+      readonly entries: readonly GalleryRenderableEntry[];
+    }
+  | {
+      readonly kind: "ready";
+      readonly entries: readonly GalleryRenderableEntry[];
+    }
+  | {
+      readonly kind: "error";
+      readonly entries: readonly GalleryRenderableEntry[];
+    };
 
 export function GalleryClient({
   catalog,
@@ -72,7 +100,7 @@ export function GalleryClient({
                 kakera: owned,
               });
             } catch {
-              return null;
+              return createUnavailableEntry(owned);
             }
           }),
         );
@@ -83,9 +111,9 @@ export function GalleryClient({
 
         setState({
           kind: "ready",
-          entries: resolved
-            .filter((entry): entry is GalleryEntryView => entry !== null)
-            .sort((left, right) => right.submissionNo - left.submissionNo),
+          entries: resolved.sort(
+            (left, right) => right.mintedAtMs - left.mintedAtMs,
+          ),
         });
       } catch {
         if (!cancelled) {
@@ -176,7 +204,7 @@ export function GalleryClient({
 
 type GalleryCardProps = {
   readonly athlete: AthleteCatalogEntry | null;
-  readonly entry: GalleryEntryView;
+  readonly entry: GalleryRenderableEntry;
   readonly originalImageFailed: boolean;
   readonly onOriginalImageError: () => void;
 };
@@ -187,19 +215,23 @@ function GalleryCard({
   originalImageFailed,
   onOriginalImageError,
 }: GalleryCardProps): React.ReactElement {
+  const completedEntry = isCompletedEntry(entry) ? entry : null;
   const displayName =
     athlete?.displayName ?? `Athlete #${entry.athletePublicId}`;
   const originalPhotoUrl = buildWalrusAggregatorUrl(entry.walrusBlobId);
-  const completedMosaicUrl =
-    entry.status.kind === "completed"
-      ? buildWalrusAggregatorUrl(entry.mosaicWalrusBlobId)
-      : null;
+  const completedMosaicUrl = completedEntry
+    ? buildWalrusAggregatorUrl(completedEntry.mosaicWalrusBlobId)
+    : null;
 
   return (
     <article className="grid gap-5 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
       <div className="grid gap-1">
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-          {entry.status.kind === "completed" ? "Completed" : "Pending"}
+          {entry.status.kind === "completed"
+            ? "Completed"
+            : entry.status.kind === "pending"
+              ? "Pending"
+              : "Unavailable"}
         </p>
         <h2 className="font-serif text-2xl text-white">{displayName}</h2>
         <p className="font-mono text-xs text-slate-400">{entry.unitId}</p>
@@ -225,7 +257,7 @@ function GalleryCard({
           )}
         </section>
 
-        {entry.status.kind === "completed" ? (
+        {completedEntry !== null ? (
           <section className="grid gap-2">
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
               Mosaic
@@ -256,7 +288,12 @@ function GalleryCard({
             <dt className="text-slate-400">Status</dt>
             <dd>Waiting for reveal</dd>
           </div>
-        ) : (
+        ) : entry.status.kind === "unavailable" ? (
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-slate-400">Status</dt>
+            <dd>Entry unavailable right now</dd>
+          </div>
+        ) : completedEntry !== null ? (
           <>
             <div className="flex items-center justify-between gap-4">
               <dt className="text-slate-400">Status</dt>
@@ -265,14 +302,15 @@ function GalleryCard({
             <div className="flex items-center justify-between gap-4">
               <dt className="text-slate-400">Master</dt>
               <dd className="font-mono text-xs break-all">
-                Master {entry.masterId}
+                Master {completedEntry.masterId}
               </dd>
             </div>
-            {entry.placement ? (
+            {completedEntry.placement ? (
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-slate-400">Placement</dt>
                 <dd>
-                  Placed at {entry.placement.x}, {entry.placement.y}
+                  Placed at {completedEntry.placement.x},{" "}
+                  {completedEntry.placement.y}
                 </dd>
               </div>
             ) : (
@@ -282,10 +320,16 @@ function GalleryCard({
               </div>
             )}
           </>
-        )}
+        ) : null}
       </dl>
     </article>
   );
+}
+
+function isCompletedEntry(
+  entry: GalleryRenderableEntry,
+): entry is CompletedGalleryEntry {
+  return entry.status.kind === "completed";
 }
 
 function findAthlete(
@@ -312,4 +356,15 @@ function buildWalrusAggregatorUrl(blobId: string | null): string | null {
   }
 
   return `${aggregator}/v1/blobs/${blobId}`;
+}
+
+function createUnavailableEntry(kakera: OwnedKakera): GalleryUnavailableEntry {
+  return {
+    unitId: kakera.unitId,
+    athletePublicId: kakera.athletePublicId,
+    walrusBlobId: kakera.walrusBlobId,
+    submissionNo: kakera.submissionNo,
+    mintedAtMs: kakera.mintedAtMs,
+    status: { kind: "unavailable" },
+  };
 }
