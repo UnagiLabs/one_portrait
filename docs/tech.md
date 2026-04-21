@@ -179,7 +179,8 @@ one_portrait/
 
 ### 5.1 ランタイム
 - OpenNext → Cloudflare Workers。`compatibility_flags: ["nodejs_compat"]`。Durable Objects は不使用。
-- 環境変数: `SUI_NETWORK / PACKAGE_ID / WALRUS_PUBLISHER / WALRUS_AGGREGATOR / ENOKI_API_KEY`。
+- 公開 env: `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID`。
+- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_CAP_ID / ADMIN_SUI_PRIVATE_KEY`。
 - 画像は Walrus Aggregator から直接配信（Cloudflare Images Transforms でキャッシュ）。
 
 ### 5.2 ページ / エンドポイント
@@ -276,10 +277,11 @@ one_portrait/
 
 ## 12. 開発・デプロイ
 
-- **ローカル:** JavaScript / TypeScript 系は `pnpm --filter {web|generator|shared} {dev|build|test}`。Move 系は `cd contracts && sui move build` / `sui move test`。
-- **Sui Publish:** `sui client publish contracts` → `PACKAGE_ID` / `AdminCap ID` を `.env` に保存。
-- **デプロイ:** `wrangler deploy` で Web（OpenNext adapter）と Generator Container（on-demand）を個別デプロイ。
-- **CI (GitHub Actions):** `cd contracts && sui move build && sui move test` / `next build` / `wrangler deploy --dry-run` / TypeScript型チェック / ESLint。
+- **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test`。
+- **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
+- **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。Cloudflare 側では `ENOKI_PRIVATE_API_KEY`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY` を secret として置く。
+- **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。deploy 実行端末にも Docker CLI と daemon が必要。
+- **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test` を回す。`e2e` は Playwright の mock 経路を確認する。
 
 ---
 

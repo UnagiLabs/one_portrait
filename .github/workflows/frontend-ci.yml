@@ -6,7 +6,9 @@ on:
       - "apps/**"
       - "shared/**"
       - "generator/**"
+      - "docs/tech.md"
       - "test/**"
+      - "README.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -51,8 +53,11 @@ jobs:
       - name: Unit test
         run: corepack pnpm test
 
+      - name: Web build
+        run: corepack pnpm --filter web run build
+
       - name: Prepare env for bundle size test
         run: cp apps/web/.env.example apps/web/.env
 
-      - name: Cloudflare bundle size
+      - name: Cloudflare dry-run and bundle size
         run: corepack pnpm --filter web run test:bundle-size
