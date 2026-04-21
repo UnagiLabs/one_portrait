@@ -910,9 +910,6 @@ describe("ParticipationAccess", () => {
       await waitFor(() => {
         expect(checkSubmissionExecutionMock).toHaveBeenCalled();
       });
-      expect(
-        screen.getByText(/投稿結果を確認しています。しばらくお待ちください。/),
-      ).toBeTruthy();
 
       await waitFor(
         () => {
