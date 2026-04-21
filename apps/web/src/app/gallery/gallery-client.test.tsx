@@ -301,7 +301,8 @@ describe("GalleryClient", () => {
       });
     });
 
-    expect(screen.getByText(/No Kakera found for this wallet/i)).toBeTruthy();
+    expect(screen.getByText("Empty")).toBeTruthy();
+    expect(screen.getByText(/まだ Kakera が見つかりません。/)).toBeTruthy();
     expect(
       screen.getByText(
         /投稿直後なら、少し待ってからもう一度確認してください。/,
@@ -310,6 +311,42 @@ describe("GalleryClient", () => {
     expect(
       screen.getByRole("button", { name: "もう一度確認する" }),
     ).toBeTruthy();
+  });
+
+  it("shows a fetch failure shell when Kakera loading fails", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockRejectedValue(new Error("rpc down"));
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unavailable")).toBeTruthy();
+    });
+
+    expect(screen.getByText(/履歴を読み込めませんでした。/)).toBeTruthy();
+    expect(
+      screen.getByText(/時間をおいて、もう一度確認してください。/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "もう一度確認する" }),
+    ).toBeTruthy();
+  });
+
+  it("shows a config-missing shell without a retry action", () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+
+    render(<GalleryClient catalog={CATALOG} packageId="" />);
+
+    expect(screen.getByText("Unavailable")).toBeTruthy();
+    expect(screen.getByText(/公開設定を確認できません。/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Sui 接続の公開設定が不足しているため、ギャラリーを開けません。/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "もう一度確認する" }),
+    ).toBeNull();
   });
 
   it("reloads the gallery when the user asks to check again", async () => {

@@ -175,4 +175,25 @@ describe("GalleryPage", () => {
       screen.getByTestId("gallery-client").getAttribute("data-package-id"),
     ).toBe("");
   });
+
+  it("falls back to an empty packageId when public env loading fails", async () => {
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([]);
+    isDemoModeEnabledMock.mockReturnValue(false);
+    loadPublicEnvMock.mockImplementation(() => {
+      throw new Error("missing public env");
+    });
+
+    const ui = await GalleryPage();
+    render(ui);
+
+    expect(
+      screen.getByTestId("gallery-client").getAttribute("data-package-id"),
+    ).toBe("");
+    expect(galleryClientMock).toHaveBeenCalledWith({
+      catalog: CATALOG,
+      demoEntries: undefined,
+      packageId: "",
+    });
+  });
 });
