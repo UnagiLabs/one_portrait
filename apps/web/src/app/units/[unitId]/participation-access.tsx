@@ -308,7 +308,7 @@ function ParticipationAccessEnabled({
     let pending: ReturnType<typeof setTimeout> | null = null;
 
     const verifyExecution = async (): Promise<void> => {
-      let result;
+      let result: Awaited<ReturnType<typeof checkSubmissionExecution>>;
       try {
         result = await checkSubmissionExecution({
           suiClient: getSuiClient(),
@@ -669,9 +669,7 @@ function isAuthExpired(error: unknown): boolean {
   );
 }
 
-function isSubmitRecovering(
-  error: unknown,
-): error is EnokiSubmitClientError & {
+function isSubmitRecovering(error: unknown): error is EnokiSubmitClientError & {
   readonly recovery: SubmitPhotoRecoveryContext;
 } {
   return (

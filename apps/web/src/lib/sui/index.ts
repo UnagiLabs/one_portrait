@@ -56,6 +56,11 @@ export {
   findOwnedKakeraForUnit,
   listOwnedKakera,
 } from "./kakera";
+export {
+  getCurrentUnitIdForAthlete,
+  getRegistryObject,
+  RegistryNotFoundError,
+} from "./registry";
 export type {
   CheckSubmissionExecutionArgs,
   SubmissionExecutionReadClient,
@@ -63,11 +68,6 @@ export type {
   SubmissionExecutionStatus,
 } from "./submission-execution";
 export { checkSubmissionExecution } from "./submission-execution";
-export {
-  getCurrentUnitIdForAthlete,
-  getRegistryObject,
-  RegistryNotFoundError,
-} from "./registry";
 export type {
   AthleteProgressView,
   GalleryEntryView,

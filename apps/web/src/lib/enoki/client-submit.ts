@@ -231,15 +231,10 @@ function toExecuteSubmitError(
   }
 
   if (error instanceof Error && error.message.trim().length > 0) {
-    return new EnokiSubmitClientError(
-      502,
-      "sponsor_failed",
-      error.message,
-      {
-        submissionStatus: "recovering",
-        recovery,
-      },
-    );
+    return new EnokiSubmitClientError(502, "sponsor_failed", error.message, {
+      submissionStatus: "recovering",
+      recovery,
+    });
   }
 
   return new EnokiSubmitClientError(

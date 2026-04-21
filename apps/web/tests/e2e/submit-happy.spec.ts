@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import {
   installDefaultMocks,
@@ -14,7 +14,9 @@ import {
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
-  await expect(page.getByText(/zkLogin アドレスを確認できました/)).toBeVisible();
+  await expect(
+    page.getByText(/zkLogin アドレスを確認できました/),
+  ).toBeVisible();
 
   await page
     .getByRole("checkbox", {

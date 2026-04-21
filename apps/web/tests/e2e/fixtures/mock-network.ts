@@ -229,7 +229,10 @@ async function buildResponse(
 async function handleGetTransactionBlock(
   state: MockState,
   options: Required<
-    Pick<InstallMockOptions, "transactionExecutionStatus" | "transactionBlockDelayMs">
+    Pick<
+      InstallMockOptions,
+      "transactionExecutionStatus" | "transactionBlockDelayMs"
+    >
   >,
 ): Promise<unknown> {
   if (options.transactionBlockDelayMs > 0) {
@@ -238,7 +241,10 @@ async function handleGetTransactionBlock(
     );
   }
 
-  if (!state.submitExecuted || options.transactionExecutionStatus === "unknown") {
+  if (
+    !state.submitExecuted ||
+    options.transactionExecutionStatus === "unknown"
+  ) {
     return {
       digest: STUB_DIGEST,
       effects: null,

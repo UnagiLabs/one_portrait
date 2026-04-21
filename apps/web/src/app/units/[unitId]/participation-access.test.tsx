@@ -46,13 +46,11 @@ vi.mock("../../../lib/enoki/client-submit", () => ({
     code: string;
     status: number;
     submissionStatus: "recovering" | "failed";
-    recovery:
-      | {
-          readonly digest: string;
-          readonly sender: string;
-          readonly blobId: string;
-        }
-      | null;
+    recovery: {
+      readonly digest: string;
+      readonly sender: string;
+      readonly blobId: string;
+    } | null;
 
     constructor(
       status: number,
@@ -707,9 +705,10 @@ describe("ParticipationAccess", () => {
         aggregatorUrl:
           "https://aggregator.example.com/v1/blobs/walrus-blob-recovery",
       }));
-      let resolveExecutionCheck: (
-        value: { readonly status: "failed"; readonly kakera: null },
-      ) => void = () => {};
+      let resolveExecutionCheck: (value: {
+        readonly status: "failed";
+        readonly kakera: null;
+      }) => void = () => {};
       checkSubmissionExecutionMock.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -717,14 +716,19 @@ describe("ParticipationAccess", () => {
           }),
       );
       submitPhoto.mockRejectedValue(
-        new EnokiSubmitClientError(503, "submit_unavailable", "execute failed", {
-          submissionStatus: "recovering",
-          recovery: {
-            digest: "recover-digest",
-            sender: "0xabc123",
-            blobId: "walrus-blob-recovery",
+        new EnokiSubmitClientError(
+          503,
+          "submit_unavailable",
+          "execute failed",
+          {
+            submissionStatus: "recovering",
+            recovery: {
+              digest: "recover-digest",
+              sender: "0xabc123",
+              blobId: "walrus-blob-recovery",
+            },
           },
-        }),
+        ),
       );
 
       render(
@@ -795,14 +799,19 @@ describe("ParticipationAccess", () => {
           kakera: null,
         });
       submitPhoto.mockRejectedValue(
-        new EnokiSubmitClientError(503, "submit_unavailable", "execute failed", {
-          submissionStatus: "recovering",
-          recovery: {
-            digest: "recover-digest",
-            sender: "0xabc123",
-            blobId: "walrus-blob-recovery",
+        new EnokiSubmitClientError(
+          503,
+          "submit_unavailable",
+          "execute failed",
+          {
+            submissionStatus: "recovering",
+            recovery: {
+              digest: "recover-digest",
+              sender: "0xabc123",
+              blobId: "walrus-blob-recovery",
+            },
           },
-        }),
+        ),
       );
 
       render(
@@ -827,9 +836,12 @@ describe("ParticipationAccess", () => {
         screen.queryByRole("button", { name: /もう一度送信する/ }),
       ).toBeNull();
 
-      await waitFor(() => {
-        expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(2);
-      }, { timeout: 3_000 });
+      await waitFor(
+        () => {
+          expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(2);
+        },
+        { timeout: 3_000 },
+      );
 
       await waitFor(() => {
         expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
