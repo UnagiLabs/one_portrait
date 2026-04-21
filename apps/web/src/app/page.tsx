@@ -36,13 +36,14 @@ type CardProgress =
       readonly maxSlots: number;
     }
   | { readonly kind: "waiting" }
-  | { readonly kind: "unavailable" };
+  | {
+      readonly kind: "unavailable";
+      readonly unitId?: string;
+    };
 
 type ResolvedEnv = {
   readonly registryObjectId: string;
 };
-
-const FALLBACK_MAX_SLOTS = unitTileCount;
 
 export default async function HomePage(): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
@@ -104,6 +105,10 @@ function AthleteCard({
   athlete,
   progress,
 }: AthleteCardProps): React.ReactElement {
+  const href =
+    progress.kind === "waiting"
+      ? null
+      : buildWaitingRoomHref(progress.unitId, athlete.displayName);
   const body = (
     <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
       {/* External placeholder URL — keeping <img> over next/image so no
@@ -124,9 +129,9 @@ function AthleteCard({
     </article>
   );
 
-  if (progress.kind === "active") {
+  if (href) {
     return (
-      <Link className="contents" href={`/units/${progress.unitId}`}>
+      <Link className="contents" href={href}>
         {body}
       </Link>
     );
@@ -155,7 +160,7 @@ function ProgressLabel({
   }
   return (
     <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-      Progress unavailable
+      進捗を一時取得できません / Progress temporarily unavailable
     </p>
   );
 }
@@ -177,7 +182,7 @@ function resolveDemoProgress(athletePublicId: string): CardProgress {
 
   const progress = getDemoUnitProgress(unitId);
   if (!progress) {
-    return { kind: "unavailable" };
+    return { kind: "unavailable", unitId };
   }
 
   return {
@@ -209,13 +214,16 @@ async function resolveProgress(
       };
     } catch {
       return {
-        kind: "active",
+        kind: "unavailable",
         unitId,
-        submittedCount: 0,
-        maxSlots: FALLBACK_MAX_SLOTS,
       };
     }
   } catch {
     return { kind: "unavailable" };
   }
+}
+
+function buildWaitingRoomHref(unitId: string, athleteName: string): string {
+  const params = new URLSearchParams({ athleteName });
+  return `/units/${unitId}?${params.toString()}`;
 }
