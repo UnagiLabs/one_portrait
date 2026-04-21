@@ -74,6 +74,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
             Pick an athlete to open their waiting room. Each mosaic reveals the
             moment the {unitTileCount}th photo lands.
           </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="inline-flex items-center rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-200"
+              href="/gallery"
+            >
+              Participation history
+            </Link>
+          </div>
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">

@@ -20,4 +20,26 @@ test.describe("home smoke", () => {
     await expect(athleteHeadings.first()).toBeVisible();
     expect(await athleteHeadings.count()).toBeGreaterThanOrEqual(1);
   });
+
+  test("navigates from the landing hero to the participation gallery", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page);
+
+    await page.goto("/");
+
+    const historyLink = page.getByRole("link", {
+      name: /participation history/i,
+    });
+    await expect(historyLink).toBeVisible();
+
+    await historyLink.click();
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /participation gallery/i,
+      }),
+    ).toBeVisible();
+  });
 });
