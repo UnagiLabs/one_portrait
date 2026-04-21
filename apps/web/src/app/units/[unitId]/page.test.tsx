@@ -60,6 +60,7 @@ import UnitPage from "./page";
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
+  delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
   getUnitProgressMock.mockReset();
   getAthleteByPublicIdMock.mockReset();
   loadPublicEnvMock.mockReset();
@@ -339,5 +340,65 @@ describe("UnitPage", () => {
       screen.getByRole("button", { name: "Google でログイン" }),
     ).toBeTruthy();
     expect(getUnitProgressMock).not.toHaveBeenCalled();
+  });
+
+  it("applies the degraded unit seam only in stub E2E mode", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-missing" }),
+      searchParams: Promise.resolve({
+        athleteName: "Demo Athlete One",
+        op_e2e_unit_progress: "missing",
+      }),
+    });
+    render(ui);
+
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
+    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+  });
+
+  it("ignores the degraded unit seam outside stub E2E mode", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({
+        athleteName: "Route Athlete Name",
+        op_e2e_unit_progress: "missing",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByRole("heading", { name: "Catalog Athlete Name" }),
+    ).toBeTruthy();
+    expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
 });

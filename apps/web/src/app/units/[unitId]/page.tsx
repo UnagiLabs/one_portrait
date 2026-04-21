@@ -25,6 +25,7 @@ type UnitPageProps = {
   readonly params: Promise<{ readonly unitId: string }>;
   readonly searchParams: Promise<{
     readonly athleteName?: string;
+    readonly op_e2e_unit_progress?: string;
   }>;
 };
 
@@ -43,11 +44,16 @@ export default async function UnitPage(
   const { unitId } = await props.params;
   const searchParams = await props.searchParams;
   const demoMode = isDemoModeEnabled(process.env);
+  const e2eDegradedProgress = shouldUseE2EDegradedUnitProgress(
+    searchParams.op_e2e_unit_progress,
+  );
 
   const packageId = safePackageId();
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
-    : await safeGetUnitProgress(unitId);
+    : e2eDegradedProgress
+      ? degradedProgress()
+      : await safeGetUnitProgress(unitId);
   const athlete = progress.athletePublicId
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;
@@ -177,12 +183,7 @@ function safePackageId(): string | null {
 function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {
   const view = getDemoUnitProgress(unitId);
   if (!view) {
-    return {
-      submittedCount: -1,
-      maxSlots: FALLBACK_MAX_SLOTS,
-      athletePublicId: null,
-      masterId: null,
-    };
+    return degradedProgress();
   }
 
   return {
@@ -203,12 +204,7 @@ async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {
       masterId: view.masterId,
     };
   } catch {
-    return {
-      submittedCount: -1,
-      maxSlots: FALLBACK_MAX_SLOTS,
-      athletePublicId: null,
-      masterId: null,
-    };
+    return degradedProgress();
   }
 }
 
@@ -230,5 +226,23 @@ function resolveDisplayName(
     (normalizedRouteAthleteName
       ? normalizedRouteAthleteName
       : "選手情報を一時取得できません")
+  );
+}
+
+function degradedProgress(): ResolvedProgress {
+  return {
+    submittedCount: -1,
+    maxSlots: FALLBACK_MAX_SLOTS,
+    athletePublicId: null,
+    masterId: null,
+  };
+}
+
+function shouldUseE2EDegradedUnitProgress(
+  rawOverride: string | undefined,
+): boolean {
+  return (
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1" &&
+    rawOverride === "missing"
   );
 }
