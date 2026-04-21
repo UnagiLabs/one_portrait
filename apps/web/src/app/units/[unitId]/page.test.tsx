@@ -115,6 +115,38 @@ describe("UnitPage", () => {
     expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
   });
 
+  it("shows a waiting-room link to the participation gallery", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 10,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+    });
+    render(ui);
+
+    const link = screen.getByRole("link", {
+      name: /participation history/i,
+    });
+    expect(link.getAttribute("href")).toBe("/gallery");
+  });
+
   it("passes the packageId from env to the live progress client component", async () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",
