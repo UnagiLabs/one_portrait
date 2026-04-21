@@ -198,6 +198,9 @@ describe("UnitPage", () => {
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "347 /",
     );
+    expect(
+      screen.getByRole("button", { name: "Google でログイン" }),
+    ).toBeTruthy();
     expect(getUnitProgressMock).not.toHaveBeenCalled();
   });
 });

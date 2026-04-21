@@ -3,8 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const demoPackageId =
-  "0x00000000000000000000000000000000000000000000000000000000000000d0";
 const demoRegistryObjectId =
   "0x00000000000000000000000000000000000000000000000000000000000000d1";
 
@@ -22,10 +20,7 @@ const child = spawn(nextBin, ["dev"], {
     ...process.env,
     NEXT_PUBLIC_DEMO_MODE: "1",
     NEXT_PUBLIC_SUI_NETWORK: "testnet",
-    NEXT_PUBLIC_PACKAGE_ID: demoPackageId,
     NEXT_PUBLIC_REGISTRY_OBJECT_ID: demoRegistryObjectId,
-    NEXT_PUBLIC_ENOKI_API_KEY: "demo-enoki-public",
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: "demo-google-client-id",
     OP_LOCAL_FINALIZE_URL:
       process.env.OP_LOCAL_FINALIZE_URL ?? "http://127.0.0.1:8080",
   },

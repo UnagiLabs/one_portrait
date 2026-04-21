@@ -102,6 +102,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
   getSuiClientMock.mockReset();
@@ -120,6 +121,8 @@ describe("GalleryClient", () => {
   });
 
   it("renders demo entries without requiring a connected wallet", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+
     render(
       <GalleryClient
         catalog={CATALOG}
@@ -134,6 +137,11 @@ describe("GalleryClient", () => {
 
     expect(screen.queryByText(/Wallet required/i)).toBeNull();
     expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
+    expect(
+      screen
+        .getByAltText(/Demo Athlete One completed mosaic/i)
+        .getAttribute("src"),
+    ).toContain("placehold.co");
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
   });
 

@@ -68,6 +68,14 @@ export function isDemoModeEnabled(
   return source.NEXT_PUBLIC_DEMO_MODE === "1";
 }
 
+export function getDemoModeSource(): Readonly<
+  Record<"NEXT_PUBLIC_DEMO_MODE", string | undefined>
+> {
+  return {
+    NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
+  };
+}
+
 export function getDemoCurrentUnitIdForAthlete(
   athletePublicId: string,
 ): string | null {

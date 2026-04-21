@@ -38,9 +38,10 @@ export default async function UnitPage(
   props: UnitPageProps,
 ): Promise<React.ReactElement> {
   const { unitId } = await props.params;
+  const demoMode = isDemoModeEnabled(process.env);
 
   const packageId = safePackageId();
-  const progress = isDemoModeEnabled(process.env)
+  const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
     : await safeGetUnitProgress(unitId);
   const athlete = progress.athletePublicId
@@ -111,7 +112,11 @@ export default async function UnitPage(
           )}
         </section>
 
-        <ParticipationAccess unitId={unitId} />
+        {demoMode ? (
+          <DemoParticipationPreview />
+        ) : (
+          <ParticipationAccess unitId={unitId} />
+        )}
 
         {/*
          * Hook points for follow-up issues (kept as comments so reviewers can
@@ -124,6 +129,27 @@ export default async function UnitPage(
          */}
       </div>
     </main>
+  );
+}
+
+function DemoParticipationPreview(): React.ReactElement {
+  return (
+    <section className="grid gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
+      <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
+        Demo login preview
+      </p>
+      <p className="text-sm text-slate-300">
+        `dev:demo` では導線だけを確認します。実際のログインや投稿は行いません。
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <button
+          className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950"
+          type="button"
+        >
+          Google でログイン
+        </button>
+      </div>
+    </section>
   );
 }
 

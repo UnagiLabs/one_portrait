@@ -4,7 +4,7 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
-import { isDemoModeEnabled } from "../../lib/demo";
+import { getDemoModeSource, isDemoModeEnabled } from "../../lib/demo";
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
@@ -358,7 +358,7 @@ function buildWalrusAggregatorUrl(blobId: string | null): string | null {
     return null;
   }
 
-  if (isDemoModeEnabled(process.env)) {
+  if (isDemoModeEnabled(getDemoModeSource())) {
     return `https://placehold.co/960x540/png?text=${encodeURIComponent(blobId)}`;
   }
 
