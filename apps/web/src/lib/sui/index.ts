@@ -34,6 +34,7 @@ export type {
   Unsubscribe,
 } from "./events";
 export { subscribeToUnitEvents } from "./events";
+export { getFinalizeUnitSnapshot } from "./finalize";
 export {
   getCurrentUnitIdForAthlete,
   getRegistryObject,
