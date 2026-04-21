@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+FROM mcr.microsoft.com/playwright:v1.59.1-jammy
 
 ARG NODE_MAJOR=24
 ARG CLAUDE_CODE_TARGET=latest
@@ -39,7 +39,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 
 ENV PATH="/home/pwuser/.local/bin:${PATH}"
 ENV NPM_CONFIG_PREFIX=/home/pwuser/.local
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/pwuser/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV CLAUDE_CONFIG_DIR=/home/pwuser/.claude
 ENV CODEX_HOME=/home/pwuser/.codex
 ENV TERM=xterm-256color
