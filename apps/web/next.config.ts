@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@one-portrait/shared"],
 };
 
-if (process.env.NODE_ENV !== "production") {
+const shouldInitCloudflareDev =
+  process.env.NODE_ENV !== "production" &&
+  !process.env.OP_LOCAL_FINALIZE_URL?.trim();
+
+if (shouldInitCloudflareDev) {
   initOpenNextCloudflareForDev();
 }
 
