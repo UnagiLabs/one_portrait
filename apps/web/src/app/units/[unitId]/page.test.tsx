@@ -139,6 +139,25 @@ describe("UnitPage", () => {
     ).toBeTruthy();
   });
 
+  it("treats a blank athleteName query as missing", async () => {
+    getUnitProgressMock.mockRejectedValue(new Error("not found"));
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-missing" }),
+      searchParams: Promise.resolve({ athleteName: "   " }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByRole("heading", { name: "選手情報を一時取得できません" }),
+    ).toBeTruthy();
+  });
+
   it("passes the packageId from env to the live progress client component", async () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",

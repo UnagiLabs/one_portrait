@@ -218,7 +218,11 @@ function resolveDisplayName(
   routeAthleteName: string | undefined,
   catalogDisplayName: string | null,
 ): string {
+  const normalizedRouteAthleteName = routeAthleteName?.trim();
   return (
-    catalogDisplayName ?? routeAthleteName ?? "選手情報を一時取得できません"
+    catalogDisplayName ??
+    (normalizedRouteAthleteName
+      ? normalizedRouteAthleteName
+      : "選手情報を一時取得できません")
   );
 }
