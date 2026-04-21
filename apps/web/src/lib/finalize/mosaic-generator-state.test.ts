@@ -40,4 +40,16 @@ describe("createMosaicGeneratorDispatchState", () => {
       state: "running",
     });
   });
+
+  it("can be reset after a failed running job so a retry is accepted", () => {
+    const state = createMosaicGeneratorDispatchState();
+
+    state.begin();
+    state.reset();
+
+    expect(state.begin()).toEqual({
+      accepted: true,
+      state: "running",
+    });
+  });
 });

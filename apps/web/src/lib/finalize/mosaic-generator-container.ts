@@ -2,6 +2,7 @@ import { Container } from "@cloudflare/containers";
 
 import { parseFinalizeInput } from "./api";
 import { createMosaicGeneratorDispatchState } from "./mosaic-generator-state";
+import { loadFinalizeRuntimeEnv } from "./runtime-env";
 
 export type MosaicGeneratorDispatchResponse = {
   readonly accepted: boolean;
@@ -42,11 +43,48 @@ export class MosaicGeneratorContainer extends Container {
       };
     }
 
-    this.dispatchState.complete();
+    getContainerRuntime(this).waitUntil(this.runFinalize(unitId));
     return {
       accepted: true,
       state: decision.state,
       unitId,
     };
   }
+
+  private async runFinalize(unitId: string): Promise<void> {
+    try {
+      await this.startAndWaitForPorts({
+        startOptions: {
+          envVars: loadFinalizeRuntimeEnv(process.env),
+        },
+      });
+
+      const response = await this.containerFetch("http://container/dispatch", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ unitId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Generator runtime returned ${response.status}.`);
+      }
+
+      this.dispatchState.complete();
+    } catch (error) {
+      this.dispatchState.reset();
+      console.error("Mosaic finalize run failed", error);
+    }
+  }
+}
+
+function getContainerRuntime(container: MosaicGeneratorContainer): {
+  waitUntil(promise: Promise<unknown>): void;
+} {
+  return (container as unknown as {
+    ctx: {
+      waitUntil(promise: Promise<unknown>): void;
+    };
+  }).ctx;
 }
