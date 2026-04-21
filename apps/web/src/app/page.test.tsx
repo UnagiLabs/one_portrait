@@ -110,6 +110,32 @@ describe("HomePage", () => {
     ).toBeTruthy();
   });
 
+  it("shows a hero link to the participation gallery", async () => {
+    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 123,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+
+    const ui = await HomePage();
+    render(ui);
+
+    const link = screen.getByRole("link", {
+      name: /participation history/i,
+    });
+    expect(link.getAttribute("href")).toBe("/gallery");
+  });
+
   it("renders a waiting-state card when no current unit is registered", async () => {
     getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
     loadPublicEnvMock.mockReturnValue({

@@ -64,12 +64,18 @@ export default async function UnitPage(
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
       <div className="mx-auto grid max-w-3xl gap-8">
-        <nav>
+        <nav className="flex flex-wrap items-center gap-4">
           <Link
             className="text-sm uppercase tracking-[0.3em] text-cyan-200/80 hover:text-cyan-100"
             href="/"
           >
             ← All athletes
+          </Link>
+          <Link
+            className="text-sm uppercase tracking-[0.3em] text-cyan-200/80 hover:text-cyan-100"
+            href="/gallery"
+          >
+            Participation history
           </Link>
         </nav>
 

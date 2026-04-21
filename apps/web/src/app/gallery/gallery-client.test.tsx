@@ -7,11 +7,17 @@ import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 
 const {
   useCurrentAccountMock,
+  useCurrentWalletMock,
+  useWalletsMock,
+  useConnectWalletMock,
   getSuiClientMock,
   listOwnedKakeraMock,
   getGalleryEntryMock,
 } = vi.hoisted(() => ({
   useCurrentAccountMock: vi.fn(),
+  useCurrentWalletMock: vi.fn(),
+  useWalletsMock: vi.fn(),
+  useConnectWalletMock: vi.fn(),
   getSuiClientMock: vi.fn(),
   listOwnedKakeraMock: vi.fn(),
   getGalleryEntryMock: vi.fn(),
@@ -19,6 +25,13 @@ const {
 
 vi.mock("@mysten/dapp-kit", () => ({
   useCurrentAccount: () => useCurrentAccountMock(),
+  useCurrentWallet: () => useCurrentWalletMock(),
+  useWallets: () => useWalletsMock(),
+  useConnectWallet: () => useConnectWalletMock(),
+}));
+
+vi.mock("@mysten/enoki", () => ({
+  isGoogleWallet: (wallet: { id?: string }) => wallet.id === "google-wallet",
 }));
 
 vi.mock("../../lib/sui", () => ({
@@ -96,6 +109,11 @@ function completedEntry(
 beforeEach(() => {
   process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
   useCurrentAccountMock.mockReturnValue(null);
+  useCurrentWalletMock.mockReturnValue({
+    connectionStatus: "disconnected",
+  });
+  useWalletsMock.mockReturnValue([{ id: "google-wallet" }]);
+  useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
   getSuiClientMock.mockReturnValue({ network: "testnet" });
   listOwnedKakeraMock.mockResolvedValue([]);
   getGalleryEntryMock.mockResolvedValue(pendingEntry());
@@ -105,6 +123,9 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
+  useCurrentWalletMock.mockReset();
+  useWalletsMock.mockReset();
+  useConnectWalletMock.mockReset();
   getSuiClientMock.mockReset();
   listOwnedKakeraMock.mockReset();
   getGalleryEntryMock.mockReset();
@@ -117,7 +138,25 @@ describe("GalleryClient", () => {
     expect(
       screen.getByText(/Connect a wallet to view your Kakera/i),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Google でログイン" }),
+    ).toBeTruthy();
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
+  });
+
+  it("starts Google login from the signed-out shell", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    useConnectWalletMock.mockReturnValue({ mutateAsync });
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        wallet: { id: "google-wallet" },
+      });
+    });
   });
 
   it("renders demo entries without requiring a connected wallet", async () => {
@@ -179,6 +218,31 @@ describe("GalleryClient", () => {
     });
 
     expect(screen.getByText(/No Kakera found for this wallet/i)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /投稿直後なら、少し待ってからもう一度確認してください。/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "もう一度確認する" }),
+    ).toBeTruthy();
+  });
+
+  it("reloads the gallery when the user asks to check again", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([]);
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    await waitFor(() => {
+      expect(listOwnedKakeraMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "もう一度確認する" }));
+
+    await waitFor(() => {
+      expect(listOwnedKakeraMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("renders pending entries with a waiting label", async () => {

@@ -22,6 +22,46 @@ test.describe("home smoke", () => {
     expect(await athleteHeadings.count()).toBeGreaterThanOrEqual(1);
   });
 
+  test("navigates from the landing hero to the participation gallery", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page);
+
+    await page.goto("/");
+
+    const historyLink = page.getByRole("link", {
+      name: /participation history/i,
+    });
+    await expect(historyLink).toBeVisible();
+
+    await historyLink.click();
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /participation gallery/i,
+      }),
+    ).toBeVisible();
+  });
+
+  test("shows a connect action in the gallery for signed-out visitors", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page, { autoConnectWallet: false });
+
+    await page.goto("/");
+    await page.getByRole("link", { name: /participation history/i }).click();
+
+    await expect(
+      page.getByText(
+        /Connect a wallet to view your Kakera participation history/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Google でログイン" }),
+    ).toBeVisible();
+  });
+
   test("keeps the home page readable on a mobile viewport", async ({
     page,
   }) => {

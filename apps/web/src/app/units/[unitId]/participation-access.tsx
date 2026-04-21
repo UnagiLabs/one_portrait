@@ -8,6 +8,7 @@ import {
   useWallets,
 } from "@mysten/dapp-kit";
 import { isGoogleWallet } from "@mysten/enoki";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -530,6 +531,9 @@ function ParticipationAccessEnabled({
               role="status"
             >
               <p className="text-base">投稿が完了しました。</p>
+              <p className="text-sm text-emerald-50">
+                次は履歴ギャラリーで参加記録を確認できます。
+              </p>
 
               {/* biome-ignore lint: local object URL preview, next/image N/A. */}
               <img
@@ -572,6 +576,15 @@ function ParticipationAccessEnabled({
               <p aria-live="polite" className="text-xs text-emerald-100/90">
                 {describeKakeraStatus(ownedKakera.status)}
               </p>
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex items-center rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-950 transition hover:bg-white"
+                  href="/gallery"
+                >
+                  履歴ギャラリーを見る
+                </Link>
+              </div>
             </div>
           ) : null}
 
