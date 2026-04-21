@@ -179,7 +179,8 @@ one_portrait/
 
 ### 5.1 ランタイム
 - OpenNext → Cloudflare Workers。`compatibility_flags: ["nodejs_compat"]`。Durable Objects は不使用。
-- 環境変数: `SUI_NETWORK / PACKAGE_ID / WALRUS_PUBLISHER / WALRUS_AGGREGATOR / ENOKI_API_KEY`。
+- 公開 env: `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID`。
+- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_CAP_ID / ADMIN_SUI_PRIVATE_KEY`。
 - 画像は Walrus Aggregator から直接配信（Cloudflare Images Transforms でキャッシュ）。
 
 ### 5.2 ページ / エンドポイント
