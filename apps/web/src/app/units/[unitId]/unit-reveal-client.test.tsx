@@ -180,6 +180,42 @@ describe("UnitRevealClient", () => {
     );
   });
 
+  it("recovers the placement after MosaicReadyEvent even when gallery hydration fails", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    findOwnedKakeraForUnitMock.mockResolvedValue(ownedKakera());
+    getGalleryEntryMock.mockRejectedValue(new Error("stale unit read"));
+    getMasterPlacementMock.mockResolvedValue({
+      masterId: "0xmaster-1",
+      mosaicWalrusBlobId: "mosaic-master-blob",
+      placement: {
+        x: 7,
+        y: 9,
+        submitter: "0xviewer",
+        submissionNo: 42,
+      },
+    });
+
+    render(
+      <UnitRevealClient
+        displayName="Demo Athlete One"
+        initialMasterId={null}
+        initialSubmittedCount={500}
+        maxSlots={500}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "emit mosaic ready" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("placement-highlight")).toBeTruthy();
+    });
+    expect(screen.getByTestId("reveal-image").getAttribute("src")).toContain(
+      "/v1/blobs/mosaic-master-blob",
+    );
+  });
+
   it("shows the completed mosaic on revisit without waiting for a fresh event", async () => {
     useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
     findOwnedKakeraForUnitMock.mockResolvedValue(null);

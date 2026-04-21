@@ -102,7 +102,7 @@ export function UnitRevealClient(
         }
       }
 
-      if (!mosaicWalrusBlobId) {
+      if (!mosaicWalrusBlobId || (placement == null && ownedWalrusBlobId)) {
         try {
           const master = await getMasterPlacement({
             client: suiClient,
