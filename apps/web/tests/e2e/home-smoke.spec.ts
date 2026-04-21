@@ -54,7 +54,7 @@ test.describe("home smoke", () => {
 
     await expect(
       page.getByText(
-        /Connect a wallet to view your Kakera participation history/i,
+        /先に Google でログインすると、あなたの Kakera 履歴を読み込めます。/,
       ),
     ).toBeVisible();
     await expect(
