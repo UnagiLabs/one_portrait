@@ -9,8 +9,8 @@
  *     the SDK. Tests pass stubs that only implement these methods.
  *
  * The client is read-only by intent: this module never wires a `Signer` and
- * the surface only exposes `getObject` / `getDynamicFieldObject`. Write paths
- * (PTBs, sponsored transactions) live elsewhere.
+ * the surface only exposes read RPCs. Write paths (PTBs, sponsored
+ * transactions) live elsewhere.
  */
 
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
@@ -36,6 +36,17 @@ export type SuiReadClient = {
   readonly network: string;
   getObject: SuiJsonRpcClient["getObject"];
   getDynamicFieldObject: SuiJsonRpcClient["getDynamicFieldObject"];
+};
+
+/**
+ * Narrow surface for read helpers that inspect transaction execution state.
+ *
+ * Kept separate from {@link SuiReadClient} so object-reading helpers do not
+ * need to stub transaction RPCs they never call.
+ */
+export type SuiTransactionReadClient = {
+  readonly network: string;
+  getTransactionBlock: SuiJsonRpcClient["getTransactionBlock"];
 };
 
 /**

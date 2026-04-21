@@ -14,7 +14,11 @@
  *     documenting the boundary at the import site.
  */
 
-export type { SuiReadClient, SuiSubscriptionClient } from "./client";
+export type {
+  SuiReadClient,
+  SuiSubscriptionClient,
+  SuiTransactionReadClient,
+} from "./client";
 export { createSuiClient, getSuiClient, resolveFullnodeUrl } from "./client";
 export type {
   MosaicReadyEvent,
@@ -52,6 +56,13 @@ export {
   findOwnedKakeraForUnit,
   listOwnedKakera,
 } from "./kakera";
+export type {
+  CheckSubmissionExecutionArgs,
+  SubmissionExecutionReadClient,
+  SubmissionExecutionResult,
+  SubmissionExecutionStatus,
+} from "./submission-execution";
+export { checkSubmissionExecution } from "./submission-execution";
 export {
   getCurrentUnitIdForAthlete,
   getRegistryObject,
