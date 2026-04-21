@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --passWithNoTests",
+    "test:e2e:readiness": "playwright test tests/e2e/readiness-regression.spec.ts",
     "test:bundle-size": "node scripts/check-cloudflare-bundle-size.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui-host=0.0.0.0 --ui-port=9323",
