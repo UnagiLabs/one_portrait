@@ -23,6 +23,9 @@ import { UnitRevealClient } from "./unit-reveal-client";
 
 type UnitPageProps = {
   readonly params: Promise<{ readonly unitId: string }>;
+  readonly searchParams: Promise<{
+    readonly athleteName?: string;
+  }>;
 };
 
 type ResolvedProgress = {
@@ -38,6 +41,7 @@ export default async function UnitPage(
   props: UnitPageProps,
 ): Promise<React.ReactElement> {
   const { unitId } = await props.params;
+  const searchParams = await props.searchParams;
   const demoMode = isDemoModeEnabled(process.env);
 
   const packageId = safePackageId();
@@ -48,7 +52,10 @@ export default async function UnitPage(
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;
 
-  const displayName = athlete?.displayName ?? "Athlete";
+  const displayName = resolveDisplayName(
+    searchParams.athleteName,
+    athlete?.displayName ?? null,
+  );
   const thumbnailUrl = athlete?.thumbnailUrl ?? null;
 
   const hasProgress =
@@ -211,4 +218,17 @@ async function safeGetAthleteByPublicId(athletePublicId: string) {
   } catch {
     return null;
   }
+}
+
+function resolveDisplayName(
+  routeAthleteName: string | undefined,
+  catalogDisplayName: string | null,
+): string {
+  const normalizedRouteAthleteName = routeAthleteName?.trim();
+  return (
+    catalogDisplayName ??
+    (normalizedRouteAthleteName
+      ? normalizedRouteAthleteName
+      : "選手情報を一時取得できません")
+  );
 }
