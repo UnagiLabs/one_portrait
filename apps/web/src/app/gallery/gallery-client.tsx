@@ -14,7 +14,7 @@ import { getDemoModeSource, isDemoModeEnabled } from "../../lib/demo";
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
-type GalleryClientProps = {
+export type GalleryClientProps = {
   readonly catalog: readonly AthleteCatalogEntry[];
   readonly demoEntries?: readonly GalleryRenderableEntry[];
   readonly packageId: string;
@@ -59,6 +59,45 @@ export function GalleryClient({
   demoEntries,
   packageId,
 }: GalleryClientProps): React.ReactElement {
+  const [failedOriginalBlobIds, setFailedOriginalBlobIds] = useState<
+    readonly string[]
+  >([]);
+  if (demoEntries) {
+    return (
+      <GalleryEntriesSection
+        catalog={catalog}
+        entries={demoEntries}
+        failedOriginalBlobIds={failedOriginalBlobIds}
+        onOriginalImageError={(walrusBlobId) => {
+          setFailedOriginalBlobIds((current) => {
+            if (current.includes(walrusBlobId)) {
+              return current;
+            }
+            return [...current, walrusBlobId];
+          });
+        }}
+      />
+    );
+  }
+
+  if (!packageId) {
+    return (
+      <GalleryStatusShell
+        description="Sui 接続の公開設定が不足しているため、ギャラリーを開けません。"
+        label="Unavailable"
+        title="公開設定を確認できません。"
+        tone="warning"
+      />
+    );
+  }
+
+  return <ConnectedGalleryClient catalog={catalog} packageId={packageId} />;
+}
+
+function ConnectedGalleryClient({
+  catalog,
+  packageId,
+}: Omit<GalleryClientProps, "demoEntries">): React.ReactElement {
   const currentAccount = useCurrentAccount();
   const currentWallet = useCurrentWallet();
   const wallets = useWallets();
@@ -90,18 +129,9 @@ export function GalleryClient({
   }
 
   useEffect(() => {
-    if (demoEntries) {
+    if (!currentAccount?.address) {
       setState({
-        kind: "ready",
-        entries: demoEntries,
-      });
-      setFailedOriginalBlobIds([]);
-      return;
-    }
-
-    if (!currentAccount?.address || !packageId) {
-      setState({
-        kind: currentAccount?.address ? "error" : "idle",
+        kind: "idle",
         entries: [],
       });
       setFailedOriginalBlobIds([]);
@@ -169,9 +199,9 @@ export function GalleryClient({
     return () => {
       cancelled = true;
     };
-  }, [currentAccount?.address, demoEntries, packageId, reloadNonce]);
+  }, [currentAccount?.address, packageId, reloadNonce]);
 
-  if (!demoEntries && !currentAccount?.address) {
+  if (!currentAccount?.address) {
     return (
       <GalleryStatusShell
         description="先に Google でログインすると、あなたの Kakera 履歴を読み込めます。"
@@ -207,18 +237,7 @@ export function GalleryClient({
     );
   }
 
-  if (!demoEntries && !packageId) {
-    return (
-      <GalleryStatusShell
-        description="Sui 接続の公開設定が不足しているため、ギャラリーを開けません。"
-        label="Unavailable"
-        title="公開設定を確認できません。"
-        tone="warning"
-      />
-    );
-  }
-
-  if (!demoEntries && state.kind === "error") {
+  if (state.kind === "error") {
     return (
       <GalleryStatusShell
         description="時間をおいて、もう一度確認してください。"
@@ -276,8 +295,38 @@ export function GalleryClient({
   }
 
   return (
+    <GalleryEntriesSection
+      catalog={catalog}
+      entries={state.entries}
+      failedOriginalBlobIds={failedOriginalBlobIds}
+      onOriginalImageError={(walrusBlobId) => {
+        setFailedOriginalBlobIds((current) => {
+          if (current.includes(walrusBlobId)) {
+            return current;
+          }
+          return [...current, walrusBlobId];
+        });
+      }}
+    />
+  );
+}
+
+type GalleryEntriesSectionProps = {
+  readonly catalog: readonly AthleteCatalogEntry[];
+  readonly entries: readonly GalleryRenderableEntry[];
+  readonly failedOriginalBlobIds: readonly string[];
+  readonly onOriginalImageError: (walrusBlobId: string) => void;
+};
+
+function GalleryEntriesSection({
+  catalog,
+  entries,
+  failedOriginalBlobIds,
+  onOriginalImageError,
+}: GalleryEntriesSectionProps): React.ReactElement {
+  return (
     <section className="grid gap-6 md:grid-cols-2">
-      {state.entries.map((entry) => (
+      {entries.map((entry) => (
         <GalleryCard
           athlete={findAthlete(catalog, entry.athletePublicId)}
           entry={entry}
@@ -286,12 +335,7 @@ export function GalleryClient({
             entry.walrusBlobId,
           )}
           onOriginalImageError={() => {
-            setFailedOriginalBlobIds((current) => {
-              if (current.includes(entry.walrusBlobId)) {
-                return current;
-              }
-              return [...current, entry.walrusBlobId];
-            });
+            onOriginalImageError(entry.walrusBlobId);
           }}
         />
       ))}
@@ -341,9 +385,7 @@ function GalleryStatusShell({
           };
 
   return (
-    <section
-      className={`rounded-[1.75rem] border p-7 ${toneClasses.shell}`}
-    >
+    <section className={`rounded-[1.75rem] border p-7 ${toneClasses.shell}`}>
       <p className={`text-xs uppercase tracking-[0.3em] ${toneClasses.label}`}>
         {label}
       </p>

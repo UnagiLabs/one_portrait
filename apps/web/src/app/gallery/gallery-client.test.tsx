@@ -181,7 +181,9 @@ describe("GalleryClient", () => {
 
   it("shows a retry login action when wallet connection fails", async () => {
     useConnectWalletMock.mockReturnValue({
-      mutateAsync: vi.fn().mockRejectedValue(new Error("ログインに失敗しました。")),
+      mutateAsync: vi
+        .fn()
+        .mockRejectedValue(new Error("ログインに失敗しました。")),
     });
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
@@ -209,7 +211,7 @@ describe("GalleryClient", () => {
   });
 
   it("starts loading only after the account address becomes available", async () => {
-    let resolveListOwnedKakera: ((value: OwnedKakera[]) => void) | null = null;
+    let resolveListOwnedKakera: ((value: OwnedKakera[]) => void) | undefined;
     listOwnedKakeraMock.mockImplementation(
       () =>
         new Promise<OwnedKakera[]>((resolve) => {
@@ -232,7 +234,9 @@ describe("GalleryClient", () => {
     });
 
     expect(
-      screen.getByText(/ログインを確認できました。Sui から Kakera を読んでいます。/),
+      screen.getByText(
+        /ログインを確認できました。Sui から Kakera を読んでいます。/,
+      ),
     ).toBeTruthy();
     expect(listOwnedKakeraMock).toHaveBeenCalledWith({
       ownerAddress: "0xviewer",
@@ -240,7 +244,11 @@ describe("GalleryClient", () => {
       suiClient: { network: "testnet" },
     });
 
-    resolveListOwnedKakera?.([]);
+    if (!resolveListOwnedKakera) {
+      throw new Error("listOwnedKakera resolver was not set");
+    }
+
+    resolveListOwnedKakera([]);
   });
 
   it("renders demo entries without requiring a connected wallet", async () => {

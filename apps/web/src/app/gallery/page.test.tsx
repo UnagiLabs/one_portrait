@@ -8,13 +8,13 @@ const {
   getDemoGalleryEntriesMock,
   isDemoModeEnabledMock,
   loadPublicEnvMock,
-  galleryClientMock,
+  galleryPageClientMock,
 } = vi.hoisted(() => ({
   getAthleteCatalogMock: vi.fn(),
   getDemoGalleryEntriesMock: vi.fn(),
   isDemoModeEnabledMock: vi.fn(),
   loadPublicEnvMock: vi.fn(),
-  galleryClientMock: vi.fn(),
+  galleryPageClientMock: vi.fn(),
 }));
 
 vi.mock("../../lib/catalog", () => ({
@@ -30,8 +30,8 @@ vi.mock("../../lib/demo", () => ({
   isDemoModeEnabled: isDemoModeEnabledMock,
 }));
 
-vi.mock("./gallery-client", () => ({
-  GalleryClient: ({
+vi.mock("./gallery-page-client", () => ({
+  GalleryPageClient: ({
     catalog,
     demoEntries,
     packageId,
@@ -50,7 +50,7 @@ vi.mock("./gallery-client", () => ({
       data-package-id={packageId}
       data-testid="gallery-client"
       ref={() => {
-        galleryClientMock({ catalog, demoEntries, packageId });
+        galleryPageClientMock({ catalog, demoEntries, packageId });
       }}
     >
       {catalog.length} athletes
@@ -80,7 +80,7 @@ afterEach(() => {
   getDemoGalleryEntriesMock.mockReset();
   isDemoModeEnabledMock.mockReset();
   loadPublicEnvMock.mockReset();
-  galleryClientMock.mockReset();
+  galleryPageClientMock.mockReset();
 });
 
 describe("GalleryPage", () => {
@@ -104,7 +104,7 @@ describe("GalleryPage", () => {
     expect(
       screen.getByTestId("gallery-client").getAttribute("data-package-id"),
     ).toBe("0xpkg");
-    expect(galleryClientMock).toHaveBeenCalledWith({
+    expect(galleryPageClientMock).toHaveBeenCalledWith({
       catalog: CATALOG,
       demoEntries: undefined,
       packageId: "0xpkg",
@@ -190,7 +190,7 @@ describe("GalleryPage", () => {
     expect(
       screen.getByTestId("gallery-client").getAttribute("data-package-id"),
     ).toBe("");
-    expect(galleryClientMock).toHaveBeenCalledWith({
+    expect(galleryPageClientMock).toHaveBeenCalledWith({
       catalog: CATALOG,
       demoEntries: undefined,
       packageId: "",
