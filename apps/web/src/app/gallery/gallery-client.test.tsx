@@ -119,6 +119,24 @@ describe("GalleryClient", () => {
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
   });
 
+  it("renders demo entries without requiring a connected wallet", async () => {
+    render(
+      <GalleryClient
+        catalog={CATALOG}
+        demoEntries={[completedEntry()]}
+        packageId="0xpkg"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    });
+
+    expect(screen.queryByText(/Wallet required/i)).toBeNull();
+    expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
+    expect(listOwnedKakeraMock).not.toHaveBeenCalled();
+  });
+
   it("renders the no Kakera state when the connected wallet owns none", async () => {
     useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
     listOwnedKakeraMock.mockResolvedValue([]);

@@ -14,6 +14,7 @@ import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
 import { getAthleteByPublicId } from "../../../lib/catalog";
+import { getDemoUnitProgress, isDemoModeEnabled } from "../../../lib/demo";
 import { loadPublicEnv } from "../../../lib/env";
 import { getUnitProgress } from "../../../lib/sui";
 
@@ -39,7 +40,9 @@ export default async function UnitPage(
   const { unitId } = await props.params;
 
   const packageId = safePackageId();
-  const progress = await safeGetUnitProgress(unitId);
+  const progress = isDemoModeEnabled(process.env)
+    ? safeGetDemoUnitProgress(unitId)
+    : await safeGetUnitProgress(unitId);
   const athlete = progress.athletePublicId
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;
@@ -130,6 +133,25 @@ function safePackageId(): string | null {
   } catch {
     return null;
   }
+}
+
+function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {
+  const view = getDemoUnitProgress(unitId);
+  if (!view) {
+    return {
+      submittedCount: -1,
+      maxSlots: FALLBACK_MAX_SLOTS,
+      athletePublicId: null,
+      masterId: null,
+    };
+  }
+
+  return {
+    submittedCount: view.submittedCount,
+    maxSlots: view.maxSlots,
+    athletePublicId: view.athletePublicId,
+    masterId: view.masterId,
+  };
 }
 
 async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {

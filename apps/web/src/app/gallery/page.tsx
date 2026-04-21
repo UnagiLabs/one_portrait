@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getAthleteCatalog } from "../../lib/catalog";
+import { getDemoGalleryEntries, isDemoModeEnabled } from "../../lib/demo";
 import { loadPublicEnv } from "../../lib/env";
 
 import { GalleryClient } from "./gallery-client";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function GalleryPage(): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
   const packageId = safePackageId();
+  const demoEntries = isDemoModeEnabled(process.env)
+    ? getDemoGalleryEntries()
+    : undefined;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
@@ -36,7 +40,11 @@ export default async function GalleryPage(): Promise<React.ReactElement> {
           </p>
         </header>
 
-        <GalleryClient catalog={catalog} packageId={packageId ?? ""} />
+        <GalleryClient
+          catalog={catalog}
+          demoEntries={demoEntries}
+          packageId={packageId ?? ""}
+        />
       </div>
     </main>
   );

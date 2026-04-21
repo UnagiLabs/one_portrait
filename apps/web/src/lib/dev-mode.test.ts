@@ -1,20 +1,29 @@
+// @ts-nocheck
+
+import type { ChildProcess } from "node:child_process";
+import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+// @ts-expect-error test-only import from a Node .mjs script
 import {
   assertNormalDevEnvironment,
   parseEnvFile,
 } from "../../scripts/dev-mode.mjs";
+// @ts-expect-error test-only import from a Node .mjs script
 import { e2eStubEnv, startE2EDev } from "../../scripts/run-e2e-dev.mjs";
 
-const tempDirs = [];
+const tempDirs: string[] = [];
 
 afterEach(() => {
   while (tempDirs.length > 0) {
-    fs.rmSync(tempDirs.pop(), { force: true, recursive: true });
+    const tempDir = tempDirs.pop();
+    if (tempDir) {
+      fs.rmSync(tempDir, { force: true, recursive: true });
+    }
   }
 });
 
@@ -84,16 +93,22 @@ describe("startE2EDev", () => {
     fs.mkdirSync(path.join(cwd, ".next"), { recursive: true });
     fs.mkdirSync(path.join(cwd, "node_modules", ".bin"), { recursive: true });
 
-    const spawnCalls = [];
+    const spawnCalls: Array<
+      [string, string[], { env: Record<string, string> }]
+    > = [];
 
     await startE2EDev({
       cwd,
       env: { E2E_PORT: "3100" },
       isPortBusy: async () => false,
       nextDevBin: "/tmp/fake-next",
-      spawnImpl: (...args) => {
-        spawnCalls.push(args);
-        return { on() {} };
+      spawnImpl: (
+        command: string,
+        args: string[],
+        options: { env: Record<string, string> },
+      ) => {
+        spawnCalls.push([command, args, options]);
+        return new EventEmitter() as ChildProcess;
       },
     });
 

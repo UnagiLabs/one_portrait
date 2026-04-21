@@ -4,6 +4,8 @@ import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { demoUnitId } from "../../../lib/demo";
+
 const {
   getUnitProgressMock,
   getAthleteByPublicIdMock,
@@ -57,6 +59,7 @@ vi.mock("./unit-reveal-client", () => ({
 import UnitPage from "./page";
 
 afterEach(() => {
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
   getUnitProgressMock.mockReset();
   getAthleteByPublicIdMock.mockReset();
   loadPublicEnvMock.mockReset();
@@ -170,5 +173,31 @@ describe("UnitPage", () => {
     expect(
       screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
     ).toBe("0xmaster-1");
+  });
+
+  it("uses demo fixture progress without calling Sui when demo mode is enabled", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: demoUnitId }),
+    });
+    render(ui);
+
+    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
+      "347 /",
+    );
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
   });
 });

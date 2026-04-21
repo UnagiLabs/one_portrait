@@ -4,6 +4,8 @@ import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { demoUnitId } from "../lib/demo";
+
 const {
   getAthleteCatalogMock,
   getCurrentUnitIdForAthleteMock,
@@ -47,6 +49,7 @@ const CATALOG = [
 ] as const;
 
 afterEach(() => {
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
   getAthleteCatalogMock.mockReset();
   getCurrentUnitIdForAthleteMock.mockReset();
   getUnitProgressMock.mockReset();
@@ -178,5 +181,21 @@ describe("HomePage", () => {
     // Placeholder must not crash the card — either waiting state or the slug
     // must still render.
     expect(screen.getByText(/demo-athlete-one/)).toBeTruthy();
+  });
+
+  it("uses demo fixture progress when demo mode is enabled", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+
+    const ui = await HomePage();
+    render(ui);
+
+    const link = screen
+      .getAllByRole("link")
+      .find((el) => el.getAttribute("href") === `/units/${demoUnitId}`);
+
+    expect(link).toBeTruthy();
+    expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
   });
 });

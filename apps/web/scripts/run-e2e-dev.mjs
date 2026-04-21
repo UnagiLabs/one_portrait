@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
-import path from "node:path";
 import { createServer } from "node:net";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -3,12 +3,19 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getAthleteCatalogMock, loadPublicEnvMock, galleryClientMock } =
-  vi.hoisted(() => ({
-    getAthleteCatalogMock: vi.fn(),
-    loadPublicEnvMock: vi.fn(),
-    galleryClientMock: vi.fn(),
-  }));
+const {
+  getAthleteCatalogMock,
+  getDemoGalleryEntriesMock,
+  isDemoModeEnabledMock,
+  loadPublicEnvMock,
+  galleryClientMock,
+} = vi.hoisted(() => ({
+  getAthleteCatalogMock: vi.fn(),
+  getDemoGalleryEntriesMock: vi.fn(),
+  isDemoModeEnabledMock: vi.fn(),
+  loadPublicEnvMock: vi.fn(),
+  galleryClientMock: vi.fn(),
+}));
 
 vi.mock("../../lib/catalog", () => ({
   getAthleteCatalog: getAthleteCatalogMock,
@@ -18,9 +25,15 @@ vi.mock("../../lib/env", () => ({
   loadPublicEnv: loadPublicEnvMock,
 }));
 
+vi.mock("../../lib/demo", () => ({
+  getDemoGalleryEntries: getDemoGalleryEntriesMock,
+  isDemoModeEnabled: isDemoModeEnabledMock,
+}));
+
 vi.mock("./gallery-client", () => ({
   GalleryClient: ({
     catalog,
+    demoEntries,
     packageId,
   }: {
     catalog: readonly {
@@ -29,13 +42,15 @@ vi.mock("./gallery-client", () => ({
       displayName: string;
       thumbnailUrl: string;
     }[];
+    demoEntries?: readonly unknown[];
     packageId: string;
   }) => (
     <div
+      data-demo-entry-count={String(demoEntries?.length ?? 0)}
       data-package-id={packageId}
       data-testid="gallery-client"
       ref={() => {
-        galleryClientMock({ catalog, packageId });
+        galleryClientMock({ catalog, demoEntries, packageId });
       }}
     >
       {catalog.length} athletes
@@ -62,6 +77,8 @@ const CATALOG = [
 
 afterEach(() => {
   getAthleteCatalogMock.mockReset();
+  getDemoGalleryEntriesMock.mockReset();
+  isDemoModeEnabledMock.mockReset();
   loadPublicEnvMock.mockReset();
   galleryClientMock.mockReset();
 });
@@ -69,6 +86,8 @@ afterEach(() => {
 describe("GalleryPage", () => {
   it("preloads the athlete catalog on the server and passes it to the client shell", async () => {
     getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([]);
+    isDemoModeEnabledMock.mockReturnValue(false);
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       registryObjectId: "0xregistry",
@@ -87,7 +106,40 @@ describe("GalleryPage", () => {
     ).toBe("0xpkg");
     expect(galleryClientMock).toHaveBeenCalledWith({
       catalog: CATALOG,
+      demoEntries: undefined,
       packageId: "0xpkg",
     });
+  });
+
+  it("passes demo entries to the client shell when demo mode is enabled", async () => {
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([
+      {
+        unitId: "0xdemo-unit",
+        athletePublicId: "1",
+        walrusBlobId: "demo-original",
+        submissionNo: 17,
+        mintedAtMs: 1800000000000,
+        masterId: null,
+        mosaicWalrusBlobId: null,
+        placement: null,
+        status: { kind: "pending" },
+      },
+    ]);
+    isDemoModeEnabledMock.mockReturnValue(true);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xregistry",
+      packageId: "0xpkg",
+    });
+
+    const ui = await GalleryPage();
+    render(ui);
+
+    expect(
+      screen
+        .getByTestId("gallery-client")
+        .getAttribute("data-demo-entry-count"),
+    ).toBe("1");
   });
 });

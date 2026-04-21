@@ -7,16 +7,19 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 
 describe("development entrypoints", () => {
   it("exposes root scripts for normal dev and E2E", () => {
-    const rootPackageJson = readPackageJson(path.join(repoRoot, "package.json"));
+    const rootPackageJson = readPackageJson(
+      path.join(repoRoot, "package.json"),
+    );
 
-    expect(rootPackageJson.scripts.dev).toBe(
-      'corepack pnpm --filter web dev',
+    expect(rootPackageJson.scripts.dev).toBe("corepack pnpm --filter web dev");
+    expect(rootPackageJson.scripts["dev:demo"]).toBe(
+      "corepack pnpm --filter web dev:demo",
     );
     expect(rootPackageJson.scripts["dev:e2e"]).toBe(
-      'corepack pnpm --filter web dev:e2e',
+      "corepack pnpm --filter web dev:e2e",
     );
     expect(rootPackageJson.scripts["test:e2e"]).toBe(
-      'corepack pnpm --filter web test:e2e',
+      "corepack pnpm --filter web test:e2e",
     );
   });
 
@@ -26,11 +29,14 @@ describe("development entrypoints", () => {
     );
 
     expect(webPackageJson.scripts.dev).toBe("node ./scripts/run-dev.mjs");
+    expect(webPackageJson.scripts["dev:demo"]).toBe(
+      "node ./scripts/run-demo-dev.mjs",
+    );
     expect(webPackageJson.scripts["dev:e2e"]).toBe("./scripts/e2e-dev.sh");
     expect(webPackageJson.scripts["test:e2e"]).toBe("playwright test");
   });
 });
 
-function readPackageJson(filePath) {
+function readPackageJson(filePath: string) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }

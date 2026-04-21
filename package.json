@@ -18,6 +18,7 @@
   },
   "scripts": {
     "dev": "corepack pnpm --filter web dev",
+    "dev:demo": "corepack pnpm --filter web dev:demo",
     "dev:e2e": "corepack pnpm --filter web dev:e2e",
     "test:e2e": "corepack pnpm --filter web test:e2e",
     "lint": "biome check .",
