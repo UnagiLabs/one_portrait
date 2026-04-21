@@ -276,10 +276,10 @@ one_portrait/
 
 ## 12. 開発・デプロイ
 
-- **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。Move 系は `cd contracts && sui move build` / `sui move test`。
+- **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test`。
 - **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
 - **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ADMIN_CAP_ID` と `ADMIN_SUI_PRIVATE_KEY` は Cloudflare Secrets Store に置く。
-- **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。
+- **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。deploy 実行端末にも Docker CLI と daemon が必要。
 - **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test` を回す。`e2e` は Playwright の mock 経路を確認する。
 
 ---

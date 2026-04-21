@@ -201,6 +201,7 @@ cd contracts && sui move build && sui move test
 
 - `corepack pnpm run check` は workspace 全体の lint、typecheck、test をまとめて見ます。
 - `test:bundle-size` は OpenNext build と `wrangler deploy --dry-run` を含む非破壊チェックです。
+- `test:bundle-size` と `deploy` は Docker CLI と daemon が必要です。Wrangler が container binding を dry-run でも確認するためです。
 - Cloudflare のプレビュー導線まで見たいときだけ `corepack pnpm --filter web run preview` を使います。
 
 ### 3. testnet に反映して ID を固定する
@@ -246,6 +247,7 @@ corepack pnpm --filter web run deploy
 
 - deploy 前に Cloudflare 側へ `ADMIN_CAP_ID` と `ADMIN_SUI_PRIVATE_KEY` を入れます。
 - `deploy` script は OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行します。
+- `deploy` 実行端末には Docker CLI と daemon が必要です。
 - binding を変えたときだけ `corepack pnpm --filter web run cf-typegen` を追加で回します。
 
 ### 6. モックを使う線を先に決める

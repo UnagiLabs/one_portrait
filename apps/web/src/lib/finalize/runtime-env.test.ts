@@ -32,8 +32,7 @@ describe("loadFinalizeRuntimeEnv", () => {
         NEXT_PUBLIC_SUI_NETWORK: "  testnet  ",
         NEXT_PUBLIC_PACKAGE_ID: "  0xpkg  ",
         NEXT_PUBLIC_WALRUS_PUBLISHER: "  https://publisher.walrus.example  ",
-        NEXT_PUBLIC_WALRUS_AGGREGATOR:
-          "  https://aggregator.walrus.example  ",
+        NEXT_PUBLIC_WALRUS_AGGREGATOR: "  https://aggregator.walrus.example  ",
         ADMIN_CAP_ID: "  0xadmincap  ",
         ADMIN_SUI_PRIVATE_KEY: "  suiprivkey  ",
       }),
