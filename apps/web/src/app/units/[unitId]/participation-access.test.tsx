@@ -716,19 +716,14 @@ describe("ParticipationAccess", () => {
           }),
       );
       submitPhoto.mockRejectedValue(
-        new EnokiSubmitClientError(
-          503,
-          "submit_unavailable",
-          "execute failed",
-          {
-            submissionStatus: "recovering",
-            recovery: {
-              digest: "recover-digest",
-              sender: "0xabc123",
-              blobId: "walrus-blob-recovery",
-            },
+        new EnokiSubmitClientError(503, "sponsor_failed", "execute failed", {
+          submissionStatus: "recovering",
+          recovery: {
+            digest: "recover-digest",
+            sender: "0xabc123",
+            blobId: "walrus-blob-recovery",
           },
-        ),
+        }),
       );
 
       render(
@@ -799,22 +794,17 @@ describe("ParticipationAccess", () => {
           kakera: null,
         });
       submitPhoto.mockRejectedValue(
-        new EnokiSubmitClientError(
-          503,
-          "submit_unavailable",
-          "execute failed",
-          {
-            submissionStatus: "recovering",
-            recovery: {
-              digest: "recover-digest",
-              sender: "0xabc123",
-              blobId: "walrus-blob-recovery",
-            },
+        new EnokiSubmitClientError(503, "sponsor_failed", "execute failed", {
+          submissionStatus: "recovering",
+          recovery: {
+            digest: "recover-digest",
+            sender: "0xabc123",
+            blobId: "walrus-blob-recovery",
           },
-        ),
+        }),
       );
 
-      render(
+      const view = render(
         <ParticipationAccess
           preprocessPhoto={preprocessPhoto}
           putBlob={putBlob}
@@ -853,6 +843,26 @@ describe("ParticipationAccess", () => {
           walrusBlobId: "walrus-blob-recovery",
         }),
       );
+
+      useCurrentAccountMock.mockReturnValue({ address: "0xother999" });
+      view.rerender(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      expect(useOwnedKakeraMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          ownerAddress: "0xabc123",
+          walrusBlobId: "walrus-blob-recovery",
+        }),
+      );
     });
 
     it("falls back to retry after the recovery poll budget is exhausted", async () => {
@@ -870,19 +880,14 @@ describe("ParticipationAccess", () => {
         kakera: null,
       });
       submitPhoto.mockRejectedValue(
-        new EnokiSubmitClientError(
-          503,
-          "submit_unavailable",
-          "execute failed",
-          {
-            submissionStatus: "recovering",
-            recovery: {
-              digest: "recover-digest",
-              sender: "0xabc123",
-              blobId: "walrus-blob-recovery",
-            },
+        new EnokiSubmitClientError(503, "sponsor_failed", "execute failed", {
+          submissionStatus: "recovering",
+          recovery: {
+            digest: "recover-digest",
+            sender: "0xabc123",
+            blobId: "walrus-blob-recovery",
           },
-        ),
+        }),
       );
 
       render(

@@ -223,8 +223,7 @@ function ParticipationAccessEnabled({
   const packageId = safeReadPackageId();
   const ownedKakera = useOwnedKakera({
     suiClient: getSuiClient(),
-    ownerAddress:
-      phase.kind === "done" ? (currentAccount?.address ?? null) : null,
+    ownerAddress: phase.kind === "done" ? phase.result.sender : null,
     unitId,
     walrusBlobId: doneBlobId,
     packageId: packageId ?? "",
@@ -327,7 +326,7 @@ function ParticipationAccessEnabled({
         result = await checkSubmissionExecution({
           suiClient: getSuiClient(),
           digest: phase.recovery.digest,
-          ownerAddress: currentAccount?.address ?? phase.recovery.sender,
+          ownerAddress: phase.recovery.sender,
           unitId,
           walrusBlobId: phase.recovery.blobId,
           packageId: packageId ?? "",
@@ -385,14 +384,7 @@ function ParticipationAccessEnabled({
         clearTimeout(pending);
       }
     };
-  }, [
-    currentAccount?.address,
-    packageId,
-    phase,
-    recoveryMaxAttempts,
-    recoveryRetryIntervalMs,
-    unitId,
-  ]);
+  }, [packageId, phase, recoveryMaxAttempts, recoveryRetryIntervalMs, unitId]);
 
   const isProcessing = phase.kind === "processing";
   const isUploading = phase.kind === "uploading";

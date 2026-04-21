@@ -134,10 +134,10 @@ describe("submitPhotoWithEnoki", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            code: "submit_unavailable",
+            code: "sponsor_failed",
             message: "execute failed",
           }),
-          { status: 503 },
+          { status: 502 },
         ),
       );
 
@@ -157,8 +157,8 @@ describe("submitPhotoWithEnoki", () => {
         },
       ),
     ).rejects.toMatchObject({
-      code: "submit_unavailable",
-      status: 503,
+      code: "sponsor_failed",
+      status: 502,
       submissionStatus: "recovering",
       recovery: {
         digest: "sponsor-digest",
@@ -251,6 +251,98 @@ describe("submitPhotoWithEnoki", () => {
     ).rejects.toMatchObject({
       code: "auth_expired",
       status: 401,
+      submissionStatus: "failed",
+      recovery: null,
+    });
+  });
+
+  it("keeps execute invalid_args as a confirmed failure", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: "invalid_args",
+            message: "signature is invalid",
+          }),
+          { status: 400 },
+        ),
+      );
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getJwt: async () => "header.jwt.value",
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "invalid_args",
+      status: 400,
+      submissionStatus: "failed",
+      recovery: null,
+    });
+  });
+
+  it("keeps execute submit_unavailable as a confirmed failure when execute preflight fails", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: "submit_unavailable",
+            message: "submit env missing",
+          }),
+          { status: 503 },
+        ),
+      );
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getJwt: async () => "header.jwt.value",
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "submit_unavailable",
+      status: 503,
       submissionStatus: "failed",
       recovery: null,
     });

@@ -220,7 +220,12 @@ function toExecuteSubmitError(
   recovery: SubmitPhotoRecoveryContext,
 ): EnokiSubmitClientError {
   if (error instanceof EnokiSubmitClientError) {
-    if (error.code === "auth_expired") {
+    if (
+      error.code === "auth_expired" ||
+      error.code === "invalid_args" ||
+      error.code === "submit_unavailable" ||
+      error.status < 500
+    ) {
       return error;
     }
 

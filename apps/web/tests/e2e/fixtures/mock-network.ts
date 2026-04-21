@@ -113,7 +113,7 @@ export async function installDefaultMocks(
         status: 503,
         contentType: "application/json",
         body: JSON.stringify({
-          code: "submit_unavailable",
+          code: "sponsor_failed",
           message: "execute failed",
         }),
       });
