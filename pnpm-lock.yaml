@@ -112,6 +112,9 @@ importers:
       '@one-portrait/shared':
         specifier: workspace:*
         version: link:../shared
+      sharp:
+        specifier: ^0.34.4
+        version: 0.34.5
     devDependencies:
       '@types/node':
         specifier: ^24.12.2
