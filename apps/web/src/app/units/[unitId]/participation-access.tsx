@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useConnectWallet,
   useCurrentAccount,
@@ -9,6 +8,7 @@ import {
   useWallets,
 } from "@mysten/dapp-kit";
 import { isGoogleWallet } from "@mysten/enoki";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import {
