@@ -4,16 +4,17 @@ import { createWalrusWriteClient, WalrusWriteError } from "../src";
 
 describe("createWalrusWriteClient", () => {
   it("uploads PNG bytes to the publisher and returns the aggregator URL", async () => {
-    const fetchFn = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          newlyCreated: {
-            blobObject: {
-              blobId: "mosaic-blob-1",
+    const fetchFn = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            newlyCreated: {
+              blobObject: {
+                blobId: "mosaic-blob-1",
+              },
             },
-          },
-        }),
-      ),
+          }),
+        ),
     );
     const client = createWalrusWriteClient({
       publisherBaseUrl: "https://publisher.example/",
@@ -40,8 +41,8 @@ describe("createWalrusWriteClient", () => {
       fetchFn: vi.fn(async () => new Response("boom", { status: 500 })),
     });
 
-    await expect(client.putBlob(new Uint8Array([1, 2, 3]))).rejects.toBeInstanceOf(
-      WalrusWriteError,
-    );
+    await expect(
+      client.putBlob(new Uint8Array([1, 2, 3])),
+    ).rejects.toBeInstanceOf(WalrusWriteError);
   });
 });

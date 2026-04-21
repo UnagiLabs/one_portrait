@@ -17,9 +17,7 @@ export class WalrusWriteError extends Error {
 }
 
 export type WalrusWriteClient = {
-  putBlob(
-    bytes: Uint8Array,
-  ): Promise<{
+  putBlob(bytes: Uint8Array): Promise<{
     readonly blobId: string;
     readonly aggregatorUrl: string;
   }>;

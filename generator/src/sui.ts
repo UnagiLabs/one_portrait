@@ -1,14 +1,13 @@
-import type {
-  GeneratorSubmissionRef,
-  GeneratorUnitSnapshot,
-} from "@one-portrait/shared";
 import { bcs } from "@mysten/sui/bcs";
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from "@mysten/sui/transactions";
-
-import type { SuiNetwork } from "./env";
+import type {
+  GeneratorSubmissionRef,
+  GeneratorUnitSnapshot,
+} from "@one-portrait/shared";
 import type { MosaicPlacement } from "./assignment";
+import type { SuiNetwork } from "./env";
 
 export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
   readonly masterId: string | null;

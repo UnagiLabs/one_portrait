@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { GeneratorUnitSnapshot } from "@one-portrait/shared";
+import { describe, expect, it, vi } from "vitest";
 
 import { prepareFinalizeInput, sortSubmissions } from "../src";
 

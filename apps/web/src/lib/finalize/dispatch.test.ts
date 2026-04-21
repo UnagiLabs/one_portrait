@@ -17,8 +17,11 @@ const VALID_UNIT_ID =
 describe("createFinalizeDispatcher", () => {
   it("throws when the container binding is missing", async () => {
     const dispatchFinalize = createFinalizeDispatcher({
-      getContext: (() => ({ env: {} })) as typeof import("@opennextjs/cloudflare").getCloudflareContext,
-      getNamedContainer: vi.fn() as typeof import("@cloudflare/containers").getContainer,
+      getContext: (() => ({
+        env: {},
+      })) as typeof import("@opennextjs/cloudflare").getCloudflareContext,
+      getNamedContainer:
+        vi.fn() as typeof import("@cloudflare/containers").getContainer,
     });
 
     await expect(
@@ -38,12 +41,13 @@ describe("createFinalizeDispatcher", () => {
     );
     const getNamedContainer = vi.fn(() => ({ fetch }));
     const dispatchFinalize = createFinalizeDispatcher({
-      getContext: ((() => ({
+      getContext: (() => ({
         env: {
           MOSAIC_GENERATOR: { stub: true },
         },
-      })) as unknown) as typeof import("@opennextjs/cloudflare").getCloudflareContext,
-      getNamedContainer: getNamedContainer as typeof import("@cloudflare/containers").getContainer,
+      })) as unknown as typeof import("@opennextjs/cloudflare").getCloudflareContext,
+      getNamedContainer:
+        getNamedContainer as typeof import("@cloudflare/containers").getContainer,
     });
 
     await expect(

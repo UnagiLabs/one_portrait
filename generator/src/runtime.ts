@@ -7,17 +7,20 @@ import {
   extractTargetTiles,
 } from "./image";
 import {
-  prepareFinalizeInput,
   type AverageColorSampler,
   type PreparedFinalizeInput,
+  prepareFinalizeInput,
 } from "./prepare";
-import {
-  type FinalizeTransactionResult,
-  type GeneratorFinalizeSnapshot,
-  type GeneratorUnitSnapshotLoader,
+import type {
+  FinalizeTransactionResult,
+  GeneratorFinalizeSnapshot,
+  GeneratorUnitSnapshotLoader,
 } from "./sui";
 import { createWalrusReadClient, type WalrusReadClient } from "./walrus";
-import { createWalrusWriteClient, type WalrusWriteClient } from "./walrus-write";
+import {
+  createWalrusWriteClient,
+  type WalrusWriteClient,
+} from "./walrus-write";
 
 export type FinalizeRunResult =
   | {
@@ -63,9 +66,7 @@ export type DefaultFinalizeRunnerDeps = {
   readonly walrusWrite: WalrusWriteClient;
 };
 
-export function createFinalizeRunner(
-  deps: FinalizeRunnerDeps,
-): FinalizeRunner {
+export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
   return {
     async run(unitId: string): Promise<FinalizeRunResult> {
       const snapshot = await deps.readUnitSnapshot(unitId);
@@ -85,7 +86,9 @@ export function createFinalizeRunner(
       }
 
       const prepared = await deps.prepareInput(snapshot);
-      const targetTiles = await deps.extractTargetTiles(prepared.targetImageBytes);
+      const targetTiles = await deps.extractTargetTiles(
+        prepared.targetImageBytes,
+      );
       const placements = deps.assignPlacements({
         submissions: prepared.submissions,
         targetTiles,

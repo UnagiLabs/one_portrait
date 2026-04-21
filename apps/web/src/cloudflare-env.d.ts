@@ -5,5 +5,3 @@ declare global {
     MOSAIC_GENERATOR?: DurableObjectNamespace<MosaicGeneratorContainer>;
   }
 }
-
-export {};

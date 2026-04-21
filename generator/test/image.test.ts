@@ -30,20 +30,7 @@ describe("extractTargetTiles", () => {
     const imageBytes = await createPng({
       width: 2,
       height: 2,
-      pixels: [
-        255,
-        0,
-        0,
-        0,
-        255,
-        0,
-        0,
-        0,
-        255,
-        255,
-        255,
-        0,
-      ],
+      pixels: [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0],
     });
 
     await expect(
@@ -108,27 +95,11 @@ describe("composeMosaicPng", () => {
     expect(rendered.info.width).toBe(4);
     expect(rendered.info.height).toBe(2);
     expect(
-      pixelAt(
-        rendered.data,
-        rendered.info.width,
-        rendered.info.channels,
-        0,
-        0,
-      ),
-    ).toEqual([
-      255, 0, 0,
-    ]);
+      pixelAt(rendered.data, rendered.info.width, rendered.info.channels, 0, 0),
+    ).toEqual([255, 0, 0]);
     expect(
-      pixelAt(
-        rendered.data,
-        rendered.info.width,
-        rendered.info.channels,
-        3,
-        0,
-      ),
-    ).toEqual([
-      0, 0, 255,
-    ]);
+      pixelAt(rendered.data, rendered.info.width, rendered.info.channels, 3, 0),
+    ).toEqual([0, 0, 255]);
   });
 });
 
@@ -183,5 +154,9 @@ function pixelAt(
   y: number,
 ): [number, number, number] {
   const offset = (y * width + x) * channels;
-  return [pixels[offset] ?? 0, pixels[offset + 1] ?? 0, pixels[offset + 2] ?? 0];
+  return [
+    pixels[offset] ?? 0,
+    pixels[offset + 1] ?? 0,
+    pixels[offset + 2] ?? 0,
+  ];
 }

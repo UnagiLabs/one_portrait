@@ -56,7 +56,10 @@ describe("createFinalizeRunner", () => {
     });
     const putMosaic = vi.fn(async () => {
       callOrder.push("put");
-      return { blobId: "mosaic-blob", aggregatorUrl: "https://agg/v1/blobs/mosaic-blob" };
+      return {
+        blobId: "mosaic-blob",
+        aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+      };
     });
     const finalizeTransaction = vi.fn(async () => {
       callOrder.push("finalize");

@@ -34,7 +34,9 @@ export async function prepareFinalizeInput(
   snapshot: GeneratorUnitSnapshot,
   deps: PrepareFinalizeDeps,
 ): Promise<PreparedFinalizeInput> {
-  const targetImageBytes = await deps.walrus.getBlob(snapshot.targetWalrusBlobId);
+  const targetImageBytes = await deps.walrus.getBlob(
+    snapshot.targetWalrusBlobId,
+  );
   const submissions = sortSubmissions(snapshot.submissions);
 
   const preparedSubmissions = await Promise.all(

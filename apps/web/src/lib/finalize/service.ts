@@ -1,6 +1,9 @@
 import type { UnitStatus } from "../sui";
 
-import type { FinalizeDispatchRequest, FinalizeDispatchResult } from "./dispatch";
+import type {
+  FinalizeDispatchRequest,
+  FinalizeDispatchResult,
+} from "./dispatch";
 
 export type FinalizeUnitSnapshot = {
   readonly unitId: string;
@@ -30,9 +33,7 @@ export type FinalizeRouteDeps = {
   readonly dispatch: (
     request: FinalizeDispatchRequest,
   ) => Promise<FinalizeDispatchResult>;
-  readonly readUnitSnapshot: (
-    unitId: string,
-  ) => Promise<FinalizeUnitSnapshot>;
+  readonly readUnitSnapshot: (unitId: string) => Promise<FinalizeUnitSnapshot>;
 };
 
 export function createFinalizeRouteService(deps: FinalizeRouteDeps) {

@@ -3,19 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-const { dispatchFinalizeMock, getFinalizeUnitSnapshotMock } = vi.hoisted(() => ({
-  dispatchFinalizeMock: vi.fn(),
-  getFinalizeUnitSnapshotMock: vi.fn(),
-}));
+const { dispatchFinalizeMock, getFinalizeUnitSnapshotMock } = vi.hoisted(
+  () => ({
+    dispatchFinalizeMock: vi.fn(),
+    getFinalizeUnitSnapshotMock: vi.fn(),
+  }),
+);
 
 vi.mock("../../../lib/finalize/dispatch", () => ({
   dispatchFinalize: dispatchFinalizeMock,
 }));
 
 vi.mock("../../../lib/sui", async () => {
-  const actual = await vi.importActual<typeof import("../../../lib/sui")>(
-    "../../../lib/sui",
-  );
+  const actual =
+    await vi.importActual<typeof import("../../../lib/sui")>(
+      "../../../lib/sui",
+    );
 
   return {
     ...actual,

@@ -82,9 +82,11 @@ export class MosaicGeneratorContainer extends Container {
 function getContainerRuntime(container: MosaicGeneratorContainer): {
   waitUntil(promise: Promise<unknown>): void;
 } {
-  return (container as unknown as {
-    ctx: {
-      waitUntil(promise: Promise<unknown>): void;
-    };
-  }).ctx;
+  return (
+    container as unknown as {
+      ctx: {
+        waitUntil(promise: Promise<unknown>): void;
+      };
+    }
+  ).ctx;
 }

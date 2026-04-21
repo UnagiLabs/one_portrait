@@ -13,9 +13,7 @@ export class MissingFinalizeRuntimeEnvError extends Error {
   readonly missing: readonly FinalizeRuntimeEnvKey[];
 
   constructor(missing: readonly FinalizeRuntimeEnvKey[]) {
-    super(
-      `Missing required finalize env variable(s): ${missing.join(", ")}.`,
-    );
+    super(`Missing required finalize env variable(s): ${missing.join(", ")}.`);
     this.name = "MissingFinalizeRuntimeEnvError";
     this.missing = missing;
   }

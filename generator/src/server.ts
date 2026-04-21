@@ -68,9 +68,7 @@ async function handleRequest(
   });
 }
 
-async function readJsonBody(
-  request: http.IncomingMessage,
-): Promise<unknown> {
+async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
   const chunks: Uint8Array[] = [];
 
   for await (const chunk of request) {
@@ -117,7 +115,9 @@ function parseDispatchInput(input: unknown): { readonly unitId: string } {
 function writeJson(
   response: http.ServerResponse,
   status: number,
-  payload: FinalizeRunResult | { readonly error: string; readonly message: string },
+  payload:
+    | FinalizeRunResult
+    | { readonly error: string; readonly message: string },
 ): void {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",

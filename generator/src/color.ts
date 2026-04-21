@@ -23,7 +23,11 @@ function rgbToLab(rgb: MosaicRgb): LabColor {
   return xyzToLab(xyz.x, xyz.y, xyz.z);
 }
 
-function rgbToXyz(rgb: MosaicRgb): { readonly x: number; readonly y: number; readonly z: number } {
+function rgbToXyz(rgb: MosaicRgb): {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+} {
   const red = srgbToLinear(rgb.red / 255);
   const green = srgbToLinear(rgb.green / 255);
   const blue = srgbToLinear(rgb.blue / 255);

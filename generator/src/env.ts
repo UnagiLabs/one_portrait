@@ -31,9 +31,7 @@ export class MissingGeneratorRuntimeEnvError extends Error {
   readonly missing: readonly GeneratorRuntimeEnvKey[];
 
   constructor(missing: readonly GeneratorRuntimeEnvKey[]) {
-    super(
-      `Missing required generator env variable(s): ${missing.join(", ")}.`,
-    );
+    super(`Missing required generator env variable(s): ${missing.join(", ")}.`);
     this.name = "MissingGeneratorRuntimeEnvError";
     this.missing = missing;
   }

@@ -97,7 +97,10 @@ export async function composeMosaicPng(input: {
 }): Promise<Uint8Array> {
   const plan = buildMosaicCompositionPlan(input);
   const submissionsByBlobId = new Map(
-    input.submissions.map((submission) => [submission.walrusBlobId, submission]),
+    input.submissions.map((submission) => [
+      submission.walrusBlobId,
+      submission,
+    ]),
   );
   const composites = await Promise.all(
     plan.tiles.map(async (tile) => {
