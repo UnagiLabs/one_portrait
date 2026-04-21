@@ -16,7 +16,7 @@ import {
   useState,
 } from "react";
 
-import { loadPublicEnv } from "../env";
+import { getPublicEnvSource, loadPublicEnv } from "../env";
 import { resolveFullnodeUrl } from "../sui/client";
 
 import {
@@ -24,6 +24,11 @@ import {
   loadSubmitPublicEnv,
   type SubmitPublicEnv,
 } from "./env";
+import { registerE2EStubWallet } from "./stub-wallet";
+
+function isE2EStubWalletEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1";
+}
 
 export type EnokiConfigState =
   | { readonly submitEnabled: true; readonly config: SubmitPublicEnv }
@@ -39,10 +44,14 @@ export function AppWalletProvider({
 }: {
   readonly children: ReactNode;
 }): React.ReactElement {
-  const readEnv = safeLoadPublicEnv(process.env);
+  // Read each NEXT_PUBLIC_* value individually so Next.js can statically
+  // inline them into the client bundle. Passing `process.env` wholesale leaks
+  // an empty object after hydration and flips `submitEnabled` to false.
+  const envSource = getPublicEnvSource();
+  const readEnv = safeLoadPublicEnv(envSource);
   const [queryClient] = useState(() => new QueryClient());
   const state = useMemo<EnokiConfigState>(() => {
-    if (!canEnableSubmit(process.env)) {
+    if (!canEnableSubmit(envSource)) {
       return {
         submitEnabled: false,
         reason: "submit-env-missing",
@@ -51,9 +60,9 @@ export function AppWalletProvider({
 
     return {
       submitEnabled: true,
-      config: loadSubmitPublicEnv(process.env),
+      config: loadSubmitPublicEnv(envSource),
     };
-  }, []);
+  }, [envSource]);
 
   const networks = useMemo(
     () =>
@@ -103,6 +112,13 @@ export function EnokiWalletRegistrar({
   const { client, network } = useSuiClientContext();
 
   useEffect(() => {
+    if (isE2EStubWalletEnabled()) {
+      // Test-only path: swap the real Enoki wallet for a Wallet Standard
+      // stub so Playwright can drive the submit flow without a real Google
+      // OAuth popup. The flag is only injected by the Playwright webServer.
+      return registerE2EStubWallet();
+    }
+
     if (!state.submitEnabled || !isEnokiNetwork(network)) {
       return;
     }

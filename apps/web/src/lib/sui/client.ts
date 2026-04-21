@@ -15,7 +15,7 @@
 
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 
-import { loadPublicEnv, type SuiNetwork } from "../env";
+import { getPublicEnvSource, loadPublicEnv, type SuiNetwork } from "../env";
 
 // `SuiNetwork` is the validated subset we accept from env; the SDK widens it
 // to its own `Network` type internally, so we re-narrow at the boundary.
@@ -98,8 +98,8 @@ export function getSuiClient(options?: {
 }
 
 function readProcessEnv(): EnvSource {
-  // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time on the client;
-  // on the server we read the live process env. Either way, plain object
-  // access is enough — we don't need a richer abstraction here.
-  return process.env as EnvSource;
+  // `process.env` cannot be passed wholesale to client code — Next.js only
+  // inlines individual `process.env.NEXT_PUBLIC_*` accesses, so the helper
+  // (which names each key) is the only safe shape that survives bundling.
+  return getPublicEnvSource();
 }

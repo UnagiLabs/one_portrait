@@ -16,7 +16,7 @@ import {
   useSubmitPhoto,
 } from "../../../lib/enoki/client-submit";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
-import { loadPublicEnv } from "../../../lib/env";
+import { getPublicEnvSource, loadPublicEnv } from "../../../lib/env";
 import {
   preprocessPhoto as defaultPreprocessPhoto,
   type PreprocessedPhoto,
@@ -595,7 +595,7 @@ function readWalrusEnvFromProcess(): WalrusEnv {
 
 function safeReadPackageId(): string | null {
   try {
-    return loadPublicEnv(process.env).packageId;
+    return loadPublicEnv(getPublicEnvSource()).packageId;
   } catch {
     return null;
   }

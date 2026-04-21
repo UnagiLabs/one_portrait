@@ -82,6 +82,25 @@ function isSuiNetwork(value: string): value is SuiNetwork {
   return (suiNetworks as readonly string[]).includes(value);
 }
 
+/**
+ * Build an env source by reading each `NEXT_PUBLIC_*` accessor individually.
+ *
+ * Next.js can statically inline `process.env.NEXT_PUBLIC_FOO` into the client
+ * bundle, but it cannot inline `process.env` passed as a whole object — every
+ * caller that needs to consult env from client code must therefore name each
+ * key explicitly, otherwise the browser sees an empty object after hydration
+ * and `loadPublicEnv` throws `MissingPublicEnvError`.
+ */
+export function getPublicEnvSource(): EnvSource {
+  return {
+    NEXT_PUBLIC_SUI_NETWORK: process.env.NEXT_PUBLIC_SUI_NETWORK,
+    NEXT_PUBLIC_PACKAGE_ID: process.env.NEXT_PUBLIC_PACKAGE_ID,
+    NEXT_PUBLIC_REGISTRY_OBJECT_ID: process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID,
+    NEXT_PUBLIC_ENOKI_API_KEY: process.env.NEXT_PUBLIC_ENOKI_API_KEY,
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  };
+}
+
 function normalizeOptionalValue(value: string | undefined): string | null {
   const normalized = typeof value === "string" ? value.trim() : "";
   return normalized.length > 0 ? normalized : null;

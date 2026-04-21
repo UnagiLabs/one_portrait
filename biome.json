@@ -16,6 +16,8 @@
       "!apps/web/.next",
       "!apps/web/.open-next",
       "!apps/web/.wrangler",
+      "!apps/web/playwright-report",
+      "!apps/web/test-results",
       "!.claude",
       "!.codex",
       "!node_modules"

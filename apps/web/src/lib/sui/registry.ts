@@ -11,7 +11,7 @@
  * for the empty case but still rely on `try/catch` for unexpected outages.
  */
 
-import { loadPublicEnv } from "../env";
+import { getPublicEnvSource, loadPublicEnv } from "../env";
 import { getSuiClient, type SuiReadClient } from "./client";
 import type { RegistryView } from "./types";
 
@@ -26,7 +26,7 @@ export async function getRegistryObject(
   objectId?: string,
   options?: { client?: SuiReadClient },
 ): Promise<RegistryView> {
-  const id = objectId ?? loadPublicEnv(process.env).registryObjectId;
+  const id = objectId ?? loadPublicEnv(getPublicEnvSource()).registryObjectId;
   const client = options?.client ?? getSuiClient();
 
   const response = await client.getObject({
