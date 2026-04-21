@@ -107,11 +107,15 @@ export function ParticipationAccess({
   unitId,
   preprocessPhoto,
   putBlob,
+  recoveryMaxAttempts,
+  recoveryRetryIntervalMs,
   walrusEnv,
 }: {
   readonly unitId: string;
   readonly preprocessPhoto?: PreprocessPhotoFn;
   readonly putBlob?: PutBlobFn;
+  readonly recoveryMaxAttempts?: number;
+  readonly recoveryRetryIntervalMs?: number;
   readonly walrusEnv?: WalrusEnv;
 }): React.ReactElement {
   const state = useEnokiConfigState();
@@ -133,6 +137,10 @@ export function ParticipationAccess({
     <ParticipationAccessEnabled
       preprocessPhoto={preprocessPhoto ?? defaultPreprocessPhoto}
       putBlob={putBlob ?? defaultPutBlobToWalrus}
+      recoveryMaxAttempts={recoveryMaxAttempts ?? RECOVERY_MAX_ATTEMPTS}
+      recoveryRetryIntervalMs={
+        recoveryRetryIntervalMs ?? RECOVERY_RETRY_INTERVAL_MS
+      }
       unitId={unitId}
       walrusEnv={walrusEnv ?? readWalrusEnvFromProcess()}
     />
@@ -143,11 +151,15 @@ function ParticipationAccessEnabled({
   unitId,
   preprocessPhoto,
   putBlob,
+  recoveryMaxAttempts,
+  recoveryRetryIntervalMs,
   walrusEnv,
 }: {
   readonly unitId: string;
   readonly preprocessPhoto: PreprocessPhotoFn;
   readonly putBlob: PutBlobFn;
+  readonly recoveryMaxAttempts: number;
+  readonly recoveryRetryIntervalMs: number;
   readonly walrusEnv: WalrusEnv;
 }): React.ReactElement {
   const wallets = useWallets();
@@ -306,8 +318,10 @@ function ParticipationAccessEnabled({
 
     let cancelled = false;
     let pending: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
 
     const verifyExecution = async (): Promise<void> => {
+      attempts += 1;
       let result: Awaited<ReturnType<typeof checkSubmissionExecution>>;
       try {
         result = await checkSubmissionExecution({
@@ -348,10 +362,19 @@ function ParticipationAccessEnabled({
         return;
       }
 
+      if (attempts >= recoveryMaxAttempts) {
+        setPhase({
+          kind: "error",
+          message: "投稿結果を確認できませんでした。もう一度送信してください。",
+          retry: { kind: "submit", photo: phase.photo },
+        });
+        return;
+      }
+
       pending = setTimeout(() => {
         pending = null;
         void verifyExecution();
-      }, RECOVERY_RETRY_INTERVAL_MS);
+      }, recoveryRetryIntervalMs);
     };
 
     void verifyExecution();
@@ -362,7 +385,14 @@ function ParticipationAccessEnabled({
         clearTimeout(pending);
       }
     };
-  }, [currentAccount?.address, packageId, phase, unitId]);
+  }, [
+    currentAccount?.address,
+    packageId,
+    phase,
+    recoveryMaxAttempts,
+    recoveryRetryIntervalMs,
+    unitId,
+  ]);
 
   const isProcessing = phase.kind === "processing";
   const isUploading = phase.kind === "uploading";
@@ -727,3 +757,4 @@ function describeKakeraStatus(
 }
 
 const RECOVERY_RETRY_INTERVAL_MS = 1_500;
+const RECOVERY_MAX_ATTEMPTS = 20;

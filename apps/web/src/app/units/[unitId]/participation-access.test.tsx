@@ -855,6 +855,79 @@ describe("ParticipationAccess", () => {
       );
     });
 
+    it("falls back to retry after the recovery poll budget is exhausted", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const { EnokiSubmitClientError } = await import(
+        "../../../lib/enoki/client-submit"
+      );
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-recovery",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-recovery",
+      }));
+      checkSubmissionExecutionMock.mockResolvedValue({
+        status: "recovering",
+        kakera: null,
+      });
+      submitPhoto.mockRejectedValue(
+        new EnokiSubmitClientError(
+          503,
+          "submit_unavailable",
+          "execute failed",
+          {
+            submissionStatus: "recovering",
+            recovery: {
+              digest: "recover-digest",
+              sender: "0xabc123",
+              blobId: "walrus-blob-recovery",
+            },
+          },
+        ),
+      );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          recoveryMaxAttempts={2}
+          recoveryRetryIntervalMs={10}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(checkSubmissionExecutionMock).toHaveBeenCalled();
+      });
+      expect(
+        screen.getByText(/投稿結果を確認しています。しばらくお待ちください。/),
+      ).toBeTruthy();
+
+      await waitFor(
+        () => {
+          expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(2);
+        },
+        { timeout: 1_000 },
+      );
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert").textContent).toContain(
+            "投稿結果を確認できませんでした",
+          );
+        },
+        { timeout: 1_000 },
+      );
+      expect(
+        screen.getByRole("button", { name: /もう一度送信する/ }),
+      ).toBeTruthy();
+    });
+
     it("renders the participation card with preview, sender, and a pending submission_no while Kakera is being confirmed", async () => {
       const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
       useOwnedKakeraMock.mockReturnValue({
