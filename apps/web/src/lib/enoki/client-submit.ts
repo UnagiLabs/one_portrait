@@ -21,15 +21,37 @@ export type SubmitPhotoSuccess = {
   readonly sender: string;
 };
 
+export type SubmitPhotoFailureStatus = "recovering" | "failed";
+
+export type SubmitPhotoRecoveryContext = {
+  readonly digest: string;
+  readonly sender: string;
+  readonly blobId: string;
+};
+
+type EnokiSubmitClientErrorOptions = {
+  readonly submissionStatus?: SubmitPhotoFailureStatus;
+  readonly recovery?: SubmitPhotoRecoveryContext | null;
+};
+
 export class EnokiSubmitClientError extends Error {
   readonly status: number;
   readonly code: EnokiApiErrorCode;
+  readonly submissionStatus: SubmitPhotoFailureStatus;
+  readonly recovery: SubmitPhotoRecoveryContext | null;
 
-  constructor(status: number, code: EnokiApiErrorCode, message: string) {
+  constructor(
+    status: number,
+    code: EnokiApiErrorCode,
+    message: string,
+    options: EnokiSubmitClientErrorOptions = {},
+  ) {
     super(message);
     this.name = "EnokiSubmitClientError";
     this.status = status;
     this.code = code;
+    this.submissionStatus = options.submissionStatus ?? "failed";
+    this.recovery = options.recovery ?? null;
   }
 }
 
@@ -66,15 +88,25 @@ export async function submitPhotoWithEnoki(
     input,
   );
   const signed = await deps.signTransaction(sponsor.bytes);
-  const executed = await postJson<ExecuteSponsoredResponse>(
-    fetchFn,
-    "/api/enoki/submit-photo/execute",
-    jwt,
-    {
+  let executed: ExecuteSponsoredResponse;
+
+  try {
+    executed = await postJson<ExecuteSponsoredResponse>(
+      fetchFn,
+      "/api/enoki/submit-photo/execute",
+      jwt,
+      {
+        digest: sponsor.digest,
+        signature: signed.signature,
+      },
+    );
+  } catch (error) {
+    throw toExecuteSubmitError(error, {
       digest: sponsor.digest,
-      signature: signed.signature,
-    },
-  );
+      sender: sponsor.sender,
+      blobId: input.blobId,
+    });
+  }
 
   return {
     digest: executed.digest,
@@ -180,5 +212,43 @@ function isEnokiApiErrorCode(value: string): value is EnokiApiErrorCode {
     value === "invalid_args" ||
     value === "sponsor_failed" ||
     value === "submit_unavailable"
+  );
+}
+
+function toExecuteSubmitError(
+  error: unknown,
+  recovery: SubmitPhotoRecoveryContext,
+): EnokiSubmitClientError {
+  if (error instanceof EnokiSubmitClientError) {
+    if (error.code === "auth_expired") {
+      return error;
+    }
+
+    return new EnokiSubmitClientError(error.status, error.code, error.message, {
+      submissionStatus: "recovering",
+      recovery,
+    });
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return new EnokiSubmitClientError(
+      502,
+      "sponsor_failed",
+      error.message,
+      {
+        submissionStatus: "recovering",
+        recovery,
+      },
+    );
+  }
+
+  return new EnokiSubmitClientError(
+    502,
+    "sponsor_failed",
+    "投稿結果を確認しています。時間をおいて、もう一度ご確認ください。",
+    {
+      submissionStatus: "recovering",
+      recovery,
+    },
   );
 }

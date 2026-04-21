@@ -117,4 +117,142 @@ describe("submitPhotoWithEnoki", () => {
       new EnokiSubmitClientError(400, "invalid_args", "blob id is invalid"),
     );
   });
+
+  it("marks execute API failures as recovering and keeps sponsor context", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: "submit_unavailable",
+            message: "execute failed",
+          }),
+          { status: 503 },
+        ),
+      );
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getJwt: async () => "header.jwt.value",
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "submit_unavailable",
+      status: 503,
+      submissionStatus: "recovering",
+      recovery: {
+        digest: "sponsor-digest",
+        sender: "0xsender",
+        blobId: "walrus-blob_1",
+      },
+    });
+  });
+
+  it("marks execute transport failures as recovering and keeps sponsor context", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockRejectedValueOnce(new Error("network down"));
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getJwt: async () => "header.jwt.value",
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "sponsor_failed",
+      status: 502,
+      submissionStatus: "recovering",
+      recovery: {
+        digest: "sponsor-digest",
+        sender: "0xsender",
+        blobId: "walrus-blob_1",
+      },
+    });
+  });
+
+  it("keeps execute auth_expired as a confirmed failure", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: "auth_expired",
+            message: "please log in again",
+          }),
+          { status: 401 },
+        ),
+      );
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getJwt: async () => "header.jwt.value",
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "auth_expired",
+      status: 401,
+      submissionStatus: "failed",
+      recovery: null,
+    });
+  });
 });
