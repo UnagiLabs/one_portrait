@@ -148,11 +148,15 @@ describe("HomePage", () => {
 
     const link = screen
       .getAllByRole("link")
-      .find((el) => el.getAttribute("href") === "/units/0xunit-1");
+      .find(
+        (el) =>
+          el.getAttribute("href") ===
+          "/units/0xunit-1?athleteName=Demo+Athlete+One",
+      );
     expect(link).toBeTruthy();
   });
 
-  it("falls back to catalog-only display when env or RPC fails", async () => {
+  it("keeps catalog-only display and marks progress unavailable when env is missing", async () => {
     getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
     loadPublicEnvMock.mockImplementation(() => {
       throw new Error("env missing");
@@ -163,24 +167,38 @@ describe("HomePage", () => {
 
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
     expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
+    ).toBeTruthy();
   });
 
-  it("falls back to placeholder progress when Sui RPC throws", async () => {
+  it("keeps the waiting-room link when progress fetch fails after resolving unitId", async () => {
     getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
       registryObjectId: "0xreg",
     });
-    getCurrentUnitIdForAthleteMock.mockRejectedValue(new Error("rpc down"));
+    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
+    getUnitProgressMock.mockRejectedValue(new Error("rpc down"));
 
     const ui = await HomePage();
     render(ui);
 
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
-    // Placeholder must not crash the card — either waiting state or the slug
-    // must still render.
     expect(screen.getByText(/demo-athlete-one/)).toBeTruthy();
+    expect(
+      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getAllByRole("link")
+        .find(
+          (el) =>
+            el.getAttribute("href") ===
+            "/units/0xunit-1?athleteName=Demo+Athlete+One",
+        ),
+    ).toBeTruthy();
   });
 
   it("uses demo fixture progress when demo mode is enabled", async () => {
@@ -192,7 +210,11 @@ describe("HomePage", () => {
 
     const link = screen
       .getAllByRole("link")
-      .find((el) => el.getAttribute("href") === `/units/${demoUnitId}`);
+      .find(
+        (el) =>
+          el.getAttribute("href") ===
+          `/units/${demoUnitId}?athleteName=Demo+Athlete+One`,
+      );
 
     expect(link).toBeTruthy();
     expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
