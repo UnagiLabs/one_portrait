@@ -16,4 +16,8 @@ describe("sui barrel", () => {
   it("re-exports the unit helper", () => {
     expect(typeof suiPublicApi.getUnitProgress).toBe("function");
   });
+
+  it("re-exports the submission execution helper", () => {
+    expect(typeof suiPublicApi.checkSubmissionExecution).toBe("function");
+  });
 });

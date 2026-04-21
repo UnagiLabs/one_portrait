@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   EnokiSubmitClientError,
+  type SubmitPhotoRecoveryContext,
   type SubmitPhotoSuccess,
   useSubmitPhoto,
 } from "../../../lib/enoki/client-submit";
@@ -21,7 +22,7 @@ import {
   preprocessPhoto as defaultPreprocessPhoto,
   type PreprocessedPhoto,
 } from "../../../lib/image/preprocess";
-import { getSuiClient } from "../../../lib/sui";
+import { checkSubmissionExecution, getSuiClient } from "../../../lib/sui";
 import { useOwnedKakera } from "../../../lib/sui/react";
 import {
   putBlobToWalrus as defaultPutBlobToWalrus,
@@ -71,7 +72,7 @@ type PutBlobFn = (
  * preprocessing.
  */
 type RetryContext = {
-  readonly kind: "upload";
+  readonly kind: "upload" | "submit";
   readonly photo: PreprocessedPhoto;
 };
 
@@ -84,6 +85,11 @@ type UploadPhase =
       readonly kind: "submitting";
       readonly photo: PreprocessedPhoto;
       readonly blobId: string;
+    }
+  | {
+      readonly kind: "recovering";
+      readonly photo: PreprocessedPhoto;
+      readonly recovery: SubmitPhotoRecoveryContext;
     }
   | {
       readonly kind: "done";
@@ -101,11 +107,15 @@ export function ParticipationAccess({
   unitId,
   preprocessPhoto,
   putBlob,
+  recoveryMaxAttempts,
+  recoveryRetryIntervalMs,
   walrusEnv,
 }: {
   readonly unitId: string;
   readonly preprocessPhoto?: PreprocessPhotoFn;
   readonly putBlob?: PutBlobFn;
+  readonly recoveryMaxAttempts?: number;
+  readonly recoveryRetryIntervalMs?: number;
   readonly walrusEnv?: WalrusEnv;
 }): React.ReactElement {
   const state = useEnokiConfigState();
@@ -127,6 +137,10 @@ export function ParticipationAccess({
     <ParticipationAccessEnabled
       preprocessPhoto={preprocessPhoto ?? defaultPreprocessPhoto}
       putBlob={putBlob ?? defaultPutBlobToWalrus}
+      recoveryMaxAttempts={recoveryMaxAttempts ?? RECOVERY_MAX_ATTEMPTS}
+      recoveryRetryIntervalMs={
+        recoveryRetryIntervalMs ?? RECOVERY_RETRY_INTERVAL_MS
+      }
       unitId={unitId}
       walrusEnv={walrusEnv ?? readWalrusEnvFromProcess()}
     />
@@ -137,11 +151,15 @@ function ParticipationAccessEnabled({
   unitId,
   preprocessPhoto,
   putBlob,
+  recoveryMaxAttempts,
+  recoveryRetryIntervalMs,
   walrusEnv,
 }: {
   readonly unitId: string;
   readonly preprocessPhoto: PreprocessPhotoFn;
   readonly putBlob: PutBlobFn;
+  readonly recoveryMaxAttempts: number;
+  readonly recoveryRetryIntervalMs: number;
   readonly walrusEnv: WalrusEnv;
 }): React.ReactElement {
   const wallets = useWallets();
@@ -205,8 +223,7 @@ function ParticipationAccessEnabled({
   const packageId = safeReadPackageId();
   const ownedKakera = useOwnedKakera({
     suiClient: getSuiClient(),
-    ownerAddress:
-      phase.kind === "done" ? (currentAccount?.address ?? null) : null,
+    ownerAddress: phase.kind === "done" ? phase.result.sender : null,
     unitId,
     walrusBlobId: doneBlobId,
     packageId: packageId ?? "",
@@ -279,13 +296,100 @@ function ParticipationAccessEnabled({
         setPhase({ kind: "ready" });
         return;
       }
+
+      if (isSubmitRecovering(error)) {
+        setPhase({
+          kind: "recovering",
+          photo,
+          recovery: error.recovery,
+        });
+        return;
+      }
+
       setPhase({ kind: "error", message: toSubmitErrorMessage(error) });
     }
   }
 
+  useEffect(() => {
+    if (phase.kind !== "recovering") {
+      return;
+    }
+
+    let cancelled = false;
+    let pending: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
+    const verifyExecution = async (): Promise<void> => {
+      attempts += 1;
+      let result: Awaited<ReturnType<typeof checkSubmissionExecution>>;
+      try {
+        result = await checkSubmissionExecution({
+          suiClient: getSuiClient(),
+          digest: phase.recovery.digest,
+          ownerAddress: phase.recovery.sender,
+          unitId,
+          walrusBlobId: phase.recovery.blobId,
+          packageId: packageId ?? "",
+        });
+      } catch {
+        result = { status: "recovering", kakera: null } as const;
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.status === "success") {
+        setPhase({
+          kind: "done",
+          result: {
+            digest: phase.recovery.digest,
+            sender: phase.recovery.sender,
+          },
+          photo: phase.photo,
+          blobId: phase.recovery.blobId,
+        });
+        return;
+      }
+
+      if (result.status === "failed") {
+        setPhase({
+          kind: "error",
+          message: "投稿を完了できませんでした。もう一度送信してください。",
+          retry: { kind: "submit", photo: phase.photo },
+        });
+        return;
+      }
+
+      if (attempts >= recoveryMaxAttempts) {
+        setPhase({
+          kind: "error",
+          message: "投稿結果を確認できませんでした。もう一度送信してください。",
+          retry: { kind: "submit", photo: phase.photo },
+        });
+        return;
+      }
+
+      pending = setTimeout(() => {
+        pending = null;
+        void verifyExecution();
+      }, recoveryRetryIntervalMs);
+    };
+
+    void verifyExecution();
+
+    return () => {
+      cancelled = true;
+      if (pending !== null) {
+        clearTimeout(pending);
+      }
+    };
+  }, [packageId, phase, recoveryMaxAttempts, recoveryRetryIntervalMs, unitId]);
+
   const isProcessing = phase.kind === "processing";
   const isUploading = phase.kind === "uploading";
   const isSubmitting = phase.kind === "submitting";
+  const isRecovering = phase.kind === "recovering";
   const isDone = phase.kind === "done";
   // Submission is one-shot: once the on-chain `submit_photo` lands, the Move
   // side rejects any further attempt from the same sender, but the UI must
@@ -293,19 +397,25 @@ function ParticipationAccessEnabled({
   // participation card with an error state. Gate every interactive control
   // on `isDone` so the success card is the terminal view for this unit.
   const fileInputDisabled =
-    !consented || isProcessing || isUploading || isSubmitting || isDone;
+    !consented ||
+    isProcessing ||
+    isUploading ||
+    isSubmitting ||
+    isRecovering ||
+    isDone;
   const previewPhoto =
     phase.kind === "previewing" ||
     phase.kind === "uploading" ||
-    phase.kind === "submitting"
+    phase.kind === "submitting" ||
+    phase.kind === "recovering"
       ? phase.photo
       : null;
-  const submitButtonDisabled = isUploading || isSubmitting;
+  const submitButtonDisabled = isUploading || isSubmitting || isRecovering;
   const showSubmitButton =
     phase.kind === "previewing" ||
     phase.kind === "uploading" ||
     phase.kind === "submitting";
-  const showConsentAndFilePicker = !isDone;
+  const showConsentAndFilePicker = !isDone && !isRecovering;
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
   const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
@@ -388,6 +498,12 @@ function ParticipationAccessEnabled({
           {isSubmitting ? (
             <p className="text-sm text-slate-300" role="status">
               オンチェーンに投稿しています…
+            </p>
+          ) : null}
+
+          {isRecovering ? (
+            <p className="text-sm text-slate-300" role="status">
+              投稿結果を確認しています。しばらくお待ちください。
             </p>
           ) : null}
 
@@ -575,6 +691,16 @@ function isAuthExpired(error: unknown): boolean {
   );
 }
 
+function isSubmitRecovering(error: unknown): error is EnokiSubmitClientError & {
+  readonly recovery: SubmitPhotoRecoveryContext;
+} {
+  return (
+    error instanceof EnokiSubmitClientError &&
+    error.submissionStatus === "recovering" &&
+    error.recovery !== null
+  );
+}
+
 function toSubmitErrorMessage(error: unknown): string {
   if (error instanceof EnokiSubmitClientError) {
     return error.message;
@@ -621,3 +747,6 @@ function describeKakeraStatus(
       return "";
   }
 }
+
+const RECOVERY_RETRY_INTERVAL_MS = 1_500;
+const RECOVERY_MAX_ATTEMPTS = 20;

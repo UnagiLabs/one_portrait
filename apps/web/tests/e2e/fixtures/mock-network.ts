@@ -8,7 +8,8 @@
  * is enough for the smoke path. Client traffic covered:
  *
  * - Sui JSON-RPC (fullnode.testnet.sui.io) — dispatched by `method`.
- * - `/api/enoki/submit-photo/sponsor` / `/execute` — return stub digest.
+ * - `/api/enoki/submit-photo/sponsor` / `/execute` — configurable success or
+ *   recovery failure.
  * - Walrus Publisher `PUT /v1/blobs` — return stub `blobId`.
  */
 
@@ -30,7 +31,7 @@ export const STUB_PACKAGE_ID =
 export const STUB_REGISTRY_OBJECT_ID =
   "0x0000000000000000000000000000000000000000000000000000000000000002";
 export const STUB_BLOB_ID = "STUB_BLOB_ID_XYZ";
-export const STUB_DIGEST = "STUB_SUBMIT_DIGEST";
+export const STUB_DIGEST = "4q49qZdCaTzeU2BP4mfQesc2dbt3h32Qn2rLHHwrBJne";
 export const STUB_KAKERA_OBJECT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000ka123";
 export const STUB_SUBMISSION_NO = 1;
@@ -42,13 +43,28 @@ export type MockState = {
   submitExecuted: boolean;
 };
 
+export type InstallMockOptions = {
+  readonly executeApiMode?: "success" | "recovering_http_error";
+  readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
+  readonly transactionBlockDelayMs?: number;
+  readonly kakeraVisibleAfterExecute?: boolean;
+};
+
 /**
  * Install default mocks on `page`. Returns a `state` handle the test can flip
  * (e.g., to force the Kakera to appear earlier). Also seeds the dapp-kit
  * localStorage key so the stub wallet auto-connects on first render.
  */
-export async function installDefaultMocks(page: Page): Promise<MockState> {
+export async function installDefaultMocks(
+  page: Page,
+  options: InstallMockOptions = {},
+): Promise<MockState> {
   const state: MockState = { submitExecuted: false };
+  const executeApiMode = options.executeApiMode ?? "success";
+  const transactionExecutionStatus =
+    options.transactionExecutionStatus ?? "success";
+  const transactionBlockDelayMs = options.transactionBlockDelayMs ?? 0;
+  const kakeraVisibleAfterExecute = options.kakeraVisibleAfterExecute ?? true;
 
   await page.addInitScript(
     ({ walletName, address }) => {
@@ -71,7 +87,11 @@ export async function installDefaultMocks(page: Page): Promise<MockState> {
   );
 
   await page.route(/fullnode\.[a-z]+\.sui\.io/, (route) =>
-    handleSuiRpc(route, state),
+    handleSuiRpc(route, state, {
+      transactionExecutionStatus,
+      transactionBlockDelayMs,
+      kakeraVisibleAfterExecute,
+    }),
   );
 
   await page.route("**/api/enoki/submit-photo/sponsor", async (route) => {
@@ -88,6 +108,18 @@ export async function installDefaultMocks(page: Page): Promise<MockState> {
 
   await page.route("**/api/enoki/submit-photo/execute", async (route) => {
     state.submitExecuted = true;
+    if (executeApiMode === "recovering_http_error") {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "sponsor_failed",
+          message: "execute failed",
+        }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -120,12 +152,25 @@ export async function installDefaultMocks(page: Page): Promise<MockState> {
   return state;
 }
 
-async function handleSuiRpc(route: Route, state: MockState): Promise<void> {
+async function handleSuiRpc(
+  route: Route,
+  state: MockState,
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      | "transactionExecutionStatus"
+      | "transactionBlockDelayMs"
+      | "kakeraVisibleAfterExecute"
+    >
+  >,
+): Promise<void> {
   const raw = route.request().postData();
   const payload = raw ? safeParseJson(raw) : null;
 
   if (Array.isArray(payload)) {
-    const responses = payload.map((single) => buildResponse(single, state));
+    const responses = await Promise.all(
+      payload.map((single) => buildResponse(single, state, options)),
+    );
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -137,14 +182,22 @@ async function handleSuiRpc(route: Route, state: MockState): Promise<void> {
   await route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: JSON.stringify(buildResponse(payload, state)),
+    body: JSON.stringify(await buildResponse(payload, state, options)),
   });
 }
 
-function buildResponse(
+async function buildResponse(
   call: unknown,
   state: MockState,
-): Record<string, unknown> {
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      | "transactionExecutionStatus"
+      | "transactionBlockDelayMs"
+      | "kakeraVisibleAfterExecute"
+    >
+  >,
+): Promise<Record<string, unknown>> {
   const id = isObject(call) ? call.id : null;
   const method =
     isObject(call) && typeof call.method === "string" ? call.method : "";
@@ -158,10 +211,12 @@ function buildResponse(
       return envelope(handleGetObject(params));
     case "suix_getDynamicFieldObject":
       return envelope(handleDynamicField(params));
+    case "sui_getTransactionBlock":
+      return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
       return envelope({ data: [], hasNextPage: false, nextCursor: null });
     case "suix_getOwnedObjects":
-      return envelope(handleOwnedObjects(params, state));
+      return envelope(handleOwnedObjects(params, state, options));
     case "sui_getLatestCheckpointSequenceNumber":
       return envelope("1");
     case "sui_dryRunTransactionBlock":
@@ -169,6 +224,47 @@ function buildResponse(
     default:
       return envelope(null);
   }
+}
+
+async function handleGetTransactionBlock(
+  state: MockState,
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      "transactionExecutionStatus" | "transactionBlockDelayMs"
+    >
+  >,
+): Promise<unknown> {
+  if (options.transactionBlockDelayMs > 0) {
+    await new Promise((resolve) =>
+      setTimeout(resolve, options.transactionBlockDelayMs),
+    );
+  }
+
+  if (
+    !state.submitExecuted ||
+    options.transactionExecutionStatus === "unknown"
+  ) {
+    return {
+      digest: STUB_DIGEST,
+      effects: null,
+    };
+  }
+
+  return {
+    digest: STUB_DIGEST,
+    effects: {
+      status:
+        options.transactionExecutionStatus === "success"
+          ? {
+              status: "success",
+            }
+          : {
+              status: "failure",
+              error: "mock execution failure",
+            },
+    },
+  };
 }
 
 function handleGetObject(params: readonly unknown[]): unknown {
@@ -255,9 +351,14 @@ function handleDynamicField(params: readonly unknown[]): unknown {
 function handleOwnedObjects(
   params: readonly unknown[],
   state: MockState,
+  options: Required<Pick<InstallMockOptions, "kakeraVisibleAfterExecute">>,
 ): unknown {
   const owner = typeof params[0] === "string" ? params[0] : "";
-  if (owner !== E2E_STUB_ACCOUNT_ADDRESS || !state.submitExecuted) {
+  if (
+    owner !== E2E_STUB_ACCOUNT_ADDRESS ||
+    !state.submitExecuted ||
+    !options.kakeraVisibleAfterExecute
+  ) {
     return { data: [], hasNextPage: false, nextCursor: null };
   }
 
