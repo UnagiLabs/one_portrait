@@ -23,6 +23,7 @@ const {
   useDisconnectWalletMock,
   useOwnedKakeraMock,
   useUnitEventsMock,
+  checkSubmissionExecutionMock,
 } = vi.hoisted(() => ({
   useEnokiConfigStateMock: vi.fn(),
   useSubmitPhotoMock: vi.fn(),
@@ -33,6 +34,7 @@ const {
   useDisconnectWalletMock: vi.fn(),
   useOwnedKakeraMock: vi.fn(),
   useUnitEventsMock: vi.fn(),
+  checkSubmissionExecutionMock: vi.fn(),
 }));
 
 vi.mock("../../../lib/enoki/provider", () => ({
@@ -43,11 +45,33 @@ vi.mock("../../../lib/enoki/client-submit", () => ({
   EnokiSubmitClientError: class extends Error {
     code: string;
     status: number;
+    submissionStatus: "recovering" | "failed";
+    recovery:
+      | {
+          readonly digest: string;
+          readonly sender: string;
+          readonly blobId: string;
+        }
+      | null;
 
-    constructor(status: number, code: string, message: string) {
+    constructor(
+      status: number,
+      code: string,
+      message: string,
+      options?: {
+        readonly submissionStatus?: "recovering" | "failed";
+        readonly recovery?: {
+          readonly digest: string;
+          readonly sender: string;
+          readonly blobId: string;
+        } | null;
+      },
+    ) {
       super(message);
       this.status = status;
       this.code = code;
+      this.submissionStatus = options?.submissionStatus ?? "failed";
+      this.recovery = options?.recovery ?? null;
     }
   },
   useSubmitPhoto: () => useSubmitPhotoMock(),
@@ -72,6 +96,8 @@ vi.mock("../../../lib/sui/react", () => ({
 
 vi.mock("../../../lib/sui", () => ({
   getSuiClient: () => ({}),
+  checkSubmissionExecution: (args: unknown) =>
+    checkSubmissionExecutionMock(args),
 }));
 
 import { LiveProgress } from "./live-progress";
@@ -105,6 +131,7 @@ function setupSignedInEnv(): void {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   useEnokiConfigStateMock.mockReset();
   useSubmitPhotoMock.mockReset();
   useWalletsMock.mockReset();
@@ -114,6 +141,7 @@ afterEach(() => {
   useDisconnectWalletMock.mockReset();
   useOwnedKakeraMock.mockReset();
   useUnitEventsMock.mockReset();
+  checkSubmissionExecutionMock.mockReset();
 });
 
 describe("ParticipationAccess", () => {
@@ -667,6 +695,152 @@ describe("ParticipationAccess", () => {
         expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
+    });
+
+    it("keeps showing a recovery message while execution confirmation is still pending, then offers retry only after confirmed failure", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const { EnokiSubmitClientError } = await import(
+        "../../../lib/enoki/client-submit"
+      );
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-recovery",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-recovery",
+      }));
+      let resolveExecutionCheck: (
+        value: { readonly status: "failed"; readonly kakera: null },
+      ) => void = () => {};
+      checkSubmissionExecutionMock.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveExecutionCheck = resolve;
+          }),
+      );
+      submitPhoto.mockRejectedValue(
+        new EnokiSubmitClientError(503, "submit_unavailable", "execute failed", {
+          submissionStatus: "recovering",
+          recovery: {
+            digest: "recover-digest",
+            sender: "0xabc123",
+            blobId: "walrus-blob-recovery",
+          },
+        }),
+      );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(checkSubmissionExecutionMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            digest: "recover-digest",
+            ownerAddress: "0xabc123",
+            unitId: "0xunit-1",
+            walrusBlobId: "walrus-blob-recovery",
+          }),
+        );
+      });
+
+      expect(
+        screen.getByText(/投稿結果を確認しています。しばらくお待ちください。/),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole("button", { name: /もう一度送信する/ }),
+      ).toBeNull();
+
+      resolveExecutionCheck({
+        status: "failed",
+        kakera: null,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert").textContent).toContain(
+          "投稿を完了できませんでした",
+        );
+      });
+      expect(
+        screen.getByRole("button", { name: /もう一度送信する/ }),
+      ).toBeTruthy();
+    });
+
+    it("re-queries recovering execution and merges into the participation card once recovery succeeds", async () => {
+      const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
+      const { EnokiSubmitClientError } = await import(
+        "../../../lib/enoki/client-submit"
+      );
+      const putBlob = vi.fn<PutMock>(async () => ({
+        blobId: "walrus-blob-recovery",
+        aggregatorUrl:
+          "https://aggregator.example.com/v1/blobs/walrus-blob-recovery",
+      }));
+      checkSubmissionExecutionMock
+        .mockResolvedValueOnce({
+          status: "recovering",
+          kakera: null,
+        })
+        .mockResolvedValueOnce({
+          status: "success",
+          kakera: null,
+        });
+      submitPhoto.mockRejectedValue(
+        new EnokiSubmitClientError(503, "submit_unavailable", "execute failed", {
+          submissionStatus: "recovering",
+          recovery: {
+            digest: "recover-digest",
+            sender: "0xabc123",
+            blobId: "walrus-blob-recovery",
+          },
+        }),
+      );
+
+      render(
+        <ParticipationAccess
+          preprocessPhoto={preprocessPhoto}
+          putBlob={putBlob}
+          unitId="0xunit-1"
+          walrusEnv={{
+            NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+            NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          }}
+        />,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(1);
+      });
+      expect(
+        screen.queryByRole("button", { name: /もう一度送信する/ }),
+      ).toBeNull();
+
+      await waitFor(() => {
+        expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(2);
+      }, { timeout: 3_000 });
+
+      await waitFor(() => {
+        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+      });
+      expect(screen.getByText(/recover-digest/)).toBeTruthy();
+      expect(useOwnedKakeraMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          ownerAddress: "0xabc123",
+          walrusBlobId: "walrus-blob-recovery",
+        }),
+      );
     });
 
     it("renders the participation card with preview, sender, and a pending submission_no while Kakera is being confirmed", async () => {
