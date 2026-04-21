@@ -4,7 +4,7 @@ import { getAthleteCatalog } from "../../lib/catalog";
 import { getDemoGalleryEntries, isDemoModeEnabled } from "../../lib/demo";
 import { loadPublicEnv } from "../../lib/env";
 
-import { GalleryClient } from "./gallery-client";
+import { GalleryPageClient } from "./gallery-page-client";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function GalleryPage(): Promise<React.ReactElement> {
           </p>
         </header>
 
-        <GalleryClient
+        <GalleryPageClient
           catalog={catalog}
           demoEntries={demoEntries}
           packageId={packageId ?? ""}

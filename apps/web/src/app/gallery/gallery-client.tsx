@@ -14,7 +14,7 @@ import { getDemoModeSource, isDemoModeEnabled } from "../../lib/demo";
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
-type GalleryClientProps = {
+export type GalleryClientProps = {
   readonly catalog: readonly AthleteCatalogEntry[];
   readonly demoEntries?: readonly GalleryRenderableEntry[];
   readonly packageId: string;
@@ -59,6 +59,45 @@ export function GalleryClient({
   demoEntries,
   packageId,
 }: GalleryClientProps): React.ReactElement {
+  const [failedOriginalBlobIds, setFailedOriginalBlobIds] = useState<
+    readonly string[]
+  >([]);
+  if (demoEntries) {
+    return (
+      <GalleryEntriesSection
+        catalog={catalog}
+        entries={demoEntries}
+        failedOriginalBlobIds={failedOriginalBlobIds}
+        onOriginalImageError={(walrusBlobId) => {
+          setFailedOriginalBlobIds((current) => {
+            if (current.includes(walrusBlobId)) {
+              return current;
+            }
+            return [...current, walrusBlobId];
+          });
+        }}
+      />
+    );
+  }
+
+  if (!packageId) {
+    return (
+      <GalleryStatusShell
+        description="Sui 接続の公開設定が不足しているため、ギャラリーを開けません。"
+        label="Unavailable"
+        title="公開設定を確認できません。"
+        tone="warning"
+      />
+    );
+  }
+
+  return <ConnectedGalleryClient catalog={catalog} packageId={packageId} />;
+}
+
+function ConnectedGalleryClient({
+  catalog,
+  packageId,
+}: Omit<GalleryClientProps, "demoEntries">): React.ReactElement {
   const currentAccount = useCurrentAccount();
   const currentWallet = useCurrentWallet();
   const wallets = useWallets();
@@ -90,18 +129,9 @@ export function GalleryClient({
   }
 
   useEffect(() => {
-    if (demoEntries) {
+    if (!currentAccount?.address) {
       setState({
-        kind: "ready",
-        entries: demoEntries,
-      });
-      setFailedOriginalBlobIds([]);
-      return;
-    }
-
-    if (!currentAccount?.address || !packageId) {
-      setState({
-        kind: currentAccount?.address ? "error" : "idle",
+        kind: "idle",
         entries: [],
       });
       setFailedOriginalBlobIds([]);
@@ -169,17 +199,15 @@ export function GalleryClient({
     return () => {
       cancelled = true;
     };
-  }, [currentAccount?.address, demoEntries, packageId, reloadNonce]);
+  }, [currentAccount?.address, packageId, reloadNonce]);
 
-  if (!demoEntries && !currentAccount?.address) {
+  if (!currentAccount?.address) {
     return (
-      <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-          Wallet required
-        </p>
-        <p className="mt-3 text-slate-200">
-          Connect a wallet to view your Kakera participation history.
-        </p>
+      <GalleryStatusShell
+        description="先に Google でログインすると、あなたの Kakera 履歴を読み込めます。"
+        label="Wallet required"
+        tone="info"
+      >
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
@@ -189,7 +217,11 @@ export function GalleryClient({
             }}
             type="button"
           >
-            {connectError ? "もう一度ログイン" : "Google でログイン"}
+            {isConnecting
+              ? "ログイン中…"
+              : connectError
+                ? "もう一度ログイン"
+                : "Google でログイン"}
           </button>
         </div>
         {connectError ? (
@@ -201,58 +233,18 @@ export function GalleryClient({
             {connectError}
           </p>
         ) : null}
-      </section>
+      </GalleryStatusShell>
     );
   }
 
-  if (!demoEntries && (!packageId || state.kind === "error")) {
+  if (state.kind === "error") {
     return (
-      <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-        <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
-          Unavailable
-        </p>
-        <p className="mt-3 text-slate-200">
-          Gallery unavailable right now. Check the public Sui configuration and
-          try again.
-        </p>
-        {packageId ? (
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
-              onClick={() => {
-                setReloadNonce((current) => current + 1);
-              }}
-              type="button"
-            >
-              もう一度確認する
-            </button>
-          </div>
-        ) : null}
-      </section>
-    );
-  }
-
-  if (state.kind === "loading") {
-    return (
-      <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-          Loading
-        </p>
-        <p className="mt-3 text-slate-200">Reading owned Kakera from Sui…</p>
-      </section>
-    );
-  }
-
-  if (state.entries.length === 0) {
-    return (
-      <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-          Empty
-        </p>
-        <p className="mt-3 text-slate-200">No Kakera found for this wallet.</p>
-        <p className="mt-2 text-sm text-slate-300">
-          投稿直後なら、少し待ってからもう一度確認してください。
-        </p>
+      <GalleryStatusShell
+        description="時間をおいて、もう一度確認してください。"
+        label="Unavailable"
+        title="履歴を読み込めませんでした。"
+        tone="warning"
+      >
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
@@ -264,13 +256,77 @@ export function GalleryClient({
             もう一度確認する
           </button>
         </div>
-      </section>
+      </GalleryStatusShell>
+    );
+  }
+
+  if (state.kind === "loading") {
+    return (
+      <GalleryStatusShell
+        description="ログインを確認できました。Sui から Kakera を読んでいます。"
+        label="Loading"
+        tone="info"
+      />
+    );
+  }
+
+  if (state.entries.length === 0) {
+    return (
+      <GalleryStatusShell
+        description="まだ Kakera が見つかりません。"
+        label="Empty"
+        note="投稿直後なら、少し待ってからもう一度確認してください。"
+        title="このウォレットの履歴はまだ空です。"
+        tone="empty"
+      >
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+            onClick={() => {
+              setReloadNonce((current) => current + 1);
+            }}
+            type="button"
+          >
+            もう一度確認する
+          </button>
+        </div>
+      </GalleryStatusShell>
     );
   }
 
   return (
+    <GalleryEntriesSection
+      catalog={catalog}
+      entries={state.entries}
+      failedOriginalBlobIds={failedOriginalBlobIds}
+      onOriginalImageError={(walrusBlobId) => {
+        setFailedOriginalBlobIds((current) => {
+          if (current.includes(walrusBlobId)) {
+            return current;
+          }
+          return [...current, walrusBlobId];
+        });
+      }}
+    />
+  );
+}
+
+type GalleryEntriesSectionProps = {
+  readonly catalog: readonly AthleteCatalogEntry[];
+  readonly entries: readonly GalleryRenderableEntry[];
+  readonly failedOriginalBlobIds: readonly string[];
+  readonly onOriginalImageError: (walrusBlobId: string) => void;
+};
+
+function GalleryEntriesSection({
+  catalog,
+  entries,
+  failedOriginalBlobIds,
+  onOriginalImageError,
+}: GalleryEntriesSectionProps): React.ReactElement {
+  return (
     <section className="grid gap-6 md:grid-cols-2">
-      {state.entries.map((entry) => (
+      {entries.map((entry) => (
         <GalleryCard
           athlete={findAthlete(catalog, entry.athletePublicId)}
           entry={entry}
@@ -279,12 +335,7 @@ export function GalleryClient({
             entry.walrusBlobId,
           )}
           onOriginalImageError={() => {
-            setFailedOriginalBlobIds((current) => {
-              if (current.includes(entry.walrusBlobId)) {
-                return current;
-              }
-              return [...current, entry.walrusBlobId];
-            });
+            onOriginalImageError(entry.walrusBlobId);
           }}
         />
       ))}
@@ -298,6 +349,54 @@ function toMessage(error: unknown): string {
   }
 
   return "処理に失敗しました。時間をおいて、もう一度お試しください。";
+}
+
+type GalleryStatusShellProps = {
+  readonly label: string;
+  readonly description: string;
+  readonly title?: string;
+  readonly note?: string;
+  readonly tone: "info" | "warning" | "empty";
+  readonly children?: React.ReactNode;
+};
+
+function GalleryStatusShell({
+  label,
+  description,
+  title,
+  note,
+  tone,
+  children,
+}: GalleryStatusShellProps): React.ReactElement {
+  const toneClasses =
+    tone === "warning"
+      ? {
+          shell: "border-amber-300/20 bg-amber-400/10",
+          label: "text-amber-200/80",
+        }
+      : tone === "empty"
+        ? {
+            shell: "border-emerald-300/20 bg-emerald-400/10",
+            label: "text-emerald-200/80",
+          }
+        : {
+            shell: "border-cyan-300/20 bg-cyan-400/10",
+            label: "text-cyan-200/80",
+          };
+
+  return (
+    <section className={`rounded-[1.75rem] border p-7 ${toneClasses.shell}`}>
+      <p className={`text-xs uppercase tracking-[0.3em] ${toneClasses.label}`}>
+        {label}
+      </p>
+      {title ? (
+        <h2 className="mt-3 font-serif text-2xl text-white">{title}</h2>
+      ) : null}
+      <p className="mt-3 text-slate-100">{description}</p>
+      {note ? <p className="mt-2 text-sm text-slate-200">{note}</p> : null}
+      {children}
+    </section>
+  );
 }
 
 type GalleryCardProps = {
