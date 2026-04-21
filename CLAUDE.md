@@ -99,7 +99,7 @@ sui move test
 
 タスクが該当する場合は自前フローを組まずこちらを優先する:
 
-- `.agents/skills/gh-issue-implement` — Issue のエンドツーエンド実行（Codex 実装、Claude 読み取り専用監査）。
+- `.agents/skills/gh-issue-implement` — Issue のエンドツーエンド実行（Codex で計画・実装・レビュー・PR 作成まで完結）。
 - `.agents/skills/prepare-pr` — PR タイトル / 本文規約（日本語）。
 - `.agents/skills/cleanup-gone-branches` — upstream が消えたローカルブランチの安全削除。
 - `.agents/skills/claude-consult` — ローカル `claude` CLI 経由の読み取り専用セカンドオピニオン。
