@@ -181,10 +181,11 @@ sui move test
 | 置き場 | 主な値 | 用途 |
 | :--- | :--- | :--- |
 | `apps/web/.env.local` | `NEXT_PUBLIC_*`, `ENOKI_PRIVATE_API_KEY` | ローカル確認と `next dev` 用 |
-| Cloudflare Secrets Store | `ADMIN_CAP_ID`, `ADMIN_SUI_PRIVATE_KEY` | `finalize` と generator container 用 |
+| Cloudflare Secrets Store | `ENOKI_PRIVATE_API_KEY`, `ADMIN_CAP_ID`, `ADMIN_SUI_PRIVATE_KEY` | sponsor API と `finalize` と generator container 用 |
 | publish 結果のメモ | `PACKAGE_ID`, `Registry` object ID, `AdminCap` ID | testnet 反映後に転記する元情報 |
 
 - `NEXT_PUBLIC_E2E_STUB_WALLET` は Playwright 専用です。通常運用では空欄のままにします。
+- `ENOKI_PRIVATE_API_KEY` は server-only です。ローカルでは `.env.local`、deploy では Cloudflare 側に入れます。
 - `ADMIN_SUI_PRIVATE_KEY` は運用者専用です。`.env.local` にコミットしません。
 - `PACKAGE_ID` と `AdminCap` ID は `sui client publish contracts` の出力から控えます。
 - `Registry` は package publish 時に shared object として作られます。
@@ -221,6 +222,7 @@ publish 後に次を控えます。
 
 - `NEXT_PUBLIC_PACKAGE_ID` に `PACKAGE_ID`
 - `NEXT_PUBLIC_REGISTRY_OBJECT_ID` に `Registry` object ID
+- `ENOKI_PRIVATE_API_KEY` は deploy 用の secret にも入れる
 - `ADMIN_CAP_ID` に `AdminCap` ID
 
 ### 4. デモ用 unit を作る
@@ -245,7 +247,7 @@ publish 後に次を控えます。
 corepack pnpm --filter web run deploy
 ```
 
-- deploy 前に Cloudflare 側へ `ADMIN_CAP_ID` と `ADMIN_SUI_PRIVATE_KEY` を入れます。
+- deploy 前に Cloudflare 側へ `ENOKI_PRIVATE_API_KEY`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY` を入れます。
 - `deploy` script は OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行します。
 - `deploy` 実行端末には Docker CLI と daemon が必要です。
 - binding を変えたときだけ `corepack pnpm --filter web run cf-typegen` を追加で回します。
@@ -267,7 +269,7 @@ corepack pnpm --filter web run deploy
 - [ ] `corepack pnpm --filter web run test:bundle-size` が通る
 - [ ] `cd contracts && sui move build && sui move test` が通る
 - [ ] `PACKAGE_ID`、`Registry` object ID、`AdminCap` ID を控えた
-- [ ] Cloudflare Secrets Store に `ADMIN_CAP_ID` と `ADMIN_SUI_PRIVATE_KEY` を入れた
+- [ ] Cloudflare Secrets Store に `ENOKI_PRIVATE_API_KEY`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY` を入れた
 - [ ] README の手順どおりに local -> testnet -> Cloudflare を追える
 - [ ] 本物で見せる部分とモックで見せる部分を事前に決めた
 
