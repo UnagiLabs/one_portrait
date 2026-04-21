@@ -64,6 +64,43 @@ export type AthleteProgressView = {
   readonly masterId: string | null;
 };
 
+export type MasterPlacementView = {
+  readonly x: number;
+  readonly y: number;
+  readonly submitter: string;
+  readonly submissionNo: number;
+};
+
+export type MasterPlacementLookupView = {
+  readonly masterId: string;
+  readonly mosaicWalrusBlobId: string;
+  readonly placement: MasterPlacementView | null;
+};
+
+export type GalleryEntryView =
+  | {
+      readonly unitId: string;
+      readonly athletePublicId: AthletePublicId;
+      readonly walrusBlobId: string;
+      readonly submissionNo: number;
+      readonly mintedAtMs: number;
+      readonly masterId: null;
+      readonly mosaicWalrusBlobId: null;
+      readonly placement: null;
+      readonly status: { readonly kind: "pending" };
+    }
+  | {
+      readonly unitId: string;
+      readonly athletePublicId: AthletePublicId;
+      readonly walrusBlobId: string;
+      readonly submissionNo: number;
+      readonly mintedAtMs: number;
+      readonly masterId: string;
+      readonly mosaicWalrusBlobId: string;
+      readonly placement: MasterPlacementView | null;
+      readonly status: { readonly kind: "completed" };
+    };
+
 /** Convert the on-chain `u8` status into the UI union. */
 export function normalizeUnitStatus(value: unknown): UnitStatus {
   if (value === UNIT_STATUS_PENDING) return "pending";

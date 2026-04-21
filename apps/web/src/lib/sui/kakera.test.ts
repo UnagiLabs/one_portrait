@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { findKakeraForSubmission, type KakeraOwnedClient } from "./kakera";
+import {
+  findKakeraForSubmission,
+  findOwnedKakeraForUnit,
+  type KakeraOwnedClient,
+  listOwnedKakera,
+} from "./kakera";
 
 const PACKAGE_ID = "0xpkg";
 const OWNER = "0xowner";
@@ -67,6 +72,216 @@ function clientReturning(
   } as unknown as KakeraOwnedClient;
 }
 
+function clientReturningResponses(
+  responses: ReadonlyArray<{
+    readonly data: ReadonlyArray<unknown>;
+    readonly hasNextPage: boolean;
+    readonly nextCursor: string | null;
+  }>,
+): KakeraOwnedClient {
+  const getOwnedObjects = vi.fn(async ({ owner }) => {
+    expect(owner).toBe(OWNER);
+    const index = getOwnedObjects.mock.calls.length - 1;
+    return (
+      responses[index] ?? {
+        data: [],
+        hasNextPage: false,
+        nextCursor: null,
+      }
+    );
+  });
+
+  return {
+    getOwnedObjects,
+  } as unknown as KakeraOwnedClient;
+}
+
+describe("listOwnedKakera", () => {
+  it("returns an empty array when the owner has no Kakera", async () => {
+    const client = clientReturning([]);
+
+    await expect(
+      listOwnedKakera({
+        suiClient: client,
+        ownerAddress: OWNER,
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it("walks paginated owner results across multiple pages", async () => {
+    const client = clientReturningResponses([
+      {
+        data: [kakeraObject({ objectId: "0xkakera-1" })],
+        hasNextPage: true,
+        nextCursor: "cursor-1",
+      },
+      {
+        data: [
+          kakeraObject({
+            objectId: "0xkakera-2",
+            fields: { unit_id: "0xunit-2" },
+          }),
+        ],
+        hasNextPage: false,
+        nextCursor: null,
+      },
+    ]);
+
+    await expect(
+      listOwnedKakera({
+        suiClient: client,
+        ownerAddress: OWNER,
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual([
+      {
+        objectId: "0xkakera-1",
+        athletePublicId: "1",
+        unitId: UNIT_ID,
+        walrusBlobId: WALRUS_BLOB_ID,
+        submissionNo: 42,
+        mintedAtMs: 1700000000000,
+      },
+      {
+        objectId: "0xkakera-2",
+        athletePublicId: "1",
+        unitId: "0xunit-2",
+        walrusBlobId: WALRUS_BLOB_ID,
+        submissionNo: 42,
+        mintedAtMs: 1700000000000,
+      },
+    ]);
+  });
+
+  it("ignores unrelated object types even when the fullnode returns them", async () => {
+    const client = clientReturning([
+      kakeraObject({
+        type: `${PACKAGE_ID}::other::Thing`,
+        objectId: "0xother",
+      }),
+      kakeraObject({ objectId: "0xkakera-real" }),
+    ]);
+
+    await expect(
+      listOwnedKakera({
+        suiClient: client,
+        ownerAddress: OWNER,
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual([
+      {
+        objectId: "0xkakera-real",
+        athletePublicId: "1",
+        unitId: UNIT_ID,
+        walrusBlobId: WALRUS_BLOB_ID,
+        submissionNo: 42,
+        mintedAtMs: 1700000000000,
+      },
+    ]);
+  });
+
+  it("ignores malformed Kakera objects", async () => {
+    const client = clientReturningResponses([
+      {
+        data: [
+          {
+            data: {
+              objectId: "0xbroken",
+              digest: "d",
+              version: "1",
+              type: `${PACKAGE_ID}::kakera::Kakera`,
+              content: {
+                dataType: "moveObject",
+                fields: {
+                  unit_id: null,
+                  walrus_blob_id: "not-bytes",
+                  submission_no: {},
+                },
+              },
+            },
+          },
+          kakeraObject({ objectId: "0xkakera-real" }),
+        ],
+        hasNextPage: false,
+        nextCursor: null,
+      },
+    ]);
+
+    await expect(
+      listOwnedKakera({
+        suiClient: client,
+        ownerAddress: OWNER,
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual([
+      {
+        objectId: "0xkakera-real",
+        athletePublicId: "1",
+        unitId: UNIT_ID,
+        walrusBlobId: WALRUS_BLOB_ID,
+        submissionNo: 42,
+        mintedAtMs: 1700000000000,
+      },
+    ]);
+  });
+});
+
+describe("findOwnedKakeraForUnit", () => {
+  it("finds the Kakera for the requested unit among multiple owned Kakera", async () => {
+    const client = clientReturningResponses([
+      {
+        data: [
+          kakeraObject({
+            objectId: "0xunit-1-kakera",
+            fields: { unit_id: "0xunit-1" },
+          }),
+          kakeraObject({
+            objectId: "0xunit-2-kakera",
+            fields: { unit_id: "0xunit-2" },
+          }),
+        ],
+        hasNextPage: false,
+        nextCursor: null,
+      },
+    ]);
+
+    await expect(
+      findOwnedKakeraForUnit({
+        suiClient: client,
+        ownerAddress: OWNER,
+        unitId: "0xunit-2",
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual({
+      objectId: "0xunit-2-kakera",
+      athletePublicId: "1",
+      unitId: "0xunit-2",
+      walrusBlobId: WALRUS_BLOB_ID,
+      submissionNo: 42,
+      mintedAtMs: 1700000000000,
+    });
+  });
+
+  it("returns null when the requested unit is absent", async () => {
+    const client = clientReturning([
+      kakeraObject({
+        objectId: "0xunit-1-kakera",
+        fields: { unit_id: "0xunit-1" },
+      }),
+    ]);
+
+    await expect(
+      findOwnedKakeraForUnit({
+        suiClient: client,
+        ownerAddress: OWNER,
+        unitId: "0xunit-9",
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toBeNull();
+  });
+});
+
 describe("findKakeraForSubmission", () => {
   it("returns the matching Kakera when type / unit_id / walrus_blob_id all align", async () => {
     const client = clientReturning([kakeraObject({})]);
@@ -81,9 +296,11 @@ describe("findKakeraForSubmission", () => {
 
     expect(result).not.toBeNull();
     expect(result?.objectId).toBe("0xkakera-1");
+    expect(result?.athletePublicId).toBe("1");
     expect(result?.unitId).toBe(UNIT_ID);
     expect(result?.walrusBlobId).toBe(WALRUS_BLOB_ID);
     expect(result?.submissionNo).toBe(42);
+    expect(result?.mintedAtMs).toBe(1700000000000);
   });
 
   it("returns null when the object type is not Kakera", async () => {

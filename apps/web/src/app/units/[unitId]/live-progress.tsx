@@ -34,6 +34,7 @@ export type LiveProgressProps = {
   readonly unitId: string;
   readonly initialSubmittedCount: number;
   readonly maxSlots: number;
+  readonly onMosaicReady?: (event: MosaicReadyEvent) => void;
   readonly triggerFinalize?: (unitId: string) => Promise<void>;
 };
 
@@ -43,12 +44,12 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     unitId,
     initialSubmittedCount,
     maxSlots,
+    onMosaicReady,
     triggerFinalize = defaultTriggerFinalize,
   } = props;
 
   const [submittedCount, setSubmittedCount] = useState(initialSubmittedCount);
   const [filled, setFilled] = useState(false);
-  const [mosaicReady, setMosaicReady] = useState(false);
   const finalizeTriggeredRef = useRef(false);
 
   useUnitEvents({
@@ -70,10 +71,8 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
         void triggerFinalize(unitId).catch(() => undefined);
       }
     },
-    onMosaicReady: (_event: MosaicReadyEvent) => {
-      // Full reveal rendering is out of scope. Track it so follow-up work
-      // can swap this component for a ReadyOverlay without changing wiring.
-      setMosaicReady(true);
+    onMosaicReady: (event: MosaicReadyEvent) => {
+      onMosaicReady?.(event);
     },
   });
 
@@ -87,10 +86,9 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
       </p>
       <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
         {filled ? "Filled" : "Filling"}
-        {mosaicReady ? " · Mosaic ready" : ""}
       </p>
       {/* TODO(issue-4+): render submit button here (zkLogin + Sponsored Tx). */}
-      {/* TODO(issue-6+): swap this panel for ReveralOverlay when mosaicReady. */}
+      {/* TODO(issue-6+): wrap reveal timing around this counter if needed. */}
     </div>
   );
 }

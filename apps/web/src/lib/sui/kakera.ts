@@ -24,9 +24,21 @@ export type KakeraOwnedClient = {
 
 export type OwnedKakera = {
   readonly objectId: string;
+  readonly athletePublicId: string;
   readonly unitId: string;
   readonly walrusBlobId: string;
   readonly submissionNo: number;
+  readonly mintedAtMs: number;
+};
+
+export type ListOwnedKakeraArgs = {
+  readonly suiClient: KakeraOwnedClient;
+  readonly ownerAddress: string;
+  readonly packageId: string;
+};
+
+export type FindOwnedKakeraForUnitArgs = ListOwnedKakeraArgs & {
+  readonly unitId: string;
 };
 
 export type FindKakeraForSubmissionArgs = {
@@ -44,6 +56,30 @@ export type FindKakeraForSubmissionArgs = {
  * response so the hook cannot spin indefinitely.
  */
 const MAX_OWNED_OBJECT_PAGES = 20;
+
+export async function listOwnedKakera(
+  args: ListOwnedKakeraArgs,
+): Promise<OwnedKakera[]> {
+  const ownedKakera: OwnedKakera[] = [];
+
+  await scanOwnedKakeraPages(args, (kakera) => {
+    ownedKakera.push(kakera);
+    return undefined;
+  });
+
+  return ownedKakera;
+}
+
+export async function findOwnedKakeraForUnit(
+  args: FindOwnedKakeraForUnitArgs,
+): Promise<OwnedKakera | null> {
+  return scanOwnedKakeraPages(args, (kakera) => {
+    if (kakera.unitId === args.unitId) {
+      return kakera;
+    }
+    return undefined;
+  });
+}
 
 /**
  * Locate the Kakera that matches a specific submission, or `null` if the
@@ -69,49 +105,15 @@ const MAX_OWNED_OBJECT_PAGES = 20;
 export async function findKakeraForSubmission(
   args: FindKakeraForSubmissionArgs,
 ): Promise<OwnedKakera | null> {
-  const expectedType = `${args.packageId}::kakera::Kakera`;
-
-  let cursor: string | null | undefined;
-  for (let page = 0; page < MAX_OWNED_OBJECT_PAGES; page += 1) {
-    const response = await args.suiClient.getOwnedObjects({
-      owner: args.ownerAddress,
-      filter: {
-        StructType: expectedType,
-      },
-      options: { showContent: true, showType: true },
-      cursor: cursor ?? null,
-    });
-
-    for (const entry of response.data ?? []) {
-      const data = entry.data;
-      if (!data?.content) continue;
-      if (data.type !== expectedType) continue;
-
-      const fields = extractMoveObjectFields(data.content);
-      const unitId = readIdField(fields.unit_id);
-      if (unitId !== args.unitId) continue;
-
-      const blobId = readVectorU8AsString(fields.walrus_blob_id);
-      if (blobId !== args.walrusBlobId) continue;
-
-      return {
-        objectId: data.objectId,
-        unitId,
-        walrusBlobId: blobId,
-        submissionNo: readIntegerField(fields.submission_no),
-      };
+  return scanOwnedKakeraPages(args, (kakera) => {
+    if (
+      kakera.unitId === args.unitId &&
+      kakera.walrusBlobId === args.walrusBlobId
+    ) {
+      return kakera;
     }
-
-    if (!response.hasNextPage) {
-      return null;
-    }
-    cursor = response.nextCursor ?? null;
-    if (cursor == null) {
-      return null;
-    }
-  }
-
-  return null;
+    return undefined;
+  });
 }
 
 type MoveStructLike = {
@@ -170,4 +172,104 @@ function readIntegerField(value: unknown): number {
     return Number(value);
   }
   return 0;
+}
+
+async function scanOwnedKakeraPages<T>(
+  args: ListOwnedKakeraArgs,
+  onKakera: (kakera: OwnedKakera) => T | undefined,
+): Promise<T | null> {
+  const expectedType = `${args.packageId}::kakera::Kakera`;
+
+  let cursor: string | null | undefined;
+  for (let page = 0; page < MAX_OWNED_OBJECT_PAGES; page += 1) {
+    const response = await args.suiClient.getOwnedObjects({
+      owner: args.ownerAddress,
+      filter: {
+        StructType: expectedType,
+      },
+      options: { showContent: true, showType: true },
+      cursor: cursor ?? null,
+    });
+
+    for (const entry of response.data ?? []) {
+      const kakera = parseOwnedKakera(
+        (entry as { data?: unknown })?.data,
+        expectedType,
+      );
+      if (kakera == null) {
+        continue;
+      }
+
+      const result = onKakera(kakera);
+      if (result !== undefined) {
+        return result;
+      }
+    }
+
+    if (!response.hasNextPage) {
+      return null;
+    }
+    cursor = response.nextCursor ?? null;
+    if (cursor == null) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function parseOwnedKakera(
+  data: unknown,
+  expectedType: string,
+): OwnedKakera | null {
+  if (typeof data !== "object" || data === null) {
+    return null;
+  }
+
+  const type = (data as { type?: unknown }).type;
+  if (type !== expectedType) {
+    return null;
+  }
+
+  const objectId = (data as { objectId?: unknown }).objectId;
+  if (typeof objectId !== "string" || objectId.length === 0) {
+    return null;
+  }
+
+  const fields = extractMoveObjectFields(
+    (data as { content?: unknown }).content,
+  );
+  const unitId = readIdField(fields.unit_id);
+  if (unitId == null) {
+    return null;
+  }
+
+  const athletePublicId = readAthletePublicId(fields.athlete_id);
+  if (athletePublicId == null) {
+    return null;
+  }
+
+  const walrusBlobId = readVectorU8AsString(fields.walrus_blob_id);
+  if (walrusBlobId == null) {
+    return null;
+  }
+
+  return {
+    objectId,
+    athletePublicId,
+    unitId,
+    walrusBlobId,
+    submissionNo: readIntegerField(fields.submission_no),
+    mintedAtMs: readIntegerField(fields.minted_at_ms),
+  };
+}
+
+function readAthletePublicId(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "string" && /^[0-9]+$/.test(value)) {
+    return value;
+  }
+  return null;
 }

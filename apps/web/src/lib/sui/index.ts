@@ -36,12 +36,32 @@ export type {
 export { subscribeToUnitEvents } from "./events";
 export { getFinalizeUnitSnapshot } from "./finalize";
 export {
+  getGalleryEntry,
+  getMasterPlacement,
+  MasterPortraitNotFoundError,
+} from "./gallery";
+export type {
+  FindKakeraForSubmissionArgs,
+  FindOwnedKakeraForUnitArgs,
+  KakeraOwnedClient,
+  ListOwnedKakeraArgs,
+  OwnedKakera,
+} from "./kakera";
+export {
+  findKakeraForSubmission,
+  findOwnedKakeraForUnit,
+  listOwnedKakera,
+} from "./kakera";
+export {
   getCurrentUnitIdForAthlete,
   getRegistryObject,
   RegistryNotFoundError,
 } from "./registry";
 export type {
   AthleteProgressView,
+  GalleryEntryView,
+  MasterPlacementLookupView,
+  MasterPlacementView,
   RegistryView,
   UnitStatus,
 } from "./types";

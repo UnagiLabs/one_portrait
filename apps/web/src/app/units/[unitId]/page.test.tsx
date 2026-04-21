@@ -3,12 +3,17 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getUnitProgressMock, getAthleteByPublicIdMock, loadPublicEnvMock } =
-  vi.hoisted(() => ({
-    getUnitProgressMock: vi.fn(),
-    getAthleteByPublicIdMock: vi.fn(),
-    loadPublicEnvMock: vi.fn(),
-  }));
+const {
+  getUnitProgressMock,
+  getAthleteByPublicIdMock,
+  loadPublicEnvMock,
+  unitRevealClientMock,
+} = vi.hoisted(() => ({
+  getUnitProgressMock: vi.fn(),
+  getAthleteByPublicIdMock: vi.fn(),
+  loadPublicEnvMock: vi.fn(),
+  unitRevealClientMock: vi.fn(),
+}));
 
 vi.mock("../../../lib/sui", () => ({
   getUnitProgress: getUnitProgressMock,
@@ -22,15 +27,27 @@ vi.mock("../../../lib/env", () => ({
   loadPublicEnv: loadPublicEnvMock,
 }));
 
-vi.mock("./live-progress", () => ({
-  LiveProgress: ({
+vi.mock("./unit-reveal-client", () => ({
+  UnitRevealClient: ({
     initialSubmittedCount,
     maxSlots,
+    initialMasterId,
   }: {
     initialSubmittedCount: number;
     maxSlots: number;
+    initialMasterId: string | null;
   }) => (
-    <div data-testid="live-progress">
+    <div
+      data-master-id={initialMasterId ?? ""}
+      data-testid="unit-reveal-client"
+      ref={() => {
+        unitRevealClientMock({
+          initialSubmittedCount,
+          maxSlots,
+          initialMasterId,
+        });
+      }}
+    >
       {initialSubmittedCount} / {maxSlots}
     </div>
   ),
@@ -42,6 +59,7 @@ afterEach(() => {
   getUnitProgressMock.mockReset();
   getAthleteByPublicIdMock.mockReset();
   loadPublicEnvMock.mockReset();
+  unitRevealClientMock.mockReset();
 });
 
 describe("UnitPage", () => {
@@ -71,7 +89,7 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByTestId("live-progress").textContent).toContain(
+    expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "72 / 500",
     );
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
@@ -119,6 +137,37 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByTestId("live-progress")).toBeTruthy();
+    expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
+  });
+
+  it("passes masterId to the client wrapper so completed units can reveal on revisit", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 500,
+      maxSlots: 500,
+      status: "finalized",
+      masterId: "0xmaster-1",
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe("0xmaster-1");
   });
 });
