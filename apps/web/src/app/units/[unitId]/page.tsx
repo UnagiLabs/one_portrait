@@ -242,7 +242,6 @@ function shouldUseE2EDegradedUnitProgress(
   rawOverride: string | undefined,
 ): boolean {
   return (
-    process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1" &&
-    rawOverride === "missing"
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1" && rawOverride === "missing"
   );
 }

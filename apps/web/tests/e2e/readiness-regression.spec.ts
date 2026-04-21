@@ -1,9 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import {
-  installDefaultMocks,
-  STUB_UNIT_ID,
-} from "./fixtures/mock-network";
+import { installDefaultMocks, STUB_UNIT_ID } from "./fixtures/mock-network";
 import {
   TINY_JPEG_BUFFER,
   TINY_JPEG_MIME,
