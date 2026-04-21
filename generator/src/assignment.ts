@@ -1,7 +1,7 @@
 import {
+  type MosaicRgb,
   renderedMosaicTileSizePx,
   unitTileGrid,
-  type MosaicRgb,
 } from "@one-portrait/shared";
 
 import { deltaE } from "./color";

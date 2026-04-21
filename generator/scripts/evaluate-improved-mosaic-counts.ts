@@ -47,7 +47,8 @@ const targets = [
     label: "Portrait (Unsplash)",
     sourcePage:
       "https://commons.wikimedia.org/wiki/File%3APortrait_%28Unsplash%29.jpg",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/7/74/Portrait_%28Unsplash%29.jpg",
+    imageUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/7/74/Portrait_%28Unsplash%29.jpg",
   },
   {
     slug: "face-portrait-man",
@@ -190,7 +191,10 @@ async function buildExperimentResult(input: {
     .removeAlpha()
     .raw()
     .toBuffer();
-  const mosaicComparable = await sharp(result.image).removeAlpha().raw().toBuffer();
+  const mosaicComparable = await sharp(result.image)
+    .removeAlpha()
+    .raw()
+    .toBuffer();
   const targetPreview = await sharp(input.targetImage)
     .rotate()
     .resize(previewWidth, previewHeight, { fit: "cover" })
@@ -202,7 +206,10 @@ async function buildExperimentResult(input: {
     .removeAlpha()
     .raw()
     .toBuffer();
-  const previewMae = computeMeanAbsoluteError(targetComparable, mosaicComparable);
+  const previewMae = computeMeanAbsoluteError(
+    targetComparable,
+    mosaicComparable,
+  );
   const macroMae = computeMeanAbsoluteError(targetPreview, mosaicPreview);
 
   return {
@@ -346,7 +353,9 @@ function summarizeRecommendation(
     }))
     .sort((left, right) => left.count - right.count);
 
-  const bestScore = Math.max(...ranked.map((item) => item.avgRecognizabilityScore));
+  const bestScore = Math.max(
+    ...ranked.map((item) => item.avgRecognizabilityScore),
+  );
   const bestDelta = Math.min(...ranked.map((item) => item.avgDeltaE));
   const recommended =
     ranked.find(
@@ -403,10 +412,6 @@ function seededPermutation(length: number, seed: number) {
   }
 
   return values;
-}
-
-async function fetchBuffer(url: string) {
-  return fetchBufferWithRetry(url);
 }
 
 async function fetchTargetImage(slug: string, url: string) {

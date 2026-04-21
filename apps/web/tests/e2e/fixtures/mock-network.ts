@@ -12,8 +12,8 @@
  * - Walrus Publisher `PUT /v1/blobs` — return stub `blobId`.
  */
 
-import type { Page, Route } from "@playwright/test";
 import { unitTileCount } from "@one-portrait/shared";
+import type { Page, Route } from "@playwright/test";
 
 import {
   E2E_STUB_ACCOUNT_ADDRESS,

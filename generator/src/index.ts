@@ -23,10 +23,10 @@ export {
 export type { FinalizeManifest, FinalizeManifestInput } from "./manifest";
 export { buildFinalizeManifest } from "./manifest";
 export type {
-  GenerateFinalizeMosaicInput,
-  GenerateMosaicInput,
   GeneratedFinalizeMosaic,
   GeneratedMosaic,
+  GenerateFinalizeMosaicInput,
+  GenerateMosaicInput,
   MosaicGrid,
   MosaicTileInput,
 } from "./mosaic";

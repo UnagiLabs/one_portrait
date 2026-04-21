@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import sharp from "sharp";
@@ -130,7 +130,9 @@ async function main() {
     }
 
     for (const item of list) {
-      if (selectedFiles.some((filePath) => path.parse(filePath).name === item.id)) {
+      if (
+        selectedFiles.some((filePath) => path.parse(filePath).name === item.id)
+      ) {
         metadataById.set(item.id, item);
       }
     }
@@ -153,7 +155,10 @@ async function main() {
     });
   }
 
-  const totalBytes = manifestEntries.reduce((sum, entry) => sum + entry.sizeBytes, 0);
+  const totalBytes = manifestEntries.reduce(
+    (sum, entry) => sum + entry.sizeBytes,
+    0,
+  );
 
   await writeFile(
     manifestPath,
@@ -229,9 +234,7 @@ async function backfillFromCommons(existingIds: Set<string>) {
 
         await writeFile(path.join(datasetDir, `${id}.webp`), normalized);
         existingIds.add(id);
-      } catch {
-        continue;
-      }
+      } catch {}
     }
 
     stagnantRounds = existingIds.size === before ? stagnantRounds + 1 : 0;
@@ -261,9 +264,7 @@ async function backfillFromFixedUrls(existingIds: Set<string>) {
 
       await writeFile(path.join(datasetDir, `${id}.webp`), normalized);
       existingIds.add(id);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 }
 

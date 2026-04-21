@@ -2,11 +2,11 @@ import type { GeneratorUnitSnapshot } from "@one-portrait/shared";
 
 import type { MosaicPlacement } from "./assignment";
 import {
-  composeMosaicPng,
+  type composeMosaicPng,
   createSharpAverageColorSampler,
-  extractTargetTiles,
+  type extractTargetTiles,
 } from "./image";
-import { generateFinalizeMosaic, type GeneratedFinalizeMosaic } from "./mosaic";
+import { type GeneratedFinalizeMosaic, generateFinalizeMosaic } from "./mosaic";
 import {
   type AverageColorSampler,
   type PreparedFinalizeInput,
