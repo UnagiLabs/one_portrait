@@ -3,10 +3,19 @@ import path from "node:path";
 
 export const forbiddenStubMarkers = [
   ["NEXT_PUBLIC_E2E_STUB_WALLET", "1"],
+  [
+    "NEXT_PUBLIC_PACKAGE_ID",
+    "0x0000000000000000000000000000000000000000000000000000000000000001",
+  ],
+  [
+    "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
+    "0x0000000000000000000000000000000000000000000000000000000000000002",
+  ],
   ["NEXT_PUBLIC_ENOKI_API_KEY", "enoki-e2e-stub"],
   ["NEXT_PUBLIC_GOOGLE_CLIENT_ID", "google-e2e-stub"],
   ["NEXT_PUBLIC_WALRUS_PUBLISHER", "https://publisher.e2e.stub"],
   ["NEXT_PUBLIC_WALRUS_AGGREGATOR", "https://aggregator.e2e.stub"],
+  ["ENOKI_PRIVATE_API_KEY", "enoki-private-e2e-stub"],
 ];
 
 export function assertNormalDevEnvironment({

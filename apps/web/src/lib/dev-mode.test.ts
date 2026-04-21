@@ -65,6 +65,21 @@ describe("assertNormalDevEnvironment", () => {
     ).not.toThrow();
   });
 
+  it("throws when only the private Enoki E2E stub is left behind", () => {
+    const cwd = createTempWebRoot();
+    fs.writeFileSync(
+      path.join(cwd, ".env.local"),
+      "ENOKI_PRIVATE_API_KEY=enoki-private-e2e-stub",
+    );
+
+    expect(() =>
+      assertNormalDevEnvironment({
+        cwd,
+        env: {},
+      }),
+    ).toThrow(/ENOKI_PRIVATE_API_KEY=enoki-private-e2e-stub/u);
+  });
+
   it("parses quoted env values", () => {
     expect(
       parseEnvFile(
