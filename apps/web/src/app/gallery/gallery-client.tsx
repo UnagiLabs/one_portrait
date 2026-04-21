@@ -154,7 +154,7 @@ export function GalleryClient({
     );
   }
 
-  if (!packageId || state.kind === "error") {
+  if (!demoEntries && (!packageId || state.kind === "error")) {
     return (
       <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
         <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">

@@ -142,4 +142,37 @@ describe("GalleryPage", () => {
         .getAttribute("data-demo-entry-count"),
     ).toBe("1");
   });
+
+  it("still passes demo entries when packageId is unavailable", async () => {
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([
+      {
+        unitId: "0xdemo-unit",
+        athletePublicId: "1",
+        walrusBlobId: "demo-original",
+        submissionNo: 17,
+        mintedAtMs: 1800000000000,
+        masterId: null,
+        mosaicWalrusBlobId: null,
+        placement: null,
+        status: { kind: "pending" },
+      },
+    ]);
+    isDemoModeEnabledMock.mockReturnValue(true);
+    loadPublicEnvMock.mockImplementation(() => {
+      throw new Error("demo mode does not need a package id");
+    });
+
+    const ui = await GalleryPage();
+    render(ui);
+
+    expect(
+      screen
+        .getByTestId("gallery-client")
+        .getAttribute("data-demo-entry-count"),
+    ).toBe("1");
+    expect(
+      screen.getByTestId("gallery-client").getAttribute("data-package-id"),
+    ).toBe("");
+  });
 });
