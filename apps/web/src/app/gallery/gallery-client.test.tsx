@@ -49,7 +49,9 @@ function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
 }
 
 function pendingEntry(
-  overrides: Partial<Extract<GalleryEntryView, { status: { kind: "pending" } }>> = {},
+  overrides: Partial<
+    Extract<GalleryEntryView, { status: { kind: "pending" } }>
+  > = {},
 ): Extract<GalleryEntryView, { status: { kind: "pending" } }> {
   return {
     unitId: "0xunit-1",
@@ -107,7 +109,9 @@ describe("GalleryClient", () => {
   it("renders the signed-out shell when no wallet is connected", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
-    expect(screen.getByText(/Connect a wallet to view your Kakera/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Connect a wallet to view your Kakera/i),
+    ).toBeTruthy();
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
   });
 
@@ -151,7 +155,9 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
     await waitFor(() => {
-      expect(screen.getByAltText(/Demo Athlete One completed mosaic/i)).toBeTruthy();
+      expect(
+        screen.getByAltText(/Demo Athlete One completed mosaic/i),
+      ).toBeTruthy();
     });
 
     expect(screen.getAllByText(/Completed/i).length).toBeGreaterThan(0);
@@ -172,7 +178,7 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
     const originalImage = await screen.findByAltText(
-      /Demo Athlete One original photo/i,
+      /Demo Athlete One original submission/i,
     );
     fireEvent.error(originalImage);
 
@@ -180,7 +186,9 @@ describe("GalleryClient", () => {
       expect(screen.getByText(/Original photo unavailable/i)).toBeTruthy();
     });
 
-    expect(screen.getByAltText(/Demo Athlete One completed mosaic/i)).toBeTruthy();
+    expect(
+      screen.getByAltText(/Demo Athlete One completed mosaic/i),
+    ).toBeTruthy();
     expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
   });
 });

@@ -5,6 +5,8 @@ import { loadPublicEnv } from "../../lib/env";
 
 import { GalleryClient } from "./gallery-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function GalleryPage(): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
   const packageId = safePackageId();

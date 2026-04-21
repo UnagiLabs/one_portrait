@@ -4,8 +4,8 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
-import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 import type { GalleryEntryView } from "../../lib/sui";
+import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
 type GalleryClientProps = {
   readonly catalog: readonly AthleteCatalogEntry[];
@@ -145,9 +145,7 @@ export function GalleryClient({
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
           Empty
         </p>
-        <p className="mt-3 text-slate-200">
-          No Kakera found for this wallet.
-        </p>
+        <p className="mt-3 text-slate-200">No Kakera found for this wallet.</p>
       </section>
     );
   }
@@ -159,7 +157,9 @@ export function GalleryClient({
           athlete={findAthlete(catalog, entry.athletePublicId)}
           entry={entry}
           key={`${entry.unitId}:${entry.walrusBlobId}`}
-          originalImageFailed={failedOriginalBlobIds.includes(entry.walrusBlobId)}
+          originalImageFailed={failedOriginalBlobIds.includes(
+            entry.walrusBlobId,
+          )}
           onOriginalImageError={() => {
             setFailedOriginalBlobIds((current) => {
               if (current.includes(entry.walrusBlobId)) {
@@ -187,7 +187,8 @@ function GalleryCard({
   originalImageFailed,
   onOriginalImageError,
 }: GalleryCardProps): React.ReactElement {
-  const displayName = athlete?.displayName ?? `Athlete #${entry.athletePublicId}`;
+  const displayName =
+    athlete?.displayName ?? `Athlete #${entry.athletePublicId}`;
   const originalPhotoUrl = buildWalrusAggregatorUrl(entry.walrusBlobId);
   const completedMosaicUrl =
     entry.status.kind === "completed"
@@ -212,7 +213,7 @@ function GalleryCard({
           {originalPhotoUrl && !originalImageFailed ? (
             // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
             <img
-              alt={`${displayName} original photo`}
+              alt={`${displayName} original submission`}
               className="h-48 w-full rounded-2xl border border-white/10 object-cover"
               onError={onOriginalImageError}
               src={originalPhotoUrl}
