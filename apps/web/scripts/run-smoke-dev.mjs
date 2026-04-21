@@ -8,7 +8,6 @@ import { assertNormalDevEnvironment } from "./dev-mode.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
-const lockPath = path.join(webRoot, ".next", "dev", "lock");
 const nextBin = path.join(webRoot, "node_modules", ".bin", "next");
 
 export async function startSmokeDev({
