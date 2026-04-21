@@ -41,6 +41,8 @@ docker compose -p one_portrait port dev 9323   # Playwright レポート
 
 Dockerfile では `@openai/codex` と `@anthropic-ai/claude-code`（公式インストーラ経由）もインストール済みです。
 
+Playwright Chromium も Docker イメージに同梱されているため、devcontainer 内では追加の browser install は不要です。コンテナ外のホスト環境で E2E を実行する場合だけ `corepack pnpm --filter web run test:e2e:install` を使ってください。
+
 `docker compose up` 単体は正式サポート外です。Git / Claude / Codex の初期化は保証しません。
 
 ## 隔離境界

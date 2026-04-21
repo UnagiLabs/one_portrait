@@ -21,8 +21,7 @@
     "source=${localEnv:HOME}/.gitconfig,target=/mnt/host-gitconfig,type=bind,readonly",
     "source=${localEnv:HOME}/.config/gh,target=/home/pwuser/.config/gh,type=bind,readonly",
     "source=one-portrait-devcontainer-claude-home,target=/home/pwuser/.claude,type=volume",
-    "source=one-portrait-devcontainer-codex-home,target=/home/pwuser/.codex,type=volume",
-    "source=one-portrait-devcontainer-playwright-cache,target=/home/pwuser/.cache/ms-playwright,type=volume"
+    "source=one-portrait-devcontainer-codex-home,target=/home/pwuser/.codex,type=volume"
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/pwuser/.claude",
@@ -30,7 +29,7 @@
     "CODEX_HOME": "/home/pwuser/.codex",
     "HOST_CODEX_DIR": "/mnt/host-codex",
     "HOST_GITCONFIG": "/mnt/host-gitconfig",
-    "PLAYWRIGHT_BROWSERS_PATH": "/home/pwuser/.cache/ms-playwright"
+    "PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"
   },
   "remoteEnv": {
     "CLAUDE_CONFIG_DIR": "/home/pwuser/.claude",
@@ -38,7 +37,7 @@
     "CODEX_HOME": "/home/pwuser/.codex",
     "HOST_CODEX_DIR": "/mnt/host-codex",
     "HOST_GITCONFIG": "/mnt/host-gitconfig",
-    "PLAYWRIGHT_BROWSERS_PATH": "/home/pwuser/.cache/ms-playwright"
+    "PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"
   },
   "postStartCommand": "bash .devcontainer/post-start.sh",
   "customizations": {
