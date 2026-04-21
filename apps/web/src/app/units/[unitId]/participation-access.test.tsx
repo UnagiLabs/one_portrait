@@ -693,6 +693,14 @@ describe("ParticipationAccess", () => {
         expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
+      expect(
+        screen.getByText(/次は履歴ギャラリーで参加記録を確認できます。/),
+      ).toBeTruthy();
+      expect(
+        screen
+          .getByRole("link", { name: "履歴ギャラリーを見る" })
+          .getAttribute("href"),
+      ).toBe("/gallery");
     });
 
     it("keeps showing a recovery message while execution confirmation is still pending, then offers retry only after confirmed failure", async () => {

@@ -57,6 +57,31 @@ test.describe("submit happy path", () => {
     });
   });
 
+  test("shows a gallery CTA after successful submission on mobile", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installDefaultMocks(page);
+    await submitPhoto(page);
+
+    const galleryLink = page.getByRole("link", {
+      name: "履歴ギャラリーを見る",
+    });
+    await expect(galleryLink).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText("次は履歴ギャラリーで参加記録を確認できます。"),
+    ).toBeVisible();
+
+    await galleryLink.click();
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /participation gallery/i,
+      }),
+    ).toBeVisible();
+  });
+
   test("recovers to the participation card when execute HTTP fails but the digest confirms success", async ({
     page,
   }) => {
