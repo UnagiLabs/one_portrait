@@ -47,6 +47,9 @@ export const KAKERA_TYPE = `${STUB_PACKAGE_ID}::kakera::Kakera`;
 export type MockState = {
   submitExecuted: boolean;
   ownedObjectsCalls: number;
+  sponsorRequests: number;
+  executeRequests: number;
+  publisherRequests: number;
 };
 
 type MockHttpResponse = {
@@ -84,7 +87,13 @@ export async function installDefaultMocks(
   page: Page,
   options: InstallMockOptions = {},
 ): Promise<MockState> {
-  const state: MockState = { submitExecuted: false, ownedObjectsCalls: 0 };
+  const state: MockState = {
+    submitExecuted: false,
+    ownedObjectsCalls: 0,
+    sponsorRequests: 0,
+    executeRequests: 0,
+    publisherRequests: 0,
+  };
   const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
   const galleryEntryMode = options.galleryEntryMode ?? "empty";
@@ -129,6 +138,7 @@ export async function installDefaultMocks(
   );
 
   await page.route("**/api/enoki/submit-photo/sponsor", async (route) => {
+    state.sponsorRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -141,6 +151,7 @@ export async function installDefaultMocks(
   });
 
   await page.route("**/api/enoki/submit-photo/execute", async (route) => {
+    state.executeRequests += 1;
     state.submitExecuted = true;
     if (executeApiMode === "recovering_http_error") {
       await route.fulfill({
@@ -162,6 +173,7 @@ export async function installDefaultMocks(
   });
 
   await page.route("**/publisher.e2e.stub/**", async (route) => {
+    state.publisherRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
