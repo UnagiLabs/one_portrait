@@ -35,6 +35,18 @@ export type {
 } from "./events";
 export { subscribeToUnitEvents } from "./events";
 export { getFinalizeUnitSnapshot } from "./finalize";
+export type {
+  FindKakeraForSubmissionArgs,
+  FindOwnedKakeraForUnitArgs,
+  KakeraOwnedClient,
+  ListOwnedKakeraArgs,
+  OwnedKakera,
+} from "./kakera";
+export {
+  findKakeraForSubmission,
+  findOwnedKakeraForUnit,
+  listOwnedKakera,
+} from "./kakera";
 export {
   getCurrentUnitIdForAthlete,
   getRegistryObject,
