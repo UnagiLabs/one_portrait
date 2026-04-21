@@ -1,6 +1,12 @@
 "use client";
 
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import {
+  useConnectWallet,
+  useCurrentAccount,
+  useCurrentWallet,
+  useWallets,
+} from "@mysten/dapp-kit";
+import { isGoogleWallet } from "@mysten/enoki";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
@@ -54,13 +60,34 @@ export function GalleryClient({
   packageId,
 }: GalleryClientProps): React.ReactElement {
   const currentAccount = useCurrentAccount();
+  const currentWallet = useCurrentWallet();
+  const wallets = useWallets();
+  const connectWallet = useConnectWallet();
   const [state, setState] = useState<LoadState>({
     kind: "idle",
     entries: [],
   });
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [failedOriginalBlobIds, setFailedOriginalBlobIds] = useState<
     readonly string[]
   >([]);
+  const googleWallet = wallets.find(isGoogleWallet) ?? null;
+  const isConnecting = currentWallet.connectionStatus === "connecting";
+
+  async function handleLogin(): Promise<void> {
+    if (!googleWallet) {
+      setConnectError("Google ログインの設定が見つかりません。");
+      return;
+    }
+
+    try {
+      setConnectError(null);
+      await connectWallet.mutateAsync({ wallet: googleWallet });
+    } catch (error) {
+      setConnectError(toMessage(error));
+    }
+  }
 
   useEffect(() => {
     if (demoEntries) {
@@ -83,7 +110,10 @@ export function GalleryClient({
 
     let cancelled = false;
 
-    setState({ kind: "loading", entries: [] });
+    setState((current) => ({
+      kind: "loading",
+      entries: reloadNonce > 0 ? current.entries : [],
+    }));
     setFailedOriginalBlobIds([]);
 
     const loadEntries = async (): Promise<void> => {
@@ -139,7 +169,7 @@ export function GalleryClient({
     return () => {
       cancelled = true;
     };
-  }, [currentAccount?.address, demoEntries, packageId]);
+  }, [currentAccount?.address, demoEntries, packageId, reloadNonce]);
 
   if (!demoEntries && !currentAccount?.address) {
     return (
@@ -150,6 +180,27 @@ export function GalleryClient({
         <p className="mt-3 text-slate-200">
           Connect a wallet to view your Kakera participation history.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
+            disabled={isConnecting}
+            onClick={() => {
+              void handleLogin();
+            }}
+            type="button"
+          >
+            {connectError ? "もう一度ログイン" : "Google でログイン"}
+          </button>
+        </div>
+        {connectError ? (
+          <p
+            aria-live="polite"
+            className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+            role="alert"
+          >
+            {connectError}
+          </p>
+        ) : null}
       </section>
     );
   }
@@ -164,6 +215,19 @@ export function GalleryClient({
           Gallery unavailable right now. Check the public Sui configuration and
           try again.
         </p>
+        {packageId ? (
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+              onClick={() => {
+                setReloadNonce((current) => current + 1);
+              }}
+              type="button"
+            >
+              もう一度確認する
+            </button>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -186,6 +250,20 @@ export function GalleryClient({
           Empty
         </p>
         <p className="mt-3 text-slate-200">No Kakera found for this wallet.</p>
+        <p className="mt-2 text-sm text-slate-300">
+          投稿直後なら、少し待ってからもう一度確認してください。
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+            onClick={() => {
+              setReloadNonce((current) => current + 1);
+            }}
+            type="button"
+          >
+            もう一度確認する
+          </button>
+        </div>
       </section>
     );
   }
@@ -212,6 +290,14 @@ export function GalleryClient({
       ))}
     </section>
   );
+}
+
+function toMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return "処理に失敗しました。時間をおいて、もう一度お試しください。";
 }
 
 type GalleryCardProps = {

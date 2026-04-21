@@ -42,4 +42,22 @@ test.describe("home smoke", () => {
       }),
     ).toBeVisible();
   });
+
+  test("shows a connect action in the gallery for signed-out visitors", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page, { autoConnectWallet: false });
+
+    await page.goto("/");
+    await page.getByRole("link", { name: /participation history/i }).click();
+
+    await expect(
+      page.getByText(
+        /Connect a wallet to view your Kakera participation history/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Google でログイン" }),
+    ).toBeVisible();
+  });
 });

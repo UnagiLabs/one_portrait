@@ -44,6 +44,7 @@ export type MockState = {
 };
 
 export type InstallMockOptions = {
+  readonly autoConnectWallet?: boolean;
   readonly executeApiMode?: "success" | "recovering_http_error";
   readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
   readonly transactionBlockDelayMs?: number;
@@ -60,31 +61,34 @@ export async function installDefaultMocks(
   options: InstallMockOptions = {},
 ): Promise<MockState> {
   const state: MockState = { submitExecuted: false };
+  const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
   const transactionExecutionStatus =
     options.transactionExecutionStatus ?? "success";
   const transactionBlockDelayMs = options.transactionBlockDelayMs ?? 0;
   const kakeraVisibleAfterExecute = options.kakeraVisibleAfterExecute ?? true;
 
-  await page.addInitScript(
-    ({ walletName, address }) => {
-      try {
-        window.localStorage.setItem(
-          "sui-dapp-kit:wallet-connection-info",
-          JSON.stringify({
-            state: {
-              lastConnectedWalletName: walletName,
-              lastConnectedAccountAddress: address,
-            },
-            version: 0,
-          }),
-        );
-      } catch {
-        // localStorage may be unavailable (iframe / privacy mode); swallow.
-      }
-    },
-    { walletName: E2E_STUB_WALLET_NAME, address: E2E_STUB_ACCOUNT_ADDRESS },
-  );
+  if (autoConnectWallet) {
+    await page.addInitScript(
+      ({ walletName, address }) => {
+        try {
+          window.localStorage.setItem(
+            "sui-dapp-kit:wallet-connection-info",
+            JSON.stringify({
+              state: {
+                lastConnectedWalletName: walletName,
+                lastConnectedAccountAddress: address,
+              },
+              version: 0,
+            }),
+          );
+        } catch {
+          // localStorage may be unavailable (iframe / privacy mode); swallow.
+        }
+      },
+      { walletName: E2E_STUB_WALLET_NAME, address: E2E_STUB_ACCOUNT_ADDRESS },
+    );
+  }
 
   await page.route(/fullnode\.[a-z]+\.sui\.io/, (route) =>
     handleSuiRpc(route, state, {
