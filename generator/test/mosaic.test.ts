@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
-import { generateMosaic } from "../src";
+import { generateFinalizeMosaic, generateMosaic } from "../src";
 
 describe("generateMosaic", () => {
   it("renders a mosaic with unique tile placement and expected dimensions", async () => {
@@ -23,9 +23,9 @@ describe("generateMosaic", () => {
     expect(result.width).toBe(48);
     expect(result.height).toBe(48);
     expect(result.placements).toHaveLength(4);
-    expect(new Set(result.placements.map((placement) => placement.tileId)).size).toBe(
-      4,
-    );
+    expect(
+      new Set(result.placements.map((placement) => placement.tileId)).size,
+    ).toBe(4);
 
     const metadata = await sharp(result.image).metadata();
 
@@ -62,6 +62,39 @@ describe("generateMosaic", () => {
 
     expect(centerPlacement?.tileId).toBe("tile-black-perfect");
   });
+
+  it("maps improved placements back to finalize-ready submission metadata", async () => {
+    const targetImage = await buildQuadrantTarget();
+    const submissions = [
+      await buildSubmission("tile-black", 1, "0x1", { r: 10, g: 10, b: 10 }),
+      await buildSubmission("tile-red", 2, "0x2", { r: 210, g: 40, b: 30 }),
+      await buildSubmission("tile-green", 3, "0x3", { r: 35, g: 180, b: 70 }),
+      await buildSubmission("tile-blue", 4, "0x4", { r: 30, g: 80, b: 210 }),
+    ];
+
+    const result = await generateFinalizeMosaic({
+      targetImage,
+      submissions,
+      grid: { cols: 2, rows: 2 },
+      tileSize: 24,
+    });
+
+    expect(result.placements).toHaveLength(4);
+    expect(result.placements[0]).toMatchObject({
+      walrusBlobId: "tile-black",
+      submitter: "0x1",
+      submissionNo: 1,
+      x: 0,
+      y: 0,
+    });
+    expect(result.placements[3]).toMatchObject({
+      walrusBlobId: "tile-blue",
+      submitter: "0x4",
+      submissionNo: 4,
+      x: 1,
+      y: 1,
+    });
+  });
 });
 
 async function buildTile(
@@ -82,6 +115,26 @@ async function buildTile(
     .toBuffer();
 
   return { id, image };
+}
+
+async function buildSubmission(
+  walrusBlobId: string,
+  submissionNo: number,
+  submitter: string,
+  rgb: { r: number; g: number; b: number },
+) {
+  return {
+    walrusBlobId,
+    submissionNo,
+    submitter,
+    submittedAtMs: 1_700_000_000_000 + submissionNo,
+    averageColor: {
+      red: rgb.r,
+      green: rgb.g,
+      blue: rgb.b,
+    },
+    imageBytes: await solidPng(16, 16, rgb),
+  };
 }
 
 async function buildQuadrantTarget() {

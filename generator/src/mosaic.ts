@@ -1,4 +1,8 @@
+import { renderedMosaicTileSizePx, unitTileGrid } from "@one-portrait/shared";
 import sharp from "sharp";
+
+import type { MosaicPlacement as FinalizePlacement } from "./assignment";
+import type { PreparedSubmission } from "./prepare";
 
 export type MosaicGrid = {
   cols: number;
@@ -40,6 +44,24 @@ export type GeneratedMosaic = {
   };
 };
 
+export type GenerateFinalizeMosaicInput = {
+  targetImage: Buffer | Uint8Array;
+  submissions: readonly PreparedSubmission[];
+  grid?: MosaicGrid;
+  tileSize?: number;
+  colorMix?: number;
+  overlayOpacity?: number;
+  overlayBlur?: number;
+};
+
+export type GeneratedFinalizeMosaic = {
+  image: Uint8Array;
+  width: number;
+  height: number;
+  placements: FinalizePlacement[];
+  metrics: GeneratedMosaic["metrics"];
+};
+
 type Rgb = {
   r: number;
   g: number;
@@ -68,10 +90,11 @@ type PreparedTile = {
   avgLab: Lab;
 };
 
-const defaultTileSize = 64;
+const defaultTileSize = renderedMosaicTileSizePx;
 const defaultColorMix = 0.26;
 const defaultOverlayOpacity = 0.12;
 const defaultOverlayBlur = 8;
+const defaultGrid = unitTileGrid;
 
 export async function generateMosaic(
   input: GenerateMosaicInput,
@@ -178,6 +201,54 @@ export async function generateMosaic(
   };
 }
 
+export async function generateFinalizeMosaic(
+  input: GenerateFinalizeMosaicInput,
+): Promise<GeneratedFinalizeMosaic> {
+  const submissionsByBlobId = new Map(
+    input.submissions.map((submission) => [
+      submission.walrusBlobId,
+      submission,
+    ]),
+  );
+  const result = await generateMosaic({
+    targetImage: Buffer.from(input.targetImage),
+    tiles: input.submissions.map((submission) => ({
+      id: submission.walrusBlobId,
+      image: Buffer.from(submission.imageBytes),
+    })),
+    grid: input.grid ?? defaultGrid,
+    tileSize: input.tileSize ?? defaultTileSize,
+    colorMix: input.colorMix,
+    overlayOpacity: input.overlayOpacity,
+    overlayBlur: input.overlayBlur,
+  });
+
+  return {
+    image: new Uint8Array(result.image),
+    width: result.width,
+    height: result.height,
+    metrics: result.metrics,
+    placements: result.placements.map((placement) => {
+      const submission = submissionsByBlobId.get(placement.tileId);
+
+      if (!submission) {
+        throw new Error(
+          `Missing submission metadata for tile ${placement.tileId}.`,
+        );
+      }
+
+      return {
+        walrusBlobId: submission.walrusBlobId,
+        submitter: submission.submitter,
+        submissionNo: submission.submissionNo,
+        targetColor: submission.averageColor,
+        x: placement.x,
+        y: placement.y,
+      } satisfies FinalizePlacement;
+    }),
+  };
+}
+
 async function buildTargetCells(
   targetImage: Buffer,
   grid: MosaicGrid,
@@ -226,8 +297,10 @@ async function buildTargetCells(
       }
 
       const localContrast =
-        neighbors.reduce((sum, neighbor) => sum + Math.abs(center - neighbor), 0) /
-        Math.max(neighbors.length, 1);
+        neighbors.reduce(
+          (sum, neighbor) => sum + Math.abs(center - neighbor),
+          0,
+        ) / Math.max(neighbors.length, 1);
 
       contrastValues[index] = localContrast;
     }
@@ -278,7 +351,9 @@ function computeImportance(input: {
     Math.exp(-(((ny - 0.36) * (ny - 0.36)) / 0.008)) *
     Math.exp(-(((nx - 0.5) * (nx - 0.5)) / 0.12));
 
-  return clamp(0.35 + centerBias * 0.38 + input.contrast * 0.19 + eyeBand * 0.08);
+  return clamp(
+    0.35 + centerBias * 0.38 + input.contrast * 0.19 + eyeBand * 0.08,
+  );
 }
 
 async function prepareTile(
@@ -307,15 +382,13 @@ async function prepareTile(
 }
 
 function assignTiles(targetCells: TargetCell[], tiles: PreparedTile[]) {
-  const orderedCells = targetCells
-    .slice()
-    .sort((left, right) => {
-      if (right.importance !== left.importance) {
-        return right.importance - left.importance;
-      }
+  const orderedCells = targetCells.slice().sort((left, right) => {
+    if (right.importance !== left.importance) {
+      return right.importance - left.importance;
+    }
 
-      return left.index - right.index;
-    });
+    return left.index - right.index;
+  });
   const remainingTiles = tiles.slice();
 
   return orderedCells.map((cell) => {
@@ -330,7 +403,8 @@ function assignTiles(targetCells: TargetCell[], tiles: PreparedTile[]) {
 
       if (
         score < bestScore ||
-        (score === bestScore && tile.id.localeCompare(remainingTiles[bestIndex].id) < 0)
+        (score === bestScore &&
+          tile.id.localeCompare(remainingTiles[bestIndex].id) < 0)
       ) {
         bestScore = score;
         bestIndex = index;
@@ -368,10 +442,7 @@ async function renderCorrectedTile(
   const height = metadata.height ?? defaultTileSize;
 
   return sharp(image)
-    .linear(
-      [gain.r, gain.g, gain.b],
-      [offset.r, offset.g, offset.b],
-    )
+    .linear([gain.r, gain.g, gain.b], [offset.r, offset.g, offset.b])
     .composite([
       {
         input: Buffer.from(
@@ -421,9 +492,7 @@ function rgbToXyz(rgb: Rgb) {
 }
 
 function pivotRgb(value: number) {
-  return value > 0.04045
-    ? ((value + 0.055) / 1.055) ** 2.4
-    : value / 12.92;
+  return value > 0.04045 ? ((value + 0.055) / 1.055) ** 2.4 : value / 12.92;
 }
 
 function pivotXyz(value: number) {

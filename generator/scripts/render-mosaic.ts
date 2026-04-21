@@ -1,6 +1,8 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { unitTileGrid } from "@one-portrait/shared";
+
 import { generateMosaic } from "../src";
 
 type CliOptions = {
@@ -19,8 +21,8 @@ const defaultOptions: CliOptions = {
   target: "",
   tilesDir: "",
   out: "artifacts/rendered-mosaic.png",
-  cols: 20,
-  rows: 25,
+  cols: unitTileGrid.cols,
+  rows: unitTileGrid.rows,
   tileSize: 64,
   colorMix: 0.26,
   overlayOpacity: 0.12,

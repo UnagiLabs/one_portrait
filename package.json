@@ -22,5 +22,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present typecheck",
     "test": "vitest run && corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present test",
     "build": "corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present build"
+  },
+  "pnpm": {
+    "overrides": {
+      "axios": "1.15.1"
+    }
   }
 }
