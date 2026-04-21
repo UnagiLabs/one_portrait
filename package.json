@@ -21,6 +21,7 @@
     "dev:demo": "corepack pnpm --filter web dev:demo",
     "dev:e2e": "corepack pnpm --filter web dev:e2e",
     "dev:smoke": "corepack pnpm --filter web dev:smoke",
+    "test:e2e:readiness": "corepack pnpm --filter web run test:e2e:readiness",
     "test:e2e": "corepack pnpm --filter web test:e2e",
     "lint": "biome check .",
     "check": "corepack pnpm run lint && corepack pnpm run typecheck && corepack pnpm test",

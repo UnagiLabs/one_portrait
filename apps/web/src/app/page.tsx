@@ -45,20 +45,40 @@ type ResolvedEnv = {
   readonly registryObjectId: string;
 };
 
-export default async function HomePage(): Promise<React.ReactElement> {
+type HomePageProps = {
+  readonly searchParams?: Promise<{
+    readonly op_e2e_home_card_state?: string;
+  }>;
+};
+
+export default async function HomePage(
+  props: HomePageProps = {},
+): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
   const env = safeLoadEnv();
   const demoMode = isDemoModeEnabled(process.env);
+  const searchParams = (await props.searchParams) ?? {};
 
   const entries = await Promise.all(
-    catalog.map(async (athlete) => ({
-      athlete,
-      progress: demoMode
-        ? resolveDemoProgress(athlete.athletePublicId)
-        : env
-          ? await resolveProgress(athlete.athletePublicId, env)
-          : ({ kind: "unavailable" } as CardProgress),
-    })),
+    catalog.map(async (athlete) => {
+      const e2eProgress = resolveE2ECardProgress(
+        athlete.athletePublicId,
+        searchParams.op_e2e_home_card_state,
+      );
+
+      if (e2eProgress) {
+        return { athlete, progress: e2eProgress };
+      }
+
+      return {
+        athlete,
+        progress: demoMode
+          ? resolveDemoProgress(athlete.athletePublicId)
+          : env
+            ? await resolveProgress(athlete.athletePublicId, env)
+            : ({ kind: "unavailable" } as CardProgress),
+      };
+    }),
   );
 
   return (
@@ -236,4 +256,35 @@ async function resolveProgress(
 function buildWaitingRoomHref(unitId: string, athleteName: string): string {
   const params = new URLSearchParams({ athleteName });
   return `/units/${unitId}?${params.toString()}`;
+}
+
+function resolveE2ECardProgress(
+  athletePublicId: string,
+  rawOverride: string | undefined,
+): CardProgress | null {
+  if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET !== "1" || !rawOverride) {
+    return null;
+  }
+
+  const tokens = rawOverride
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  for (const token of tokens) {
+    const [targetAthleteId, kind] = token.split(":");
+    if (targetAthleteId !== athletePublicId) {
+      continue;
+    }
+
+    if (kind === "waiting") {
+      return { kind: "waiting" };
+    }
+
+    if (kind === "unavailable") {
+      return { kind: "unavailable" };
+    }
+  }
+
+  return null;
 }

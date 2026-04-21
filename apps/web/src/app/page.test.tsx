@@ -50,6 +50,7 @@ const CATALOG = [
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
+  delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
   getAthleteCatalogMock.mockReset();
   getCurrentUnitIdForAthleteMock.mockReset();
   getUnitProgressMock.mockReset();
@@ -245,5 +246,58 @@ describe("HomePage", () => {
     expect(link).toBeTruthy();
     expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
     expect(getUnitProgressMock).not.toHaveBeenCalled();
+  });
+
+  it("applies explicit home degraded overrides only in stub E2E mode", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await HomePage({
+      searchParams: Promise.resolve({
+        op_e2e_home_card_state: "1:waiting,2:unavailable",
+      }),
+    });
+    render(ui);
+
+    expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+    expect(
+      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
+    ).toBeTruthy();
+  });
+
+  it("ignores home degraded overrides outside stub E2E mode", async () => {
+    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 12,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+
+    const ui = await HomePage({
+      searchParams: Promise.resolve({
+        op_e2e_home_card_state: "1:waiting",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByText(new RegExp(`12\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
   });
 });
