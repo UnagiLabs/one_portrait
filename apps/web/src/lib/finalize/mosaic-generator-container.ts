@@ -71,6 +71,18 @@ export class MosaicGeneratorContainer extends Container {
         throw new Error(`Generator runtime returned ${response.status}.`);
       }
 
+      const payload = (await response.json()) as {
+        readonly status?:
+          | "finalized"
+          | "ignored_finalized"
+          | "ignored_pending";
+      };
+
+      if (payload.status === "ignored_pending") {
+        this.dispatchState.reset();
+        return;
+      }
+
       this.dispatchState.complete();
     } catch (error) {
       this.dispatchState.reset();

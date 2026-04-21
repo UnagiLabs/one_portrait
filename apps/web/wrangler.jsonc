@@ -11,7 +11,8 @@
   "containers": [
     {
       "class_name": "MosaicGeneratorContainer",
-      "image": "../generator/Dockerfile",
+      "image": "../../generator/Dockerfile",
+      "image_build_context": "../..",
       "max_instances": 5
     }
   ],

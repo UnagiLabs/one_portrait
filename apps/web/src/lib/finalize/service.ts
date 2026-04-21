@@ -50,7 +50,8 @@ export function createFinalizeRouteService(deps: FinalizeRouteDeps) {
 
       try {
         await deps.dispatch({ unitId });
-      } catch {
+      } catch (error) {
+        console.error("Finalize dispatch failed", error);
         return { status: "ignored_dispatch_failed", unitId };
       }
 
