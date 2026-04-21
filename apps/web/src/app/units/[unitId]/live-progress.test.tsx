@@ -3,7 +3,11 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { SubmittedEvent, UnitFilledEvent } from "../../../lib/sui";
+import type {
+  MosaicReadyEvent,
+  SubmittedEvent,
+  UnitFilledEvent,
+} from "../../../lib/sui";
 import type { UseUnitEventsArgs } from "../../../lib/sui/react";
 
 const { useUnitEventsMock } = vi.hoisted(() => ({
@@ -117,6 +121,43 @@ describe("LiveProgress", () => {
     expect(args.packageId).toBe("0xpkg");
     expect(args.unitId).toBe("0xunit-1");
     expect(typeof args.onSubmitted).toBe("function");
+  });
+
+  it("forwards MosaicReadyEvent deliveries through onMosaicReady", () => {
+    let capturedOnMosaicReady: ((event: MosaicReadyEvent) => void) | undefined;
+    const onMosaicReady = vi.fn();
+    useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+      capturedOnMosaicReady = args.onMosaicReady;
+    });
+
+    render(
+      <LiveProgress
+        initialSubmittedCount={500}
+        maxSlots={500}
+        onMosaicReady={onMosaicReady}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    act(() => {
+      capturedOnMosaicReady?.({
+        kind: "mosaicReady",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        masterId: "0xmaster-1",
+        mosaicWalrusBlobId: [109, 111, 115, 97, 105, 99],
+      });
+    });
+
+    expect(onMosaicReady).toHaveBeenCalledTimes(1);
+    expect(onMosaicReady).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "mosaicReady",
+        masterId: "0xmaster-1",
+        unitId: "0xunit-1",
+      }),
+    );
   });
 
   it("fires /api/finalize once when UnitFilledEvent arrives", async () => {

@@ -16,8 +16,8 @@ import { getAthleteByPublicId } from "../../../lib/catalog";
 import { loadPublicEnv } from "../../../lib/env";
 import { getUnitProgress } from "../../../lib/sui";
 
-import { LiveProgress } from "./live-progress";
 import { ParticipationAccess } from "./participation-access";
+import { UnitRevealClient } from "./unit-reveal-client";
 
 type UnitPageProps = {
   readonly params: Promise<{ readonly unitId: string }>;
@@ -27,6 +27,7 @@ type ResolvedProgress = {
   readonly submittedCount: number;
   readonly maxSlots: number;
   readonly athletePublicId: string | null;
+  readonly masterId: string | null;
 };
 
 const FALLBACK_MAX_SLOTS = 500;
@@ -89,7 +90,9 @@ export default async function UnitPage(
           </p>
           {hasProgress ? (
             <div className="mt-4">
-              <LiveProgress
+              <UnitRevealClient
+                displayName={displayName}
+                initialMasterId={progress.masterId}
                 initialSubmittedCount={progress.submittedCount}
                 maxSlots={progress.maxSlots}
                 packageId={packageId ?? ""}
@@ -135,12 +138,14 @@ async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {
       submittedCount: view.submittedCount,
       maxSlots: view.maxSlots,
       athletePublicId: view.athletePublicId,
+      masterId: view.masterId,
     };
   } catch {
     return {
       submittedCount: -1,
       maxSlots: FALLBACK_MAX_SLOTS,
       athletePublicId: null,
+      masterId: null,
     };
   }
 }
