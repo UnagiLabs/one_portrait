@@ -178,7 +178,7 @@ export function GalleryClient({
           Wallet required
         </p>
         <p className="mt-3 text-slate-200">
-          Connect a wallet to view your Kakera participation history.
+          先に Google でログインすると、あなたの Kakera 履歴を読み込めます。
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -189,7 +189,11 @@ export function GalleryClient({
             }}
             type="button"
           >
-            {connectError ? "もう一度ログイン" : "Google でログイン"}
+            {isConnecting
+              ? "ログイン中…"
+              : connectError
+                ? "もう一度ログイン"
+                : "Google でログイン"}
           </button>
         </div>
         {connectError ? (
@@ -238,7 +242,9 @@ export function GalleryClient({
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
           Loading
         </p>
-        <p className="mt-3 text-slate-200">Reading owned Kakera from Sui…</p>
+        <p className="mt-3 text-slate-200">
+          ログインを確認できました。Sui から Kakera を読んでいます。
+        </p>
       </section>
     );
   }
