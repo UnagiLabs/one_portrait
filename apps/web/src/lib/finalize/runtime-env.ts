@@ -13,7 +13,11 @@ export class MissingFinalizeRuntimeEnvError extends Error {
   readonly missing: readonly FinalizeRuntimeEnvKey[];
 
   constructor(missing: readonly FinalizeRuntimeEnvKey[]) {
-    super(`Missing required finalize env variable(s): ${missing.join(", ")}.`);
+    super(
+      `Missing required finalize env variable(s): ${missing.join(", ")}. ` +
+        "Set local values in apps/web/.env.local, and keep deploy-time " +
+        "admin secrets in Cloudflare Secrets Store.",
+    );
     this.name = "MissingFinalizeRuntimeEnvError";
     this.missing = missing;
   }
