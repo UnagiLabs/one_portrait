@@ -83,6 +83,7 @@ describe("AppWalletProvider", () => {
         providers: {
           google: {
             clientId: "google-client-id",
+            redirectUrl: "http://localhost:3000/auth/enoki/callback",
           },
         },
       }),

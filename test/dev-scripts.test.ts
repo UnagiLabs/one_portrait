@@ -18,6 +18,9 @@ describe("development entrypoints", () => {
     expect(rootPackageJson.scripts["dev:e2e"]).toBe(
       "corepack pnpm --filter web dev:e2e",
     );
+    expect(rootPackageJson.scripts["dev:smoke"]).toBe(
+      "corepack pnpm --filter web dev:smoke",
+    );
     expect(rootPackageJson.scripts["test:e2e"]).toBe(
       "corepack pnpm --filter web test:e2e",
     );
@@ -33,6 +36,9 @@ describe("development entrypoints", () => {
       "node ./scripts/run-demo-dev.mjs",
     );
     expect(webPackageJson.scripts["dev:e2e"]).toBe("./scripts/e2e-dev.sh");
+    expect(webPackageJson.scripts["dev:smoke"]).toBe(
+      "node ./scripts/run-smoke-dev.mjs",
+    );
     expect(webPackageJson.scripts["test:e2e"]).toBe("playwright test");
   });
 });

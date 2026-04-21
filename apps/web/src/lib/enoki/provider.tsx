@@ -26,6 +26,8 @@ import {
 } from "./env";
 import { registerE2EStubWallet } from "./stub-wallet";
 
+const ENOKI_GOOGLE_REDIRECT_PATH = "/auth/enoki/callback";
+
 function isE2EStubWalletEnabled(): boolean {
   return process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1";
 }
@@ -130,6 +132,7 @@ export function EnokiWalletRegistrar({
       providers: {
         google: {
           clientId: state.config.googleClientId,
+          redirectUrl: buildGoogleRedirectUrl(),
         },
       },
     });
@@ -148,4 +151,8 @@ function safeLoadPublicEnv(
   } catch {
     return null;
   }
+}
+
+function buildGoogleRedirectUrl(): string {
+  return new URL(ENOKI_GOOGLE_REDIRECT_PATH, window.location.origin).toString();
 }

@@ -15,6 +15,8 @@ import {
 } from "../../scripts/dev-mode.mjs";
 // @ts-expect-error test-only import from a Node .mjs script
 import { e2eStubEnv, startE2EDev } from "../../scripts/run-e2e-dev.mjs";
+// @ts-expect-error test-only import from a Node .mjs script
+import { startSmokeDev } from "../../scripts/run-smoke-dev.mjs";
 
 const tempDirs: string[] = [];
 
@@ -131,6 +133,56 @@ describe("startE2EDev", () => {
     expect(fs.existsSync(path.join(cwd, ".next"))).toBe(false);
     expect(spawnCalls).toHaveLength(1);
     expect(spawnCalls[0][2].env).toMatchObject(e2eStubEnv);
+  });
+});
+
+describe("startSmokeDev", () => {
+  it("uses the real env without injecting E2E stub values", async () => {
+    const cwd = createTempWebRoot();
+    const envLocalPath = path.join(cwd, ".env.local");
+    const originalEnvLocal = [
+      "NEXT_PUBLIC_SUI_NETWORK=testnet",
+      "NEXT_PUBLIC_ENOKI_API_KEY=real-public-key",
+      "NEXT_PUBLIC_WALRUS_PUBLISHER=https://publisher.example.com",
+    ].join("\n");
+
+    fs.writeFileSync(envLocalPath, originalEnvLocal);
+    fs.mkdirSync(path.join(cwd, ".next"), { recursive: true });
+    fs.mkdirSync(path.join(cwd, "node_modules", ".bin"), { recursive: true });
+
+    const spawnCalls: Array<
+      [string, string[], { env: Record<string, string | undefined> }]
+    > = [];
+
+    await startSmokeDev({
+      cwd,
+      env: {
+        NEXT_PUBLIC_ENOKI_API_KEY: "real-public-key",
+        NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+      },
+      nextDevBin: "/tmp/fake-next",
+      spawnImpl: (
+        command: string,
+        args: string[],
+        options: { env: Record<string, string | undefined> },
+      ) => {
+        spawnCalls.push([command, args, options]);
+        return new EventEmitter() as ChildProcess;
+      },
+    });
+
+    expect(fs.readFileSync(envLocalPath, "utf8")).toBe(originalEnvLocal);
+    expect(spawnCalls).toHaveLength(1);
+    expect(spawnCalls[0][2].env.NEXT_PUBLIC_ENOKI_API_KEY).toBe(
+      "real-public-key",
+    );
+    expect(spawnCalls[0][2].env.NEXT_PUBLIC_WALRUS_PUBLISHER).toBe(
+      "https://publisher.example.com",
+    );
+    expect(spawnCalls[0][2].env.NEXT_PUBLIC_E2E_STUB_WALLET).toBeUndefined();
+    expect(spawnCalls[0][2].env.NEXT_PUBLIC_ENOKI_API_KEY).not.toBe(
+      e2eStubEnv.NEXT_PUBLIC_ENOKI_API_KEY,
+    );
   });
 });
 
