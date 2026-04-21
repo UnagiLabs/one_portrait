@@ -3,7 +3,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { SubmittedEvent } from "../../../lib/sui";
+import type { SubmittedEvent, UnitFilledEvent } from "../../../lib/sui";
 import type { UseUnitEventsArgs } from "../../../lib/sui/react";
 
 const { useUnitEventsMock } = vi.hoisted(() => ({
@@ -117,5 +117,70 @@ describe("LiveProgress", () => {
     expect(args.packageId).toBe("0xpkg");
     expect(args.unitId).toBe("0xunit-1");
     expect(typeof args.onSubmitted).toBe("function");
+  });
+
+  it("fires /api/finalize once when UnitFilledEvent arrives", async () => {
+    let capturedOnFilled: ((event: UnitFilledEvent) => void) | undefined;
+    const triggerFinalize = vi.fn(async () => undefined);
+    useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+      capturedOnFilled = args.onFilled;
+    });
+
+    render(
+      <LiveProgress
+        packageId="0xpkg"
+        unitId="0xunit-1"
+        initialSubmittedCount={500}
+        maxSlots={500}
+        triggerFinalize={triggerFinalize}
+      />,
+    );
+
+    await act(async () => {
+      capturedOnFilled?.({
+        kind: "filled",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        filledCount: 500,
+        maxSlots: 500,
+      });
+      await Promise.resolve();
+    });
+
+    expect(triggerFinalize).toHaveBeenCalledTimes(1);
+    expect(triggerFinalize).toHaveBeenCalledWith("0xunit-1");
+  });
+
+  it("does not fire finalize twice for duplicate UnitFilledEvent deliveries", async () => {
+    let capturedOnFilled: ((event: UnitFilledEvent) => void) | undefined;
+    const triggerFinalize = vi.fn(async () => undefined);
+    useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+      capturedOnFilled = args.onFilled;
+    });
+
+    render(
+      <LiveProgress
+        packageId="0xpkg"
+        unitId="0xunit-1"
+        initialSubmittedCount={500}
+        maxSlots={500}
+        triggerFinalize={triggerFinalize}
+      />,
+    );
+
+    await act(async () => {
+      const event: UnitFilledEvent = {
+        kind: "filled",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        filledCount: 500,
+        maxSlots: 500,
+      };
+      capturedOnFilled?.(event);
+      capturedOnFilled?.(event);
+      await Promise.resolve();
+    });
+
+    expect(triggerFinalize).toHaveBeenCalledTimes(1);
   });
 });

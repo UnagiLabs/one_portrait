@@ -13,6 +13,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@one-portrait/shared": "workspace:*"
+    "@mysten/sui": "^2.16.0",
+    "@one-portrait/shared": "workspace:*",
+    "sharp": "^0.34.4",
+    "tsx": "^4.20.6"
   }
 }

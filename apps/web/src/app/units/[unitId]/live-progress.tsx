@@ -20,7 +20,7 @@
  *   - reveal animation (listen for MosaicReadyEvent here and fan out)
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type {
   MosaicReadyEvent,
@@ -34,14 +34,22 @@ export type LiveProgressProps = {
   readonly unitId: string;
   readonly initialSubmittedCount: number;
   readonly maxSlots: number;
+  readonly triggerFinalize?: (unitId: string) => Promise<void>;
 };
 
 export function LiveProgress(props: LiveProgressProps): React.ReactElement {
-  const { packageId, unitId, initialSubmittedCount, maxSlots } = props;
+  const {
+    packageId,
+    unitId,
+    initialSubmittedCount,
+    maxSlots,
+    triggerFinalize = defaultTriggerFinalize,
+  } = props;
 
   const [submittedCount, setSubmittedCount] = useState(initialSubmittedCount);
   const [filled, setFilled] = useState(false);
   const [mosaicReady, setMosaicReady] = useState(false);
+  const finalizeTriggeredRef = useRef(false);
 
   useUnitEvents({
     packageId,
@@ -57,6 +65,10 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
       // Reveal orchestration is intentionally deferred to a later issue;
       // mark the flag so follow-up work has a hook to trigger animation.
       setFilled(true);
+      if (!finalizeTriggeredRef.current) {
+        finalizeTriggeredRef.current = true;
+        void triggerFinalize(unitId).catch(() => undefined);
+      }
     },
     onMosaicReady: (_event: MosaicReadyEvent) => {
       // Full reveal rendering is out of scope. Track it so follow-up work
@@ -81,4 +93,14 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
       {/* TODO(issue-6+): swap this panel for ReveralOverlay when mosaicReady. */}
     </div>
   );
+}
+
+async function defaultTriggerFinalize(unitId: string): Promise<void> {
+  await fetch("/api/finalize", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ unitId }),
+  });
 }
