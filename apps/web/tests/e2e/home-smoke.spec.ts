@@ -22,7 +22,9 @@ test.describe("home smoke", () => {
     expect(await athleteHeadings.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test("keeps the home page readable on a mobile viewport", async ({ page }) => {
+  test("keeps the home page readable on a mobile viewport", async ({
+    page,
+  }) => {
     await installDefaultMocks(page);
     await page.setViewportSize({ width: 390, height: 844 });
 
@@ -57,7 +59,9 @@ test.describe("home smoke", () => {
       page.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
     ).toBeVisible();
     await expect(
-      page.getByText(/待機中|No active unit|on-chain progress is not available/i),
+      page.getByText(
+        /待機中|No active unit|on-chain progress is not available/i,
+      ),
     ).toBeVisible();
 
     const hasNoHorizontalOverflow = await page.evaluate(

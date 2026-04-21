@@ -108,7 +108,9 @@ function AthleteCard({
   const href =
     progress.kind === "waiting"
       ? null
-      : buildWaitingRoomHref(progress.unitId, athlete.displayName);
+      : progress.unitId
+        ? buildWaitingRoomHref(progress.unitId, athlete.displayName)
+        : null;
   const body = (
     <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
       {/* External placeholder URL — keeping <img> over next/image so no

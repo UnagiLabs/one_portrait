@@ -114,7 +114,9 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByRole("heading", { name: "Demo Athlete One" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
     expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
   });
 
