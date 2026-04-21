@@ -24,13 +24,18 @@ import {
 export const STUB_UNIT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000ab1e5";
 export const STUB_ATHLETE_ID = "1";
+export const STUB_MASTER_ID =
+  "0x00000000000000000000000000000000000000000000000000000000000ab1e6";
 export const STUB_REGISTRY_TABLE_ID =
   "0x0000000000000000000000000000000000000000000000000000000000001ab1e";
+export const STUB_PLACEMENTS_TABLE_ID =
+  "0x0000000000000000000000000000000000000000000000000000000000002ab1e";
 export const STUB_PACKAGE_ID =
   "0x0000000000000000000000000000000000000000000000000000000000000001";
 export const STUB_REGISTRY_OBJECT_ID =
   "0x0000000000000000000000000000000000000000000000000000000000000002";
 export const STUB_BLOB_ID = "STUB_BLOB_ID_XYZ";
+export const STUB_MOSAIC_BLOB_ID = "STUB_MOSAIC_BLOB_ID_XYZ";
 export const STUB_DIGEST = "4q49qZdCaTzeU2BP4mfQesc2dbt3h32Qn2rLHHwrBJne";
 export const STUB_KAKERA_OBJECT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000ka123";
@@ -52,6 +57,18 @@ type MockHttpResponse = {
 export type InstallMockOptions = {
   readonly autoConnectWallet?: boolean;
   readonly executeApiMode?: "success" | "recovering_http_error";
+  /**
+   * Deterministic gallery switch used by the E2E suite:
+   * - `empty` keeps the original no-Kakera path
+   * - `completed` returns one hydrated completed entry
+   * - `hydration_error` returns one Kakera but makes the Unit lookup fail
+   */
+  readonly galleryEntryMode?: "empty" | "completed" | "hydration_error";
+  /**
+   * Deterministic original-image switch for completed cards.
+   * Only the original blob request fails; the mosaic request still resolves.
+   */
+  readonly originalImageMode?: "success" | "original_blob_not_found";
   readonly ownedObjectsFailuresBeforeSuccess?: number;
   readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
   readonly transactionBlockDelayMs?: number;
@@ -70,6 +87,8 @@ export async function installDefaultMocks(
   const state: MockState = { submitExecuted: false, ownedObjectsCalls: 0 };
   const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
+  const galleryEntryMode = options.galleryEntryMode ?? "empty";
+  const originalImageMode = options.originalImageMode ?? "success";
   const ownedObjectsFailuresBeforeSuccess =
     options.ownedObjectsFailuresBeforeSuccess ?? 0;
   const transactionExecutionStatus =
@@ -102,6 +121,7 @@ export async function installDefaultMocks(
   await page.route(/fullnode\.[a-z]+\.sui\.io/, (route) =>
     handleSuiRpc(route, state, {
       ownedObjectsFailuresBeforeSuccess,
+      galleryEntryMode,
       transactionExecutionStatus,
       transactionBlockDelayMs,
       kakeraVisibleAfterExecute,
@@ -156,6 +176,22 @@ export async function installDefaultMocks(
   });
 
   await page.route("**/aggregator.e2e.stub/**", async (route) => {
+    const url = route.request().url();
+    if (
+      originalImageMode === "original_blob_not_found" &&
+      url.includes(`/v1/blobs/${STUB_BLOB_ID}`)
+    ) {
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "blob_not_found",
+          message: "mock original image unavailable",
+        }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/octet-stream",
@@ -173,6 +209,7 @@ async function handleSuiRpc(
     Pick<
       InstallMockOptions,
       | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
@@ -216,6 +253,7 @@ async function buildRouteResponse(
     Pick<
       InstallMockOptions,
       | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
@@ -258,9 +296,9 @@ async function buildResponse(
 
   switch (method) {
     case "sui_getObject":
-      return envelope(handleGetObject(params));
+      return envelope(handleGetObject(params, options.galleryEntryMode));
     case "suix_getDynamicFieldObject":
-      return envelope(handleDynamicField(params));
+      return envelope(handleDynamicField(params, options.galleryEntryMode));
     case "sui_getTransactionBlock":
       return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
@@ -322,7 +360,10 @@ async function handleGetTransactionBlock(
   };
 }
 
-function handleGetObject(params: readonly unknown[]): unknown {
+function handleGetObject(
+  params: readonly unknown[],
+  galleryEntryMode: Required<InstallMockOptions>["galleryEntryMode"],
+): unknown {
   const id = typeof params[0] === "string" ? params[0] : "";
   if (id === STUB_REGISTRY_OBJECT_ID) {
     return {
@@ -350,6 +391,10 @@ function handleGetObject(params: readonly unknown[]): unknown {
   }
 
   if (id === STUB_UNIT_ID) {
+    if (galleryEntryMode === "hydration_error") {
+      return { data: null };
+    }
+
     return {
       data: {
         objectId: STUB_UNIT_ID,
@@ -361,11 +406,54 @@ function handleGetObject(params: readonly unknown[]): unknown {
           type: `${STUB_PACKAGE_ID}::unit::Unit`,
           hasPublicTransfer: false,
           fields: {
-            status: 0,
+            id: { id: STUB_UNIT_ID },
+            status: galleryEntryMode === "completed" ? 2 : 0,
+            target_walrus_blob: [],
             submissions: [],
             max_slots: String(unitTileCount),
-            athlete_id: STUB_ATHLETE_ID,
-            master_id: { fields: { vec: [] } },
+            athlete_id: Number(STUB_ATHLETE_ID),
+            submitters: {
+              type: "0x2::table::Table<address, bool>",
+              fields: {
+                id: { id: "0xsubmitters" },
+                size: "1",
+              },
+            },
+            master_id:
+              galleryEntryMode === "completed"
+                ? { fields: { vec: [STUB_MASTER_ID] } }
+                : { fields: { vec: [] } },
+          },
+        },
+      },
+    };
+  }
+
+  if (id === STUB_MASTER_ID && galleryEntryMode === "completed") {
+    return {
+      data: {
+        objectId: STUB_MASTER_ID,
+        version: "1",
+        digest: "master-digest",
+        type: `${STUB_PACKAGE_ID}::master_portrait::MasterPortrait`,
+        content: {
+          dataType: "moveObject",
+          type: `${STUB_PACKAGE_ID}::master_portrait::MasterPortrait`,
+          hasPublicTransfer: true,
+          fields: {
+            id: { id: STUB_MASTER_ID },
+            unit_id: STUB_UNIT_ID,
+            athlete_id: Number(STUB_ATHLETE_ID),
+            mosaic_walrus_blob_id: Array.from(
+              new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),
+            ),
+            placements: {
+              type: `0x2::table::Table<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
+              fields: {
+                id: { id: STUB_PLACEMENTS_TABLE_ID },
+                size: "1",
+              },
+            },
           },
         },
       },
@@ -375,28 +463,67 @@ function handleGetObject(params: readonly unknown[]): unknown {
   return { data: null };
 }
 
-function handleDynamicField(params: readonly unknown[]): unknown {
+function handleDynamicField(
+  params: readonly unknown[],
+  galleryEntryMode: Required<InstallMockOptions>["galleryEntryMode"],
+): unknown {
   const parentId = typeof params[0] === "string" ? params[0] : "";
-  if (parentId !== STUB_REGISTRY_TABLE_ID) {
+  if (parentId === STUB_REGISTRY_TABLE_ID) {
+    return {
+      data: {
+        objectId:
+          "0x00000000000000000000000000000000000000000000000000000000000df001",
+        version: "1",
+        digest: "df-digest",
+        type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+        content: {
+          dataType: "moveObject",
+          type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+          hasPublicTransfer: false,
+          fields: {
+            id: {
+              id: "0x00000000000000000000000000000000000000000000000000000000000df002",
+            },
+            name: { type: "u16", value: Number(STUB_ATHLETE_ID) },
+            value: STUB_UNIT_ID,
+          },
+        },
+      },
+    };
+  }
+
+  if (
+    galleryEntryMode !== "completed" ||
+    parentId !== STUB_PLACEMENTS_TABLE_ID
+  ) {
     return { data: null };
   }
+
   return {
     data: {
       objectId:
-        "0x00000000000000000000000000000000000000000000000000000000000df001",
+        "0x00000000000000000000000000000000000000000000000000000000000df101",
       version: "1",
-      digest: "df-digest",
-      type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+      digest: "placement-digest",
+      type: `0x2::dynamic_field::Field<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
       content: {
         dataType: "moveObject",
-        type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+        type: `0x2::dynamic_field::Field<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
         hasPublicTransfer: false,
         fields: {
           id: {
-            id: "0x00000000000000000000000000000000000000000000000000000000000df002",
+            id: "0x00000000000000000000000000000000000000000000000000000000000df102",
           },
-          name: { type: "u16", value: Number(STUB_ATHLETE_ID) },
-          value: STUB_UNIT_ID,
+          name: Array.from(new TextEncoder().encode(STUB_BLOB_ID)),
+          value: {
+            type: `${STUB_PACKAGE_ID}::master_portrait::Placement`,
+            fields: {
+              x: "12",
+              y: "8",
+              submitter: E2E_STUB_ACCOUNT_ADDRESS,
+              submission_no: String(STUB_SUBMISSION_NO),
+            },
+          },
         },
       },
     },
@@ -426,11 +553,13 @@ function handleOwnedObjects(
       };
     }
   }
-  if (
-    owner !== E2E_STUB_ACCOUNT_ADDRESS ||
-    !state.submitExecuted ||
-    !options.kakeraVisibleAfterExecute
-  ) {
+
+  const shouldExposeKakera =
+    owner === E2E_STUB_ACCOUNT_ADDRESS &&
+    (options.galleryEntryMode !== "empty" ||
+      (state.submitExecuted && options.kakeraVisibleAfterExecute));
+
+  if (!shouldExposeKakera) {
     return { data: [], hasNextPage: false, nextCursor: null };
   }
 
