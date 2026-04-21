@@ -219,6 +219,6 @@ function resolveDisplayName(
   catalogDisplayName: string | null,
 ): string {
   return (
-    routeAthleteName ?? catalogDisplayName ?? "選手情報を一時取得できません"
+    catalogDisplayName ?? routeAthleteName ?? "選手情報を一時取得できません"
   );
 }

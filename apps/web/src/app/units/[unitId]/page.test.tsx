@@ -201,7 +201,7 @@ describe("UnitPage", () => {
     ).toBe("0xmaster-1");
   });
 
-  it("prefers athleteName from the route when catalog lookup also succeeds", async () => {
+  it("prefers the catalog name when both catalog and route fallback are available", async () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",
       athletePublicId: "1",
@@ -229,7 +229,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Route Athlete Name" }),
+      screen.getByRole("heading", { name: "Catalog Athlete Name" }),
     ).toBeTruthy();
   });
 
