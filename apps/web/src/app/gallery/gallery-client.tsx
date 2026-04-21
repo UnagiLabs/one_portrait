@@ -4,11 +4,13 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
+import { getDemoModeSource, isDemoModeEnabled } from "../../lib/demo";
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
 
 type GalleryClientProps = {
   readonly catalog: readonly AthleteCatalogEntry[];
+  readonly demoEntries?: readonly GalleryRenderableEntry[];
   readonly packageId: string;
 };
 
@@ -48,6 +50,7 @@ type LoadState =
 
 export function GalleryClient({
   catalog,
+  demoEntries,
   packageId,
 }: GalleryClientProps): React.ReactElement {
   const currentAccount = useCurrentAccount();
@@ -60,6 +63,15 @@ export function GalleryClient({
   >([]);
 
   useEffect(() => {
+    if (demoEntries) {
+      setState({
+        kind: "ready",
+        entries: demoEntries,
+      });
+      setFailedOriginalBlobIds([]);
+      return;
+    }
+
     if (!currentAccount?.address || !packageId) {
       setState({
         kind: currentAccount?.address ? "error" : "idle",
@@ -127,9 +139,9 @@ export function GalleryClient({
     return () => {
       cancelled = true;
     };
-  }, [currentAccount?.address, packageId]);
+  }, [currentAccount?.address, demoEntries, packageId]);
 
-  if (!currentAccount?.address) {
+  if (!demoEntries && !currentAccount?.address) {
     return (
       <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
@@ -142,7 +154,7 @@ export function GalleryClient({
     );
   }
 
-  if (!packageId || state.kind === "error") {
+  if (!demoEntries && (!packageId || state.kind === "error")) {
     return (
       <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
         <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
@@ -344,6 +356,10 @@ function findAthlete(
 function buildWalrusAggregatorUrl(blobId: string | null): string | null {
   if (!blobId) {
     return null;
+  }
+
+  if (isDemoModeEnabled(getDemoModeSource())) {
+    return `https://placehold.co/960x540/png?text=${encodeURIComponent(blobId)}`;
   }
 
   const aggregator = process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR?.trim().replace(

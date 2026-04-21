@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assertNormalDevEnvironment } from "./dev-mode.mjs";
+const demoRegistryObjectId =
+  "0x00000000000000000000000000000000000000000000000000000000000000d1";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,12 +13,14 @@ const lockPath = path.join(webRoot, ".next", "dev", "lock");
 const nextBin = path.join(webRoot, "node_modules", ".bin", "next");
 
 cleanupStaleNextDevLock(lockPath);
-assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
 
 const child = spawn(nextBin, ["dev"], {
   cwd: webRoot,
   env: {
     ...process.env,
+    NEXT_PUBLIC_DEMO_MODE: "1",
+    NEXT_PUBLIC_SUI_NETWORK: "testnet",
+    NEXT_PUBLIC_REGISTRY_OBJECT_ID: demoRegistryObjectId,
     OP_LOCAL_FINALIZE_URL:
       process.env.OP_LOCAL_FINALIZE_URL ?? "http://127.0.0.1:8080",
   },

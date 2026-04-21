@@ -102,6 +102,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
   getSuiClientMock.mockReset();
@@ -117,6 +118,50 @@ describe("GalleryClient", () => {
       screen.getByText(/Connect a wallet to view your Kakera/i),
     ).toBeTruthy();
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
+  });
+
+  it("renders demo entries without requiring a connected wallet", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+
+    render(
+      <GalleryClient
+        catalog={CATALOG}
+        demoEntries={[completedEntry()]}
+        packageId="0xpkg"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    });
+
+    expect(screen.queryByText(/Wallet required/i)).toBeNull();
+    expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
+    expect(
+      screen
+        .getByAltText(/Demo Athlete One completed mosaic/i)
+        .getAttribute("src"),
+    ).toContain("placehold.co");
+    expect(listOwnedKakeraMock).not.toHaveBeenCalled();
+  });
+
+  it("renders demo entries even when packageId is empty", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+
+    render(
+      <GalleryClient
+        catalog={CATALOG}
+        demoEntries={[pendingEntry()]}
+        packageId=""
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    });
+
+    expect(screen.queryByText(/Unavailable/i)).toBeNull();
+    expect(screen.getByText(/Waiting for reveal/i)).toBeTruthy();
   });
 
   it("renders the no Kakera state when the connected wallet owns none", async () => {

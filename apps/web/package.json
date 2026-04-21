@@ -8,6 +8,8 @@
     "check": "biome check --write .",
     "lint": "biome check .",
     "dev": "node ./scripts/run-dev.mjs",
+    "dev:demo": "node ./scripts/run-demo-dev.mjs",
+    "dev:e2e": "./scripts/e2e-dev.sh",
     "build": "next build",
     "start": "OP_LOCAL_FINALIZE_URL=${OP_LOCAL_FINALIZE_URL:-http://127.0.0.1:8080} next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",

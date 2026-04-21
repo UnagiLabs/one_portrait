@@ -20,6 +20,11 @@ import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
 import { getAthleteCatalog } from "../lib/catalog";
+import {
+  getDemoCurrentUnitIdForAthlete,
+  getDemoUnitProgress,
+  isDemoModeEnabled,
+} from "../lib/demo";
 import { loadPublicEnv } from "../lib/env";
 import { getCurrentUnitIdForAthlete, getUnitProgress } from "../lib/sui";
 
@@ -42,13 +47,16 @@ const FALLBACK_MAX_SLOTS = unitTileCount;
 export default async function HomePage(): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
   const env = safeLoadEnv();
+  const demoMode = isDemoModeEnabled(process.env);
 
   const entries = await Promise.all(
     catalog.map(async (athlete) => ({
       athlete,
-      progress: env
-        ? await resolveProgress(athlete.athletePublicId, env)
-        : ({ kind: "unavailable" } as CardProgress),
+      progress: demoMode
+        ? resolveDemoProgress(athlete.athletePublicId)
+        : env
+          ? await resolveProgress(athlete.athletePublicId, env)
+          : ({ kind: "unavailable" } as CardProgress),
     })),
   );
 
@@ -159,6 +167,25 @@ function safeLoadEnv(): ResolvedEnv | null {
   } catch {
     return null;
   }
+}
+
+function resolveDemoProgress(athletePublicId: string): CardProgress {
+  const unitId = getDemoCurrentUnitIdForAthlete(athletePublicId);
+  if (!unitId) {
+    return { kind: "waiting" };
+  }
+
+  const progress = getDemoUnitProgress(unitId);
+  if (!progress) {
+    return { kind: "unavailable" };
+  }
+
+  return {
+    kind: "active",
+    unitId,
+    submittedCount: progress.submittedCount,
+    maxSlots: progress.maxSlots,
+  };
 }
 
 async function resolveProgress(

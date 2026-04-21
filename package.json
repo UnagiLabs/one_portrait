@@ -17,6 +17,10 @@
     "vitest": "^4.1.4"
   },
   "scripts": {
+    "dev": "corepack pnpm --filter web dev",
+    "dev:demo": "corepack pnpm --filter web dev:demo",
+    "dev:e2e": "corepack pnpm --filter web dev:e2e",
+    "test:e2e": "corepack pnpm --filter web test:e2e",
     "lint": "biome check .",
     "check": "corepack pnpm run lint && corepack pnpm run typecheck && corepack pnpm test",
     "typecheck": "tsc -p tsconfig.json --noEmit && corepack pnpm -r --filter \"!one-portrait-workspace\" --if-present typecheck",
