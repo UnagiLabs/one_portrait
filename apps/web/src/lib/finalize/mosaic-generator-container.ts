@@ -72,10 +72,7 @@ export class MosaicGeneratorContainer extends Container {
       }
 
       const payload = (await response.json()) as {
-        readonly status?:
-          | "finalized"
-          | "ignored_finalized"
-          | "ignored_pending";
+        readonly status?: "finalized" | "ignored_finalized" | "ignored_pending";
       };
 
       if (payload.status === "ignored_pending") {
