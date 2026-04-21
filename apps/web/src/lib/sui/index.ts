@@ -35,6 +35,11 @@ export type {
 } from "./events";
 export { subscribeToUnitEvents } from "./events";
 export { getFinalizeUnitSnapshot } from "./finalize";
+export {
+  getGalleryEntry,
+  getMasterPlacement,
+  MasterPortraitNotFoundError,
+} from "./gallery";
 export type {
   FindKakeraForSubmissionArgs,
   FindOwnedKakeraForUnitArgs,
@@ -54,6 +59,9 @@ export {
 } from "./registry";
 export type {
   AthleteProgressView,
+  GalleryEntryView,
+  MasterPlacementLookupView,
+  MasterPlacementView,
   RegistryView,
   UnitStatus,
 } from "./types";
