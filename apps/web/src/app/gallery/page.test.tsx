@@ -81,6 +81,7 @@ afterEach(() => {
   isDemoModeEnabledMock.mockReset();
   loadPublicEnvMock.mockReset();
   galleryPageClientMock.mockReset();
+  delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
 });
 
 describe("GalleryPage", () => {
@@ -194,6 +195,61 @@ describe("GalleryPage", () => {
       catalog: CATALOG,
       demoEntries: undefined,
       packageId: "",
+    });
+  });
+
+  it("uses the request-scoped gallery selector only when the E2E stub wallet is enabled", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([]);
+    isDemoModeEnabledMock.mockReturnValue(false);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xregistry",
+      packageId: "0xpkg",
+    });
+
+    const ui = await GalleryPage({
+      searchParams: Promise.resolve({
+        op_e2e_gallery_state: "config-missing",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByTestId("gallery-client").getAttribute("data-package-id"),
+    ).toBe("");
+    expect(galleryPageClientMock).toHaveBeenCalledWith({
+      catalog: CATALOG,
+      demoEntries: undefined,
+      packageId: "",
+    });
+  });
+
+  it("ignores the gallery selector in normal runtime", async () => {
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([]);
+    isDemoModeEnabledMock.mockReturnValue(false);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xregistry",
+      packageId: "0xpkg",
+    });
+
+    const ui = await GalleryPage({
+      searchParams: Promise.resolve({
+        op_e2e_gallery_state: "config-missing",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByTestId("gallery-client").getAttribute("data-package-id"),
+    ).toBe("0xpkg");
+    expect(galleryPageClientMock).toHaveBeenCalledWith({
+      catalog: CATALOG,
+      demoEntries: undefined,
+      packageId: "0xpkg",
     });
   });
 });

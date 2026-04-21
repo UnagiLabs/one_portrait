@@ -8,9 +8,18 @@ import { GalleryPageClient } from "./gallery-page-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function GalleryPage(): Promise<React.ReactElement> {
+type GalleryPageProps = {
+  readonly searchParams?: Promise<{
+    readonly op_e2e_gallery_state?: string;
+  }>;
+};
+
+export default async function GalleryPage(
+  props: GalleryPageProps = {},
+): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
-  const packageId = safePackageId();
+  const searchParams = (await props.searchParams) ?? {};
+  const packageId = safePackageId(searchParams.op_e2e_gallery_state);
   const demoEntries = isDemoModeEnabled(process.env)
     ? getDemoGalleryEntries()
     : undefined;
@@ -50,10 +59,25 @@ export default async function GalleryPage(): Promise<React.ReactElement> {
   );
 }
 
-function safePackageId(): string | null {
+function safePackageId(
+  e2eGalleryState: string | undefined,
+): string | null {
+  if (shouldUseE2EGalleryConfigMissing(e2eGalleryState)) {
+    return null;
+  }
+
   try {
     return loadPublicEnv(process.env).packageId;
   } catch {
     return null;
   }
+}
+
+function shouldUseE2EGalleryConfigMissing(
+  e2eGalleryState: string | undefined,
+): boolean {
+  return (
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1" &&
+    e2eGalleryState === "config-missing"
+  );
 }

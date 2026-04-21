@@ -41,11 +41,18 @@ export const KAKERA_TYPE = `${STUB_PACKAGE_ID}::kakera::Kakera`;
 
 export type MockState = {
   submitExecuted: boolean;
+  ownedObjectsCalls: number;
+};
+
+type MockHttpResponse = {
+  readonly __mockHttpStatus: number;
+  readonly __mockHttpBody: unknown;
 };
 
 export type InstallMockOptions = {
   readonly autoConnectWallet?: boolean;
   readonly executeApiMode?: "success" | "recovering_http_error";
+  readonly ownedObjectsFailuresBeforeSuccess?: number;
   readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
   readonly transactionBlockDelayMs?: number;
   readonly kakeraVisibleAfterExecute?: boolean;
@@ -60,9 +67,11 @@ export async function installDefaultMocks(
   page: Page,
   options: InstallMockOptions = {},
 ): Promise<MockState> {
-  const state: MockState = { submitExecuted: false };
+  const state: MockState = { submitExecuted: false, ownedObjectsCalls: 0 };
   const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
+  const ownedObjectsFailuresBeforeSuccess =
+    options.ownedObjectsFailuresBeforeSuccess ?? 0;
   const transactionExecutionStatus =
     options.transactionExecutionStatus ?? "success";
   const transactionBlockDelayMs = options.transactionBlockDelayMs ?? 0;
@@ -92,6 +101,7 @@ export async function installDefaultMocks(
 
   await page.route(/fullnode\.[a-z]+\.sui\.io/, (route) =>
     handleSuiRpc(route, state, {
+      ownedObjectsFailuresBeforeSuccess,
       transactionExecutionStatus,
       transactionBlockDelayMs,
       kakeraVisibleAfterExecute,
@@ -162,6 +172,7 @@ async function handleSuiRpc(
   options: Required<
     Pick<
       InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
@@ -175,6 +186,15 @@ async function handleSuiRpc(
     const responses = await Promise.all(
       payload.map((single) => buildResponse(single, state, options)),
     );
+    const httpResponse = responses.find(isMockHttpResponse);
+    if (httpResponse) {
+      await route.fulfill({
+        status: httpResponse.__mockHttpStatus,
+        contentType: "application/json",
+        body: JSON.stringify(httpResponse.__mockHttpBody),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -184,10 +204,35 @@ async function handleSuiRpc(
   }
 
   await route.fulfill({
-    status: 200,
     contentType: "application/json",
-    body: JSON.stringify(await buildResponse(payload, state, options)),
+    ...(await buildRouteResponse(payload, state, options)),
   });
+}
+
+async function buildRouteResponse(
+  payload: unknown,
+  state: MockState,
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "transactionExecutionStatus"
+      | "transactionBlockDelayMs"
+      | "kakeraVisibleAfterExecute"
+    >
+  >,
+): Promise<Record<string, unknown> | MockHttpResponse> {
+  const response = await buildResponse(payload, state, options);
+  if (isMockHttpResponse(response)) {
+    return {
+      status: response.__mockHttpStatus,
+      body: JSON.stringify(response.__mockHttpBody),
+    };
+  }
+  return {
+    status: 200,
+    body: JSON.stringify(response),
+  };
 }
 
 async function buildResponse(
@@ -196,12 +241,13 @@ async function buildResponse(
   options: Required<
     Pick<
       InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
     >
   >,
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, unknown> | MockHttpResponse> {
   const id = isObject(call) ? call.id : null;
   const method =
     isObject(call) && typeof call.method === "string" ? call.method : "";
@@ -219,8 +265,13 @@ async function buildResponse(
       return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
       return envelope({ data: [], hasNextPage: false, nextCursor: null });
-    case "suix_getOwnedObjects":
-      return envelope(handleOwnedObjects(params, state, options));
+    case "suix_getOwnedObjects": {
+      const ownedObjects = handleOwnedObjects(params, state, options);
+      if (isMockHttpResponse(ownedObjects)) {
+        return ownedObjects;
+      }
+      return envelope(ownedObjects);
+    }
     case "sui_getLatestCheckpointSequenceNumber":
       return envelope("1");
     case "sui_dryRunTransactionBlock":
@@ -355,9 +406,26 @@ function handleDynamicField(params: readonly unknown[]): unknown {
 function handleOwnedObjects(
   params: readonly unknown[],
   state: MockState,
-  options: Required<Pick<InstallMockOptions, "kakeraVisibleAfterExecute">>,
-): unknown {
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      "ownedObjectsFailuresBeforeSuccess" | "kakeraVisibleAfterExecute"
+    >
+  >,
+): Record<string, unknown> | MockHttpResponse {
   const owner = typeof params[0] === "string" ? params[0] : "";
+  if (owner === E2E_STUB_ACCOUNT_ADDRESS) {
+    state.ownedObjectsCalls += 1;
+    if (state.ownedObjectsCalls <= options.ownedObjectsFailuresBeforeSuccess) {
+      return {
+        __mockHttpStatus: 503,
+        __mockHttpBody: {
+          code: "owned_objects_unavailable",
+          message: "mock owned objects unavailable",
+        },
+      };
+    }
+  }
   if (
     owner !== E2E_STUB_ACCOUNT_ADDRESS ||
     !state.submitExecuted ||
@@ -395,6 +463,12 @@ function handleOwnedObjects(
     hasNextPage: false,
     nextCursor: null,
   };
+}
+
+function isMockHttpResponse(
+  value: Record<string, unknown> | MockHttpResponse,
+): value is MockHttpResponse {
+  return "__mockHttpStatus" in value && "__mockHttpBody" in value;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
