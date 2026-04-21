@@ -90,6 +90,7 @@ describe("UnitPage", () => {
 
     const ui = await UnitPage({
       params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
     });
     render(ui);
 
@@ -99,7 +100,7 @@ describe("UnitPage", () => {
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
   });
 
-  it("shows a fallback when the Unit object cannot be fetched", async () => {
+  it("shows the route athleteName when unit progress cannot be fetched", async () => {
     getUnitProgressMock.mockRejectedValue(new Error("not found"));
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
@@ -109,10 +110,31 @@ describe("UnitPage", () => {
 
     const ui = await UnitPage({
       params: Promise.resolve({ unitId: "0xunit-missing" }),
+      searchParams: Promise.resolve({ athleteName: "Demo Athlete One" }),
     });
     render(ui);
 
+    expect(screen.getByRole("heading", { name: "Demo Athlete One" })).toBeTruthy();
     expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+  });
+
+  it("shows a fixed fallback label when both route and catalog names are unavailable", async () => {
+    getUnitProgressMock.mockRejectedValue(new Error("not found"));
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-missing" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(
+      screen.getByRole("heading", { name: "選手情報を一時取得できません" }),
+    ).toBeTruthy();
   });
 
   it("passes the packageId from env to the live progress client component", async () => {
@@ -138,6 +160,7 @@ describe("UnitPage", () => {
 
     const ui = await UnitPage({
       params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
     });
     render(ui);
 
@@ -167,12 +190,71 @@ describe("UnitPage", () => {
 
     const ui = await UnitPage({
       params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
     });
     render(ui);
 
     expect(
       screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
     ).toBe("0xmaster-1");
+  });
+
+  it("prefers athleteName from the route when catalog lookup also succeeds", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({ athleteName: "Route Athlete Name" }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByRole("heading", { name: "Route Athlete Name" }),
+    ).toBeTruthy();
+  });
+
+  it("falls back to route athleteName when catalog lookup fails", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockRejectedValue(new Error("catalog down"));
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({ athleteName: "Demo Athlete One" }),
+    });
+    render(ui);
+
+    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
 
   it("uses demo fixture progress without calling Sui when demo mode is enabled", async () => {
@@ -191,6 +273,7 @@ describe("UnitPage", () => {
 
     const ui = await UnitPage({
       params: Promise.resolve({ unitId: demoUnitId }),
+      searchParams: Promise.resolve({}),
     });
     render(ui);
 
