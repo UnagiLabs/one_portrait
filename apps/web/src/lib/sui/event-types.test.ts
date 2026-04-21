@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -21,7 +22,7 @@ function submittedRaw(overrides: Record<string, unknown> = {}) {
       walrus_blob_id: [1, 2, 3],
       submission_no: "1",
       submitted_count: "1",
-      max_slots: "500",
+      max_slots: String(unitTileCount),
       ...overrides,
     },
   };
@@ -33,8 +34,8 @@ function unitFilledRaw(overrides: Record<string, unknown> = {}) {
     parsedJson: {
       unit_id: UNIT_ID,
       athlete_id: ATHLETE_ID,
-      filled_count: "500",
-      max_slots: "500",
+      filled_count: String(unitTileCount),
+      max_slots: String(unitTileCount),
       ...overrides,
     },
   };
@@ -65,18 +66,22 @@ describe("parseSubmittedEvent", () => {
       walrusBlobId: [1, 2, 3],
       submissionNo: 1,
       submittedCount: 1,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
     });
   });
 
   it("accepts numeric or string u64 fields", () => {
     const event = parseSubmittedEvent(
-      submittedRaw({ submission_no: 42, submitted_count: 42, max_slots: 500 }),
+      submittedRaw({
+        submission_no: 42,
+        submitted_count: 42,
+        max_slots: unitTileCount,
+      }),
     );
 
     expect(event.submissionNo).toBe(42);
     expect(event.submittedCount).toBe(42);
-    expect(event.maxSlots).toBe(500);
+    expect(event.maxSlots).toBe(unitTileCount);
   });
 
   it("throws when required fields are missing", () => {
@@ -94,8 +99,8 @@ describe("parseUnitFilledEvent", () => {
       kind: "filled",
       unitId: UNIT_ID,
       athletePublicId: "7",
-      filledCount: 500,
-      maxSlots: 500,
+      filledCount: unitTileCount,
+      maxSlots: unitTileCount,
     });
   });
 

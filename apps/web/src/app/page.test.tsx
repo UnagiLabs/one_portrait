@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -67,7 +68,7 @@ describe("HomePage", () => {
       unitId: "0xunit-1",
       athletePublicId: "1",
       submittedCount: 42,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });
@@ -93,7 +94,7 @@ describe("HomePage", () => {
       unitId: "0xunit-1",
       athletePublicId: "1",
       submittedCount: 123,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });
@@ -101,7 +102,9 @@ describe("HomePage", () => {
     const ui = await HomePage();
     render(ui);
 
-    expect(screen.getByText(/123\s*\/\s*500/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`123\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
   });
 
   it("renders a waiting-state card when no current unit is registered", async () => {
@@ -132,7 +135,7 @@ describe("HomePage", () => {
       unitId: "0xunit-1",
       athletePublicId: "1",
       submittedCount: 0,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });

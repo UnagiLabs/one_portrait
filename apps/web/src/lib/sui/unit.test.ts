@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SuiReadClient } from "./client";
@@ -35,7 +36,7 @@ function unitData(fields: Record<string, unknown>) {
         id: { id: UNIT_ID },
         athlete_id: 1,
         target_walrus_blob: [],
-        max_slots: "500",
+        max_slots: String(unitTileCount),
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
@@ -59,7 +60,7 @@ describe("getUnitProgress", () => {
       unitId: UNIT_ID,
       athletePublicId: "1",
       submittedCount: 0,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });

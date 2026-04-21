@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -68,7 +69,7 @@ describe("UnitPage", () => {
       unitId: "0xunit-1",
       athletePublicId: "1",
       submittedCount: 72,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });
@@ -90,7 +91,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
-      "72 / 500",
+      `72 / ${unitTileCount}`,
     );
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
   });
@@ -116,7 +117,7 @@ describe("UnitPage", () => {
       unitId: "0xunit-1",
       athletePublicId: "1",
       submittedCount: 10,
-      maxSlots: 500,
+      maxSlots: unitTileCount,
       status: "pending",
       masterId: null,
     });
@@ -144,8 +145,8 @@ describe("UnitPage", () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",
       athletePublicId: "1",
-      submittedCount: 500,
-      maxSlots: 500,
+      submittedCount: unitTileCount,
+      maxSlots: unitTileCount,
       status: "finalized",
       masterId: "0xmaster-1",
     });

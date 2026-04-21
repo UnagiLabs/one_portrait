@@ -22,6 +22,15 @@ export {
 } from "./image";
 export type { FinalizeManifest, FinalizeManifestInput } from "./manifest";
 export { buildFinalizeManifest } from "./manifest";
+export type {
+  GeneratedFinalizeMosaic,
+  GeneratedMosaic,
+  GenerateFinalizeMosaicInput,
+  GenerateMosaicInput,
+  MosaicGrid,
+  MosaicTileInput,
+} from "./mosaic";
+export { generateFinalizeMosaic, generateMosaic } from "./mosaic";
 export {
   type PreparedFinalizeInput,
   type PreparedSubmission,

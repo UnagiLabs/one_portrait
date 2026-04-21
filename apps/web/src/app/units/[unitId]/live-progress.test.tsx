@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -33,11 +34,13 @@ describe("LiveProgress", () => {
         packageId="0xpkg"
         unitId="0xunit-1"
         initialSubmittedCount={42}
-        maxSlots={500}
+        maxSlots={unitTileCount}
       />,
     );
 
-    expect(screen.getByText(/42\s*\/\s*500/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
   });
 
   it("updates the count when a SubmittedEvent arrives", () => {
@@ -51,11 +54,13 @@ describe("LiveProgress", () => {
         packageId="0xpkg"
         unitId="0xunit-1"
         initialSubmittedCount={10}
-        maxSlots={500}
+        maxSlots={unitTileCount}
       />,
     );
 
-    expect(screen.getByText(/10\s*\/\s*500/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`10\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
 
     act(() => {
       capturedOnSubmitted?.({
@@ -66,11 +71,13 @@ describe("LiveProgress", () => {
         walrusBlobId: [],
         submissionNo: 11,
         submittedCount: 11,
-        maxSlots: 500,
+        maxSlots: unitTileCount,
       });
     });
 
-    expect(screen.getByText(/11\s*\/\s*500/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`11\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
   });
 
   it("ignores older SubmittedEvent deliveries that would decrease the count", () => {
@@ -84,7 +91,7 @@ describe("LiveProgress", () => {
         packageId="0xpkg"
         unitId="0xunit-1"
         initialSubmittedCount={20}
-        maxSlots={500}
+        maxSlots={unitTileCount}
       />,
     );
 
@@ -97,11 +104,13 @@ describe("LiveProgress", () => {
         walrusBlobId: [],
         submissionNo: 5,
         submittedCount: 5,
-        maxSlots: 500,
+        maxSlots: unitTileCount,
       });
     });
 
-    expect(screen.getByText(/20\s*\/\s*500/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`20\\s*/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
   });
 
   it("subscribes with the provided packageId and unitId", () => {
@@ -112,7 +121,7 @@ describe("LiveProgress", () => {
         packageId="0xpkg"
         unitId="0xunit-1"
         initialSubmittedCount={0}
-        maxSlots={500}
+        maxSlots={unitTileCount}
       />,
     );
 
@@ -132,8 +141,8 @@ describe("LiveProgress", () => {
 
     render(
       <LiveProgress
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         onMosaicReady={onMosaicReady}
         packageId="0xpkg"
         unitId="0xunit-1"
@@ -171,8 +180,8 @@ describe("LiveProgress", () => {
       <LiveProgress
         packageId="0xpkg"
         unitId="0xunit-1"
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         triggerFinalize={triggerFinalize}
       />,
     );
@@ -182,8 +191,8 @@ describe("LiveProgress", () => {
         kind: "filled",
         unitId: "0xunit-1",
         athletePublicId: "1",
-        filledCount: 500,
-        maxSlots: 500,
+        filledCount: unitTileCount,
+        maxSlots: unitTileCount,
       });
       await Promise.resolve();
     });
@@ -203,8 +212,8 @@ describe("LiveProgress", () => {
       <LiveProgress
         packageId="0xpkg"
         unitId="0xunit-1"
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         triggerFinalize={triggerFinalize}
       />,
     );
@@ -214,8 +223,8 @@ describe("LiveProgress", () => {
         kind: "filled",
         unitId: "0xunit-1",
         athletePublicId: "1",
-        filledCount: 500,
-        maxSlots: 500,
+        filledCount: unitTileCount,
+        maxSlots: unitTileCount,
       };
       capturedOnFilled?.(event);
       capturedOnFilled?.(event);

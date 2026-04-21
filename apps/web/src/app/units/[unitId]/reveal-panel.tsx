@@ -1,9 +1,7 @@
 "use client";
 
+import { unitTileGrid } from "@one-portrait/shared";
 import type { MasterPlacementView } from "../../../lib/sui";
-
-const DEFAULT_MOSAIC_COLUMNS = 20;
-const DEFAULT_MOSAIC_ROWS = 25;
 
 type RevealPanelProps = {
   readonly displayName: string;
@@ -42,8 +40,8 @@ export function RevealPanel({
             className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-200 bg-amber-300/25 shadow-[0_0_0_9999px_rgba(2,6,23,0.08)]"
             data-testid="placement-highlight"
             style={{
-              left: `${((placement.x + 0.5) / DEFAULT_MOSAIC_COLUMNS) * 100}%`,
-              top: `${((placement.y + 0.5) / DEFAULT_MOSAIC_ROWS) * 100}%`,
+              left: `${((placement.x + 0.5) / unitTileGrid.cols) * 100}%`,
+              top: `${((placement.y + 0.5) / unitTileGrid.rows) * 100}%`,
             }}
           />
         ) : null}

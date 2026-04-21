@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import {
   act,
   fireEvent,
@@ -854,7 +855,7 @@ describe("ParticipationAccess", () => {
         <div>
           <LiveProgress
             initialSubmittedCount={41}
-            maxSlots={500}
+            maxSlots={unitTileCount}
             packageId="0xpkg"
             unitId="0xunit-1"
           />
@@ -870,7 +871,9 @@ describe("ParticipationAccess", () => {
         </div>,
       );
 
-      expect(screen.getByText(/41\s*\/\s*500/)).toBeTruthy();
+      expect(
+        screen.getByText(new RegExp(`41\\s*/\\s*${unitTileCount}`)),
+      ).toBeTruthy();
 
       fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
       fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
@@ -888,8 +891,12 @@ describe("ParticipationAccess", () => {
 
       // Progress counter MUST still be at its initial value — no optimistic
       // increment is allowed. This is the STEP 6 contract.
-      expect(screen.getByText(/41\s*\/\s*500/)).toBeTruthy();
-      expect(screen.queryByText(/42\s*\/\s*500/)).toBeNull();
+      expect(
+        screen.getByText(new RegExp(`41\\s*/\\s*${unitTileCount}`)),
+      ).toBeTruthy();
+      expect(
+        screen.queryByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
+      ).toBeNull();
 
       // Deliver the SubmittedEvent through the captured hook and verify the
       // counter catches up.
@@ -902,11 +909,13 @@ describe("ParticipationAccess", () => {
           walrusBlobId: [],
           submissionNo: 42,
           submittedCount: 42,
-          maxSlots: 500,
+          maxSlots: unitTileCount,
         });
       });
 
-      expect(screen.getByText(/42\s*\/\s*500/)).toBeTruthy();
+      expect(
+        screen.getByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
+      ).toBeTruthy();
     });
   });
 });

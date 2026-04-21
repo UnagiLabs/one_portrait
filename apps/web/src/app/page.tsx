@@ -16,6 +16,7 @@
  *   - Catalog → CMS / signed JSON manifest swap → out of scope.
  */
 
+import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
 import { getAthleteCatalog } from "../lib/catalog";
@@ -36,7 +37,7 @@ type ResolvedEnv = {
   readonly registryObjectId: string;
 };
 
-const FALLBACK_MAX_SLOTS = 500;
+const FALLBACK_MAX_SLOTS = unitTileCount;
 
 export default async function HomePage(): Promise<React.ReactElement> {
   const catalog = await getAthleteCatalog();
@@ -59,11 +60,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
             one portrait
           </p>
           <h1 className="max-w-3xl font-serif text-5xl leading-tight text-white md:text-6xl">
-            500 faces, one reveal.
+            {unitTileCount} faces, one reveal.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-slate-200">
             Pick an athlete to open their waiting room. Each mosaic reveals the
-            moment the 500th photo lands.
+            moment the {unitTileCount}th photo lands.
           </p>
         </section>
 

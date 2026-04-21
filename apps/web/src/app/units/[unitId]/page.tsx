@@ -10,6 +10,7 @@
  * RPC / env failures degrade gracefully to a "waiting" state instead of
  * throwing — the demo must not white-screen if a fullnode is slow.
  */
+import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
 import { getAthleteByPublicId } from "../../../lib/catalog";
@@ -30,7 +31,7 @@ type ResolvedProgress = {
   readonly masterId: string | null;
 };
 
-const FALLBACK_MAX_SLOTS = 500;
+const FALLBACK_MAX_SLOTS = unitTileCount;
 
 export default async function UnitPage(
   props: UnitPageProps,

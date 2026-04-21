@@ -1,3 +1,10 @@
+import {
+  renderedMosaicSize,
+  renderedMosaicTileSizePx,
+  unitTileCount,
+  unitTileGrid,
+} from "./config";
+
 export const appMeta = {
   name: "ONE Portrait",
   tagline: "Your Smile Becomes Their Strength",
@@ -21,4 +28,11 @@ export type GeneratorUnitSnapshot = {
   readonly submissions: readonly GeneratorSubmissionRef[];
   readonly targetWalrusBlobId: string;
   readonly unitId: string;
+};
+
+export {
+  renderedMosaicSize,
+  renderedMosaicTileSizePx,
+  unitTileCount,
+  unitTileGrid,
 };

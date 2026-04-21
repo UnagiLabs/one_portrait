@@ -5,17 +5,20 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^24.12.2",
+    "tsx": "^4.20.6",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   },
   "scripts": {
+    "experiment:improved-counts": "tsx scripts/evaluate-improved-mosaic-counts.ts",
+    "render:mosaic": "tsx scripts/render-mosaic.ts",
+    "sync:demo-tiles": "tsx scripts/sync-demo-tiles.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@mysten/sui": "^2.16.0",
     "@one-portrait/shared": "workspace:*",
-    "sharp": "^0.34.4",
-    "tsx": "^4.20.6"
+    "sharp": "^0.34.5"
   }
 }

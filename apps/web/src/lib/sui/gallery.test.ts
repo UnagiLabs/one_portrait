@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SuiReadClient } from "./client";
@@ -42,7 +43,7 @@ function unitObject(overrides: Partial<Record<string, unknown>> = {}) {
         id: { id: UNIT_ID },
         athlete_id: 7,
         target_walrus_blob: [],
-        max_slots: "500",
+        max_slots: String(unitTileCount),
         status: 2,
         master_id: { fields: { vec: [MASTER_ID] } },
         submitters: {

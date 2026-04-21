@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -137,14 +138,14 @@ describe("UnitRevealClient", () => {
         displayName="Demo Athlete One"
         initialMasterId={null}
         initialSubmittedCount={42}
-        maxSlots={500}
+        maxSlots={unitTileCount}
         packageId="0xpkg"
         unitId="0xunit-1"
       />,
     );
 
     expect(screen.getByTestId("live-progress").textContent).toContain(
-      "42 / 500",
+      `42 / ${unitTileCount}`,
     );
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
     expect(screen.queryByTestId("reveal-image")).toBeNull();
@@ -159,8 +160,8 @@ describe("UnitRevealClient", () => {
       <UnitRevealClient
         displayName="Demo Athlete One"
         initialMasterId={null}
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         packageId="0xpkg"
         unitId="0xunit-1"
       />,
@@ -199,8 +200,8 @@ describe("UnitRevealClient", () => {
       <UnitRevealClient
         displayName="Demo Athlete One"
         initialMasterId={null}
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         packageId="0xpkg"
         unitId="0xunit-1"
       />,
@@ -229,8 +230,8 @@ describe("UnitRevealClient", () => {
       <UnitRevealClient
         displayName="Demo Athlete One"
         initialMasterId="0xmaster-1"
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         packageId="0xpkg"
         unitId="0xunit-1"
       />,
@@ -258,8 +259,8 @@ describe("UnitRevealClient", () => {
       <UnitRevealClient
         displayName="Demo Athlete One"
         initialMasterId="0xmaster-1"
-        initialSubmittedCount={500}
-        maxSlots={500}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
         packageId="0xpkg"
         unitId="0xunit-1"
       />,

@@ -1,11 +1,12 @@
 import type { GeneratorUnitSnapshot } from "@one-portrait/shared";
 
-import { assignGreedyPlacements, type MosaicPlacement } from "./assignment";
+import type { MosaicPlacement } from "./assignment";
 import {
-  composeMosaicPng,
+  type composeMosaicPng,
   createSharpAverageColorSampler,
-  extractTargetTiles,
+  type extractTargetTiles,
 } from "./image";
+import { type GeneratedFinalizeMosaic, generateFinalizeMosaic } from "./mosaic";
 import {
   type AverageColorSampler,
   type PreparedFinalizeInput,
@@ -60,6 +61,9 @@ export type FinalizeRunnerDeps = {
 
 export type DefaultFinalizeRunnerDeps = {
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
+  readonly generateFinalizeMosaic?: (
+    prepared: PreparedFinalizeInput,
+  ) => Promise<Pick<GeneratedFinalizeMosaic, "image" | "placements">>;
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
   readonly sampleAverageColor?: AverageColorSampler;
   readonly walrusRead: WalrusReadClient;
@@ -118,20 +122,54 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
 export function createDefaultFinalizeRunner(
   deps: DefaultFinalizeRunnerDeps,
 ): FinalizeRunner {
-  return createFinalizeRunner({
-    readUnitSnapshot: deps.readUnitSnapshot,
-    prepareInput: (snapshot) =>
-      prepareFinalizeInput(snapshot, {
+  const buildFinalizeMosaic =
+    deps.generateFinalizeMosaic ??
+    ((prepared: PreparedFinalizeInput) =>
+      generateFinalizeMosaic({
+        targetImage: prepared.targetImageBytes,
+        submissions: prepared.submissions,
+      }));
+
+  return {
+    async run(unitId: string): Promise<FinalizeRunResult> {
+      const snapshot = await deps.readUnitSnapshot(unitId);
+
+      if (snapshot.status === "pending") {
+        return {
+          status: "ignored_pending",
+          unitId,
+        };
+      }
+
+      if (snapshot.status === "finalized" || snapshot.masterId !== null) {
+        return {
+          status: "ignored_finalized",
+          unitId,
+        };
+      }
+
+      const prepared = await prepareFinalizeInput(snapshot, {
         walrus: deps.walrusRead,
         sampleAverageColor:
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
-      }),
-    extractTargetTiles,
-    assignPlacements: assignGreedyPlacements,
-    composeMosaicPng,
-    putMosaic: deps.walrusWrite.putBlob,
-    finalizeTransaction: deps.finalizeTransaction,
-  });
+      });
+      const mosaicResult = await buildFinalizeMosaic(prepared);
+      const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
+      const finalized = await deps.finalizeTransaction({
+        unitId,
+        mosaicBlobId: mosaic.blobId,
+        placements: mosaicResult.placements,
+      });
+
+      return {
+        status: "finalized",
+        unitId,
+        mosaicBlobId: mosaic.blobId,
+        digest: finalized.digest,
+        placementCount: mosaicResult.placements.length,
+      };
+    },
+  };
 }
 
 export function createFinalizeRunnerFromEndpoints(input: {

@@ -12,6 +12,7 @@
  * - Walrus Publisher `PUT /v1/blobs` — return stub `blobId`.
  */
 
+import { unitTileCount } from "@one-portrait/shared";
 import type { Page, Route } from "@playwright/test";
 
 import {
@@ -211,7 +212,7 @@ function handleGetObject(params: readonly unknown[]): unknown {
           fields: {
             status: 0,
             submissions: [],
-            max_slots: "500",
+            max_slots: String(unitTileCount),
             athlete_id: STUB_ATHLETE_ID,
             master_id: { fields: { vec: [] } },
           },

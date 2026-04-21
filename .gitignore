@@ -7,6 +7,9 @@
 **/dist
 **/build
 **/*.tsbuildinfo
+generator/artifacts
+generator/assets/datasets
+generator/assets/demo-tiles
 
 # Env
 **/.env

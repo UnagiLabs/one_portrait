@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PreparedFinalizeInput } from "../src";
-import { createFinalizeRunner } from "../src";
+import { createDefaultFinalizeRunner, createFinalizeRunner } from "../src";
 
 describe("createFinalizeRunner", () => {
   it("absorbs units that are already finalized before any heavy work starts", async () => {
@@ -113,6 +113,68 @@ describe("createFinalizeRunner", () => {
       unitId: "0xunit-1",
       mosaicBlobId: "mosaic-blob",
       placements,
+    });
+  });
+});
+
+describe("createDefaultFinalizeRunner", () => {
+  it("uses the improved mosaic generator result for walrus put and finalize", async () => {
+    const generateFinalizeMosaic = vi.fn(async () => ({
+      image: new Uint8Array([7, 8, 9]),
+      placements: [
+        {
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+          submitter: "0xsubmitter",
+          targetColor: { red: 1, green: 2, blue: 3 },
+          x: 0,
+          y: 0,
+        },
+      ],
+    }));
+    const putBlob = vi.fn(async () => ({
+      blobId: "mosaic-blob",
+      aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+    }));
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createDefaultFinalizeRunner({
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        status: "filled" as const,
+        masterId: null,
+      })),
+      walrusRead: {
+        getBlob: vi.fn(async (blobId: string) =>
+          new TextEncoder().encode(blobId),
+        ),
+      },
+      walrusWrite: {
+        putBlob,
+      },
+      finalizeTransaction,
+      sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+      generateFinalizeMosaic,
+    });
+
+    await expect(runner.run("0xunit-1")).resolves.toEqual({
+      status: "finalized",
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 1,
+    });
+    expect(generateFinalizeMosaic).toHaveBeenCalledTimes(1);
+    expect(putBlob).toHaveBeenCalledWith(new Uint8Array([7, 8, 9]));
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      placements: [
+        expect.objectContaining({
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+        }),
+      ],
     });
   });
 });

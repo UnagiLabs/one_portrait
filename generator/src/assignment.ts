@@ -1,11 +1,15 @@
-import type { MosaicRgb } from "@one-portrait/shared";
+import {
+  type MosaicRgb,
+  renderedMosaicTileSizePx,
+  unitTileGrid,
+} from "@one-portrait/shared";
 
 import { deltaE } from "./color";
 import type { PreparedSubmission } from "./prepare";
 
-export const DEFAULT_MOSAIC_COLUMNS = 20;
-export const DEFAULT_MOSAIC_ROWS = 25;
-export const DEFAULT_TILE_SIZE_PX = 200;
+export const DEFAULT_MOSAIC_COLUMNS = unitTileGrid.cols;
+export const DEFAULT_MOSAIC_ROWS = unitTileGrid.rows;
+export const DEFAULT_TILE_SIZE_PX = renderedMosaicTileSizePx;
 
 export type TargetTile = {
   readonly averageColor: MosaicRgb;

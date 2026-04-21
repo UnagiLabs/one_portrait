@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SuiSubscriptionClient } from "./client";
@@ -38,7 +39,7 @@ function submittedSuiEvent(unitId: string, submissionNo = "1") {
       walrus_blob_id: [1, 2, 3],
       submission_no: submissionNo,
       submitted_count: submissionNo,
-      max_slots: "500",
+      max_slots: String(unitTileCount),
     },
     eventSeq: submissionNo,
   });
@@ -50,8 +51,8 @@ function unitFilledSuiEvent(unitId: string) {
     parsedJson: {
       unit_id: unitId,
       athlete_id: 1,
-      filled_count: "500",
-      max_slots: "500",
+      filled_count: String(unitTileCount),
+      max_slots: String(unitTileCount),
     },
   });
 }

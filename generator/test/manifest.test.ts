@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildFinalizeManifest } from "../src";
@@ -9,7 +10,7 @@ describe("buildFinalizeManifest", () => {
         unitId: "unit-1",
         athleteId: 1,
         targetWalrusBlobId: "blob-demo",
-        tileCount: 500,
+        tileCount: unitTileCount,
       }),
     ).toEqual({
       generatorName: "ONE Portrait",
@@ -17,7 +18,7 @@ describe("buildFinalizeManifest", () => {
       heroCopy: "Fan photos become one portrait.",
       unitId: "unit-1",
       targetWalrusBlobId: "blob-demo",
-      tileCount: 500,
+      tileCount: unitTileCount,
     });
   });
 });

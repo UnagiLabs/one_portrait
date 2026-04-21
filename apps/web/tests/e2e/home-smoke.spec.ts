@@ -1,3 +1,4 @@
+import { unitTileCount } from "@one-portrait/shared";
 import { expect, test } from "@playwright/test";
 
 import { installDefaultMocks } from "./fixtures/mock-network";
@@ -9,7 +10,10 @@ test.describe("home smoke", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: /500 faces/i }),
+      page.getByRole("heading", {
+        level: 1,
+        name: new RegExp(`${unitTileCount} faces`, "i"),
+      }),
     ).toBeVisible();
 
     const athleteHeadings = page.getByRole("heading", { level: 2 });
