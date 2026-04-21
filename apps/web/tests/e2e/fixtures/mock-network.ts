@@ -276,9 +276,11 @@ function handleOwnedObjects(
             hasPublicTransfer: false,
             fields: {
               id: { id: STUB_KAKERA_OBJECT_ID },
+              athlete_id: STUB_ATHLETE_ID,
               unit_id: STUB_UNIT_ID,
               walrus_blob_id: blobBytes,
               submission_no: STUB_SUBMISSION_NO,
+              minted_at_ms: "1710000000000",
             },
           },
         },
