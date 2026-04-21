@@ -154,6 +154,7 @@ corepack pnpm run dev:demo
 corepack pnpm run dev:e2e
 corepack pnpm run dev:smoke
 corepack pnpm run test:e2e
+corepack pnpm run test:e2e:readiness
 corepack pnpm run check
 corepack pnpm --filter web build
 ```
@@ -168,6 +169,7 @@ corepack pnpm --filter web build
 | `corepack pnpm run dev` | 通常開発 | `apps/web/.env.local` をそのまま使います。E2E 用の stub 値が残っていたら起動を止めます。 |
 | `corepack pnpm run dev:demo` | UI の目視確認 | demo fixture を使って、top / waiting room / gallery を外部依存なしで確認しやすい状態にします。waiting room の Google login は位置確認用で、実ログインや投稿は行いません。 |
 | `corepack pnpm run dev:e2e` | Playwright 用 web server | E2E 用の stub env を子 process にだけ注入します。`.env.local` は書き換えません。 |
+| `corepack pnpm run test:e2e:readiness` | デモ前の自動回帰確認 | `#23` `#24` `#25` の回帰だけを stub E2E でまとめて確認します。`#22` の実送信確認は含みません。 |
 | `corepack pnpm run dev:smoke` | デモ前の実送信確認 | 実 env のまま Next.js を起動し、Google login / Walrus / Sponsored submit / Kakera 確認を手で通します。手順と証跡は `docs/demo-smoke.md` にまとめています。 |
 | `corepack pnpm run test:e2e` | Playwright 実行 | `dev:e2e` を使ってブラウザテストを実行します。通常開発用の env は汚しません。 |
 
