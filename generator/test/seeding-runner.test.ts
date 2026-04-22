@@ -301,7 +301,7 @@ describe("parseSeedingDemoSubmissionArgs", () => {
         "--mode",
         "simulate",
       ]),
-    ).toThrow(/sender-config|target-count|ledger|images|manifest/i);
+    ).toThrow(/sender-config|ledger|images|manifest/i);
   });
 
   it("accepts simulate and live mode values", () => {
@@ -313,8 +313,6 @@ describe("parseSeedingDemoSubmissionArgs", () => {
         "/tmp/images",
         "--sender-config",
         "/tmp/senders.json",
-        "--target-count",
-        "2",
         "--ledger",
         "/tmp/ledger.json",
         "--mode",
@@ -325,6 +323,7 @@ describe("parseSeedingDemoSubmissionArgs", () => {
         mode: "simulate",
         limit: null,
         manifest: null,
+        targetCount: null,
       }),
     );
 

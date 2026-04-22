@@ -194,3 +194,4 @@ sui move test --list --test
 - 📘 [`docs/spec.md`](docs/spec.md) — プロダクト・体験仕様（ユーザー層 / 機能要件 / フロー / Sui・Walrus 活用意義）
 - 🛠 [`docs/tech.md`](docs/tech.md) — 技術仕様（アーキテクチャ / シーケンス図 / Move / Frontend / Backend / 整合性 / セキュリティ）
 - ✅ [`docs/demo-smoke.md`](docs/demo-smoke.md) — デモ前に実送信主線を 1 回確認する runbook
+- ✅ [`docs/demo-seeding.md`](docs/demo-seeding.md) — デモ前に 979 件を事前投入する seeding runbook

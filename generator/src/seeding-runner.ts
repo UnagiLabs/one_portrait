@@ -41,7 +41,7 @@ export type SeedingDemoSubmissionCliArgs = {
   readonly manifest: string | null;
   readonly mode: SeedingDemoSubmissionMode;
   readonly senderConfig: string;
-  readonly targetCount: number;
+  readonly targetCount: number | null;
   readonly unitId: string;
 };
 
@@ -118,14 +118,15 @@ export function createSeedingDemoSubmissionRunner(
       const senders = deps.deriveSenders(senderConfig);
       const senderAddresses = senders.map((sender) => sender.address);
       const existingLedger = await deps.readLedger(options.ledger);
+      const snapshot = await deps.readSeedingSnapshot(options.unitId);
+      const targetCount = options.targetCount ?? snapshot.maxSlots - 1;
       const inputLedger = buildSeedingLedgerRows({
         entries: inputEntries,
         existingLedger,
         senderAddresses,
-        targetCount: options.targetCount,
+        targetCount,
       });
-      const snapshot = await deps.readSeedingSnapshot(options.unitId);
-      validateSeedingPreflight(snapshot, options.targetCount, senderAddresses);
+      validateSeedingPreflight(snapshot, targetCount, senderAddresses);
 
       const reconciled = await reconcileSeedingLedger({
         checkDigestStatus: deps.checkDigestStatus,
@@ -177,7 +178,7 @@ export function createSeedingDemoSubmissionRunner(
               workingLedger.rows.length - simulation.wouldProcessRows,
             stoppedAfterLimit: simulation.stoppedAfterLimit,
             submittedRows: 0,
-            targetCount: options.targetCount,
+            targetCount,
             unitId: options.unitId,
             uploadedRows: 0,
             wouldProcessRows: simulation.wouldProcessRows,
@@ -216,12 +217,12 @@ export function createSeedingDemoSubmissionRunner(
 
       if (
         !execution.stoppedAfterLimit &&
-        execution.latestSnapshot.submittedCount === options.targetCount
+        execution.latestSnapshot.submittedCount === targetCount
       ) {
         validateFinalSubmissionPostcondition({
           submittedCount: execution.latestSnapshot.submittedCount,
           status: execution.latestSnapshot.status,
-          targetCount: options.targetCount,
+          targetCount,
         });
       }
 
@@ -237,7 +238,7 @@ export function createSeedingDemoSubmissionRunner(
           remainingRows: workingLedger.rows.length - execution.processedRows,
           stoppedAfterLimit: execution.stoppedAfterLimit,
           submittedRows: execution.submittedRows,
-          targetCount: options.targetCount,
+          targetCount,
           unitId: options.unitId,
           uploadedRows: execution.uploadedRows,
           wouldProcessRows: execution.processedRows,
@@ -437,10 +438,6 @@ export function parseSeedingDemoSubmissionArgs(
     throw new Error("Missing required flag: --sender-config");
   }
 
-  if (!options.targetCount) {
-    throw new Error("Missing required flag: --target-count");
-  }
-
   if (!options.ledger) {
     throw new Error("Missing required flag: --ledger");
   }
@@ -460,7 +457,7 @@ export function parseSeedingDemoSubmissionArgs(
     manifest: options.manifest ?? null,
     mode: options.mode,
     senderConfig: options.senderConfig,
-    targetCount: options.targetCount,
+    targetCount: options.targetCount ?? null,
     unitId: options.unitId,
   };
 }
