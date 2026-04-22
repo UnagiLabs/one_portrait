@@ -28,9 +28,7 @@ export function createFinalizeDispatcher(
   return async function dispatchFinalize(
     request: FinalizeDispatchRequest,
   ): Promise<FinalizeDispatchResult> {
-    const dispatchBaseUrl = normalizeDispatchBaseUrl(
-      deps.dispatchBaseUrl,
-    );
+    const dispatchBaseUrl = normalizeDispatchBaseUrl(deps.dispatchBaseUrl);
     if (dispatchBaseUrl === null) {
       throw new FinalizeApiError(
         503,
@@ -83,9 +81,7 @@ async function dispatchToGenerator(input: {
   return (await response.json()) as FinalizeDispatchResult;
 }
 
-function normalizeDispatchBaseUrl(
-  value: string | undefined,
-): string | null {
+function normalizeDispatchBaseUrl(value: string | undefined): string | null {
   const normalized = typeof value === "string" ? value.trim() : "";
 
   if (normalized.length === 0) {

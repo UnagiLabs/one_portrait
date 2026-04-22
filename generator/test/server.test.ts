@@ -15,8 +15,7 @@ vi.mock("../src/env", () => ({
 
 const runMock = vi.fn(async () => ({
   status: "ignored_finalized" as const,
-  unitId:
-    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  unitId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 }));
 
 vi.mock("../src/runtime", () => ({

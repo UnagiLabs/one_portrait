@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { FinalizeApiError } from "./api";
-import {
-  createFinalizeDispatcher,
-  DISPATCH_SECRET_HEADER,
-} from "./dispatch";
+import { createFinalizeDispatcher, DISPATCH_SECRET_HEADER } from "./dispatch";
 
 const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";

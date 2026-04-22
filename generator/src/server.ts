@@ -35,7 +35,11 @@ export async function handleRequest(
   if (request.method === "POST" && request.url === "/dispatch") {
     const authorizationError = validateDispatchAuthorization(request);
     if (authorizationError !== null) {
-      writeJson(response, authorizationError.status, authorizationError.payload);
+      writeJson(
+        response,
+        authorizationError.status,
+        authorizationError.payload,
+      );
       return;
     }
 
@@ -132,14 +136,10 @@ function writeJson(
   response.end(JSON.stringify(payload));
 }
 
-function validateDispatchAuthorization(
-  request: http.IncomingMessage,
-):
-  | {
-      readonly status: 401 | 500;
-      readonly payload: { readonly error: string; readonly message: string };
-    }
-  | null {
+function validateDispatchAuthorization(request: http.IncomingMessage): {
+  readonly status: 401 | 500;
+  readonly payload: { readonly error: string; readonly message: string };
+} | null {
   const configuredSecret = normalizeHeaderValue(
     process.env.OP_FINALIZE_DISPATCH_SECRET,
   );
