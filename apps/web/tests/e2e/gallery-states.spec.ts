@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import {
-  STUB_MASTER_ID,
-  STUB_UNIT_ID,
-} from "../../src/lib/e2e/stub-data";
+import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../src/lib/e2e/stub-data";
 import { installDefaultMocks } from "./fixtures/mock-network";
 
 test.describe("gallery states", () => {
