@@ -31,6 +31,11 @@ import {
   STUB_SUBMISSION_NO,
   STUB_UNIT_ID,
 } from "../../../src/lib/e2e/stub-data";
+import {
+  E2E_STUB_ACCOUNT_ADDRESS,
+  E2E_STUB_WALLET_NAME,
+} from "../../../src/lib/enoki/stub-wallet";
+
 export {
   STUB_ATHLETE_ID,
   STUB_BLOB_ID,
@@ -45,10 +50,6 @@ export {
   STUB_SUBMISSION_NO,
   STUB_UNIT_ID,
 } from "../../../src/lib/e2e/stub-data";
-import {
-  E2E_STUB_ACCOUNT_ADDRESS,
-  E2E_STUB_WALLET_NAME,
-} from "../../../src/lib/enoki/stub-wallet";
 
 /** Derived constants used by the test assertions. */
 export const KAKERA_TYPE = `${STUB_PACKAGE_ID}::kakera::Kakera`;
