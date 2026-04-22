@@ -18,8 +18,8 @@ const child = spawn(nextBin, ["dev"], {
   cwd: webRoot,
   env: {
     ...process.env,
-    OP_LOCAL_FINALIZE_URL:
-      process.env.OP_LOCAL_FINALIZE_URL ?? "http://127.0.0.1:8080",
+    OP_FINALIZE_DISPATCH_URL:
+      process.env.OP_FINALIZE_DISPATCH_URL ?? "http://127.0.0.1:8080",
   },
   stdio: "inherit",
 });

@@ -85,7 +85,13 @@ describe("POST /api/finalize", () => {
       status: "filled",
       masterId: null,
     });
-    dispatchFinalizeMock.mockResolvedValue({ accepted: true });
+    dispatchFinalizeMock.mockResolvedValue({
+      status: "finalized",
+      unitId: VALID_UNIT_ID,
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 980,
+    });
 
     const response = await POST(validRequest());
 

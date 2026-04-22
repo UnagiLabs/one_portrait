@@ -12,7 +12,7 @@
     "dev:e2e": "./scripts/e2e-dev.sh",
     "dev:smoke": "node ./scripts/run-smoke-dev.mjs",
     "build": "next build",
-    "start": "OP_LOCAL_FINALIZE_URL=${OP_LOCAL_FINALIZE_URL:-http://127.0.0.1:8080} next start",
+    "start": "OP_FINALIZE_DISPATCH_URL=${OP_FINALIZE_DISPATCH_URL:-http://127.0.0.1:8080} next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --passWithNoTests",
@@ -28,7 +28,6 @@
     "cf-typegen": "XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
-    "@cloudflare/containers": "^0.3.2",
     "@mysten/dapp-kit": "^1.0.4",
     "@mysten/enoki": "^1.0.4",
     "@mysten/sui": "^2.16.0",

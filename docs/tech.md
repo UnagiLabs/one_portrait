@@ -30,7 +30,8 @@
    └─ Kakera (Soulbound, ファン保有): blob_id, submission_no, unit_id
 
 [Walrus] ファン投稿980枚 + 完成モザイク1枚
-[Cloudflare] Finalize Worker ──▶ Mosaic Generator Container (on-demand)
+[Cloudflare] Finalize Worker ──▶ External Mosaic Generator
+                               (manji PC + Cloudflare Tunnel)
 ```
 
 ### 1.3 シーケンス
@@ -91,7 +92,7 @@ sequenceDiagram
 | Sui SDK | `@mysten/sui` (PTB / イベント購読) |
 | ストレージ | Walrus (Publisher / Aggregator HTTP API) |
 | コントラクト | Sui Move (単一パッケージ `one_portrait`) |
-| バックエンド | Cloudflare Worker + on-demand Container (sharp/libvips) |
+| バックエンド | Cloudflare Worker + external Node/TypeScript generator on `manji` PC (`sharp` / `libvips`) |
 | 実行環境 | Node.js 20+ / pnpm workspace |
 
 ---
@@ -107,7 +108,7 @@ one_portrait/
 │   ├── Move.toml
 │   ├── sources/              # 本番モジュール + `#[test_only]` helper
 │   └── tests/                # 独立した `#[test_only]` test modules
-├── generator/                # on-demand Container (composer / finalize / walrus)
+├── generator/                # `manji` PC 上で動かす finalize generator
 ├── shared/                   # Web / Generator 共有の型・定数
 └── docs/{spec,tech}.md
 ```
@@ -181,7 +182,7 @@ one_portrait/
 ### 5.1 ランタイム
 - OpenNext → Cloudflare Workers。`compatibility_flags: ["nodejs_compat"]`。Durable Objects は不使用。
 - 公開 env: `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID`。
-- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_CAP_ID / ADMIN_SUI_PRIVATE_KEY`。
+- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_CAP_ID / ADMIN_SUI_PRIVATE_KEY / OP_FINALIZE_DISPATCH_SECRET`。
 - 画像は Walrus Aggregator から直接配信（Cloudflare Images Transforms でキャッシュ）。
 
 ### 5.2 ページ / エンドポイント
@@ -192,7 +193,7 @@ one_portrait/
 | `/units/[unitId]` | 待機ページ。`submitted_count / max_slots` のみ表示（モザイクは非公開）。アップロード前に原画像公開性への明示同意を必須にする。投稿完了時に自ウォレットの Kakera を `getOwnedObjects` で取得し「あなたの欠片」として表示（localStorage 非依存）。Sui WebSocket で `SubmittedEvent`→カウンタ更新、`UnitFilledEvent`→`/api/finalize` 発火、`MosaicReadyEvent`→Framer Motion でリビール演出 + Master から自分のマスを逆引きハイライト。 |
 | `/gallery` | 保有 Kakera を `getOwnedObjects` で取得。`master_id` 未設定ユニットは「完成待ち」、設定済みは MasterPortrait を取得して `placements[blob_id]` を逆引き → 座標・`submission_no` を表示。元写真が取得できる間は表示し、取得不能後は完成作品と欠片メタデータを表示する。SWR / sessionStorage でキャッシュ。 |
 | `/api/og/[kakeraId]` | Satori で SNS共有用 OG 画像生成。 |
-| `/api/finalize` | 入力 `{ unitId }`。Sui で冪等チェック後、`Unit.submissions` を正本として Generator Container を on-demand 呼び出す。Move 側で他クライアントが先行していれば abort → Worker は 200 で吸収。 |
+| `/api/finalize` | 入力 `{ unitId }`。Sui で冪等チェック後、`Unit.submissions` を正本として external generator の `/dispatch` を呼ぶ。Move 側で他クライアントが先行していれば abort → Worker は 200 で吸収。 |
 
 ### 5.3 クライアント画像前処理
 最大10MB検証 → `createImageBitmap` → `OffscreenCanvas` で長辺1024pxリサイズ → JPEG 85%再エンコード（EXIFは再エンコードで自動除去）→ SHA-256。**配置用の平均色はクライアントから送らない**（悪意クライアント対策、generator 側で実画像から再算出）。
@@ -204,7 +205,7 @@ one_portrait/
 | 対象 | 保存者 | エポック |
 | :--- | :--- | :--- |
 | ファン投稿写真 | ブラウザから直接 PUT | 5 |
-| 完成モザイク | Generator Container | 100 |
+| 完成モザイク | External generator | 100 |
 | 目標画像（選手ポートレート） | 運営（Unit作成時） | 100 |
 
 注: MVPでは fan photo の PUT epoch は短めに設定し、原画像の長期可用性は保証しない。gallery は取得不能時の fallback を前提に実装する。
@@ -214,13 +215,15 @@ one_portrait/
 ## 7. バックエンド (Cloudflare)
 
 ### 7.1 構成
-常駐プロセス・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が on-demand で Container 起動。
+常駐 Listener・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が external generator を叩く。
 
-- **Finalize Worker:** `/api/finalize` で冪等チェック → Service Binding 経由で Container を呼ぶ。
-- **Mosaic Generator Container:** on-demand 起動・scale-to-zero。処理は `Unit.submissions` 読み出し → 980枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+- **Finalize Worker:** `/api/finalize` で冪等チェック → `OP_FINALIZE_DISPATCH_URL` の `/dispatch` を呼ぶ。
+- **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 980枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+- **Cloudflare Tunnel:** named tunnel で `http://localhost:8080` を外部公開する。`/dispatch` は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。
 
 ### 7.2 シークレット
-- `ADMIN_SUI_PRIVATE_KEY` は Cloudflare Secrets Store。
+- `ADMIN_SUI_PRIVATE_KEY` は `manji` PC 上の generator にだけ置く。
+- `OP_FINALIZE_DISPATCH_SECRET` は Worker と generator の両方で同じ値を使う。
 - Walrus は公開エンドポイントのためシークレット不要。
 
 ---
@@ -258,7 +261,7 @@ one_portrait/
 | 501枚目・Finalized後の投稿 | `status == Pending` で abort。 |
 | `/api/finalize` 同時多重発火 | `master_id.is_none()` で Move側が1件のみ成功、他は abort。Worker はエラーを 200 で吸収。 |
 | 誰も finalize を叩かない | `/units/[id]` や `/gallery` を開いた任意のクライアントが検知→発火。分散トリガー。 |
-| finalize 途中クラッシュ | Tx は atomic。Container 失敗時は次回呼び出しで再実行。配置アルゴリズムは決定的にして再試行時も同一結果に揃える。 |
+| finalize 途中クラッシュ | Tx は atomic。generator process か Tunnel が落ちても、復旧後に次回呼び出しで再実行できる。配置アルゴリズムは決定的にして再試行時も同一結果に揃える。 |
 | Walrus アップロード失敗 | クライアント側で指数バックオフ×3。最終失敗時は再試行ボタン。 |
 | 投稿後に差し替えたい | MVPでは不可。投稿前のプレビューでのみ撮り直し可能。 |
 | unit 放棄（Filled未到達） | MVPでは無期限 `Pending` のまま扱う。Kakera は単体で参加証として有効。`/gallery` は「完成待ち」表示。 |
@@ -270,7 +273,8 @@ one_portrait/
 - **zkLogin salt:** Enoki 管理、クライアント保存なし。
 - **Walrus 匿名書込:** 誰でも書ける前提（MVPは事前モデレーションなし、将来は署名付きアップロードへ）。
 - **原画像公開性:** `walrus_blob_id` は on-chain に載るため private ではない。投稿前に明示同意を必須にする。
-- **Admin キー:** `finalize` 専用、Cloudflare Secrets Store に隔離、ローテート手順を用意。
+- **Admin キー:** `finalize` 専用、`manji` PC 上の generator 環境変数にだけ置き、ローテート手順を用意。
+- **Dispatch secret:** `OP_FINALIZE_DISPATCH_SECRET` を Worker と generator で共有し、Tunnel 越しの `/dispatch` を保護する。
 - **CSP:** `img-src` に Walrus Aggregator、`connect-src` に Sui Full Node WebSocket を許可。
 - **EXIF除去:** クライアント前処理で GPS 等を必ず削除。
 
@@ -280,8 +284,9 @@ one_portrait/
 
 - **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
 - **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
-- **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。Cloudflare 側では `ENOKI_PRIVATE_API_KEY`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY` を secret として置く。
+- **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。deploy 実行端末にも Docker CLI と daemon が必要。
+- **運用手順:** `manji` PC 上の generator 起動、Cloudflare Tunnel、復旧順は `docs/finalize-generator-runbook.md` を正本とする。
 - **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test --test` を回す。`e2e` は Playwright の mock 経路を確認する。
 
 ---

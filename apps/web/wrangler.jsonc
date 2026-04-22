@@ -8,32 +8,10 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "containers": [
-    {
-      "class_name": "MosaicGeneratorContainer",
-      "image": "../../generator/Dockerfile",
-      "image_build_context": "../..",
-      "max_instances": 5
-    }
-  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
       "service": "one-portrait-web"
-    }
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "MOSAIC_GENERATOR",
-        "class_name": "MosaicGeneratorContainer"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["MosaicGeneratorContainer"]
     }
   ]
 }

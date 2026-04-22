@@ -21,8 +21,8 @@ const child = spawn(nextBin, ["dev"], {
     NEXT_PUBLIC_DEMO_MODE: "1",
     NEXT_PUBLIC_SUI_NETWORK: "testnet",
     NEXT_PUBLIC_REGISTRY_OBJECT_ID: demoRegistryObjectId,
-    OP_LOCAL_FINALIZE_URL:
-      process.env.OP_LOCAL_FINALIZE_URL ?? "http://127.0.0.1:8080",
+    OP_FINALIZE_DISPATCH_URL:
+      process.env.OP_FINALIZE_DISPATCH_URL ?? "http://127.0.0.1:8080",
   },
   stdio: "inherit",
 });
