@@ -59,9 +59,7 @@ export default async function GalleryPage(
   );
 }
 
-function safePackageId(
-  e2eGalleryState: string | undefined,
-): string | null {
+function safePackageId(e2eGalleryState: string | undefined): string | null {
   if (shouldUseE2EGalleryConfigMissing(e2eGalleryState)) {
     return null;
   }

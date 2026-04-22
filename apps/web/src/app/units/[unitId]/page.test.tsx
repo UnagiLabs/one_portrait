@@ -389,9 +389,7 @@ describe("UnitPage", () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        new RegExp(
-          `${unitTileCount - 1}\\s*/\\s*${unitTileCount}`,
-        ),
+        new RegExp(`${unitTileCount - 1}\\s*/\\s*${unitTileCount}`),
       ),
     ).toBeTruthy();
   });

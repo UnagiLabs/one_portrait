@@ -51,7 +51,7 @@ export default async function UnitPage(
   const packageId = safePackageId();
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
-    : e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId));
+    : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
   const athlete = progress.athletePublicId
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;

@@ -27,7 +27,9 @@ test.describe("gallery states", () => {
     await expect(
       page.getByAltText(/Demo Athlete One completed mosaic/i),
     ).toBeVisible();
-    await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText("Completed", { exact: true }).first(),
+    ).toBeVisible();
     await expect(page.getByText(/Placed at 12, 8/i)).toBeVisible();
     await expect(page.getByText(`Master ${STUB_MASTER_ID}`)).toBeVisible();
   });
@@ -42,7 +44,9 @@ test.describe("gallery states", () => {
 
     await page.goto("/gallery");
 
-    await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText("Completed", { exact: true }).first(),
+    ).toBeVisible();
     await expect(page.getByText(/Original photo unavailable/i)).toBeVisible();
     await expect(
       page.getByAltText(/Demo Athlete One completed mosaic/i),
@@ -60,9 +64,7 @@ test.describe("gallery states", () => {
     await expect(
       page.getByText("Unavailable", { exact: true }).first(),
     ).toBeVisible();
-    await expect(
-      page.getByText(/Entry unavailable right now/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Entry unavailable right now/i)).toBeVisible();
     await expect(page.getByText(/Submission #1/i)).toBeVisible();
     await expect(
       page.getByRole("heading", { level: 1, name: /Participation gallery/i }),
@@ -77,9 +79,7 @@ test.describe("gallery states", () => {
     await page.goto("/gallery");
 
     await expect(page.getByText("Unavailable")).toBeVisible();
-    await expect(
-      page.getByText(/履歴を読み込めませんでした。/),
-    ).toBeVisible();
+    await expect(page.getByText(/履歴を読み込めませんでした。/)).toBeVisible();
 
     await page.getByRole("button", { name: "もう一度確認する" }).click();
 
@@ -97,9 +97,7 @@ test.describe("gallery states", () => {
     await page.goto("/gallery?op_e2e_gallery_state=config-missing");
 
     await expect(page.getByText("Unavailable")).toBeVisible();
-    await expect(
-      page.getByText(/公開設定を確認できません。/),
-    ).toBeVisible();
+    await expect(page.getByText(/公開設定を確認できません。/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "もう一度確認する" }),
     ).toHaveCount(0);
