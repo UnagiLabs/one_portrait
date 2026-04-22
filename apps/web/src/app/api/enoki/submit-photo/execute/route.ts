@@ -9,13 +9,17 @@ import {
 export async function POST(request: Request): Promise<Response> {
   try {
     const input = parseExecuteSponsoredInput(await request.json());
-    const jwt = readZkLoginJwt(request.headers);
     const env = resolveRuntimeEnv(process.env);
     const result = await executeSponsoredSubmitPhoto(
-      {
-        ...input,
-        jwt,
-      },
+      input.sender
+        ? {
+            ...input,
+            sender: input.sender,
+          }
+        : {
+            ...input,
+            jwt: readZkLoginJwt(request.headers),
+          },
       env,
     );
 

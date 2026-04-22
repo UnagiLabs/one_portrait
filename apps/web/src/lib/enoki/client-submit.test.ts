@@ -38,7 +38,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction,
         },
       ),
@@ -79,7 +79,7 @@ describe("submitPhotoWithEnoki", () => {
           blobId: "walrus-blob_1",
         },
         {
-          getJwt: async () => null,
+          getAuth: async () => null,
           signTransaction: vi.fn(),
         },
       ),
@@ -87,6 +87,79 @@ describe("submitPhotoWithEnoki", () => {
       code: "auth_expired",
       status: 401,
     });
+  });
+
+  it("supports sender-based sponsorship for a normal wallet", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bytes: "sponsored-bytes",
+            digest: "sponsor-digest",
+            sender: "0xsender",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            digest: "final-digest",
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(
+      submitPhotoWithEnoki(
+        {
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+        },
+        {
+          fetchFn,
+          getAuth: async () => ({
+            kind: "sender",
+            sender: "0xsender",
+          }),
+          signTransaction: vi.fn(async () => ({
+            signature: "wallet-signature",
+          })),
+        },
+      ),
+    ).resolves.toEqual({
+      digest: "final-digest",
+      sender: "0xsender",
+    });
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      "/api/enoki/submit-photo/sponsor",
+      expect.objectContaining({
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          unitId:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          blobId: "walrus-blob_1",
+          sender: "0xsender",
+        }),
+      }),
+    );
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      2,
+      "/api/enoki/submit-photo/execute",
+      expect.objectContaining({
+        body: JSON.stringify({
+          digest: "sponsor-digest",
+          signature: "wallet-signature",
+          sender: "0xsender",
+        }),
+      }),
+    );
   });
 
   it("passes through structured API errors", async () => {
@@ -109,7 +182,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(),
         },
       ),
@@ -150,7 +223,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(async () => ({
             signature: "wallet-signature",
           })),
@@ -192,7 +265,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(async () => ({
             signature: "wallet-signature",
           })),
@@ -242,7 +315,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(async () => ({
             signature: "wallet-signature",
           })),
@@ -288,7 +361,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(async () => ({
             signature: "wallet-signature",
           })),
@@ -334,7 +407,7 @@ describe("submitPhotoWithEnoki", () => {
         },
         {
           fetchFn,
-          getJwt: async () => "header.jwt.value",
+          getAuth: async () => ({ kind: "jwt", jwt: "header.jwt.value" }),
           signTransaction: vi.fn(async () => ({
             signature: "wallet-signature",
           })),

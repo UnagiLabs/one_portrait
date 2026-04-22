@@ -37,6 +37,20 @@ describe("parseSubmitPhotoInput", () => {
       }),
     ).toThrow(EnokiApiError);
   });
+
+  it("accepts a sender override for backend-sponsored wallets", () => {
+    expect(
+      parseSubmitPhotoInput({
+        unitId: VALID_UNIT_ID,
+        blobId: "walrus-blob_1",
+        sender: "0xsender",
+      }),
+    ).toEqual({
+      unitId: VALID_UNIT_ID,
+      blobId: "walrus-blob_1",
+      sender: "0xsender",
+    });
+  });
 });
 
 describe("parseExecuteSponsoredInput", () => {
@@ -49,6 +63,20 @@ describe("parseExecuteSponsoredInput", () => {
     ).toEqual({
       digest: "digest",
       signature: "signature",
+    });
+  });
+
+  it("accepts sender when execute is re-entered from a normal wallet path", () => {
+    expect(
+      parseExecuteSponsoredInput({
+        digest: "digest",
+        signature: "signature",
+        sender: "0xsender",
+      }),
+    ).toEqual({
+      digest: "digest",
+      signature: "signature",
+      sender: "0xsender",
     });
   });
 });
@@ -178,6 +206,47 @@ describe("sponsorSubmitPhoto", () => {
       status: 401,
     });
   });
+
+  it("supports sender-based sponsorship without resolving zkLogin", async () => {
+    const getZkLogin = vi.fn();
+    const createSponsoredTransaction = vi.fn(async () => ({
+      bytes: "sponsored-bytes",
+      digest: "digest",
+    }));
+
+    const result = await sponsorSubmitPhoto(
+      {
+        sender: "0xsender",
+        unitId: VALID_UNIT_ID,
+        blobId: "walrus-blob_1",
+      },
+      {
+        network: "testnet",
+        packageId: "0xpkg",
+        privateApiKey: "private-key",
+      },
+      {
+        enokiClient: {
+          getZkLogin,
+          createSponsoredTransaction,
+        },
+        buildTransactionKind: vi.fn(async () => "kind-bytes"),
+      },
+    );
+
+    expect(getZkLogin).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      bytes: "sponsored-bytes",
+      digest: "digest",
+      sender: "0xsender",
+    });
+    expect(createSponsoredTransaction).toHaveBeenCalledWith({
+      network: "testnet",
+      sender: "0xsender",
+      transactionKindBytes: "kind-bytes",
+      allowedMoveCallTargets: [submitPhotoTarget("0xpkg")],
+    });
+  });
 });
 
 describe("executeSponsoredSubmitPhoto", () => {
@@ -215,6 +284,42 @@ describe("executeSponsoredSubmitPhoto", () => {
     });
 
     expect(getZkLogin).toHaveBeenCalledWith({ jwt: "jwt" });
+    expect(executeSponsoredTransaction).toHaveBeenCalledWith({
+      digest: "digest",
+      signature: "signature",
+    });
+  });
+
+  it("supports sender-based execute without revalidating zkLogin", async () => {
+    const getZkLogin = vi.fn();
+    const executeSponsoredTransaction = vi.fn(async () => ({
+      digest: "digest",
+    }));
+
+    await expect(
+      executeSponsoredSubmitPhoto(
+        {
+          sender: "0xsender",
+          digest: "digest",
+          signature: "signature",
+        },
+        {
+          network: "testnet",
+          packageId: "0xpkg",
+          privateApiKey: "private-key",
+        },
+        {
+          enokiClient: {
+            getZkLogin,
+            executeSponsoredTransaction,
+          },
+        },
+      ),
+    ).resolves.toEqual({
+      digest: "digest",
+    });
+
+    expect(getZkLogin).not.toHaveBeenCalled();
     expect(executeSponsoredTransaction).toHaveBeenCalledWith({
       digest: "digest",
       signature: "signature",
