@@ -9,6 +9,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: appMeta.name,
   description: appMeta.tagline,
+  icons: {
+    icon: "/icon.jpg",
+    shortcut: "/icon.jpg",
+    apple: "/apple-icon.jpg",
+  },
 };
 
 type RootLayoutProps = {
