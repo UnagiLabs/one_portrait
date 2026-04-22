@@ -9,9 +9,11 @@ describe("createFinalizeDispatcher", () => {
   it("dispatches to the external generator when env is set", async () => {
     const fetchImpl = vi.fn(async () =>
       Response.json({
-        accepted: true,
-        state: "running",
+        status: "finalized",
         unitId: VALID_UNIT_ID,
+        mosaicBlobId: "mosaic-blob",
+        digest: "0xdigest",
+        placementCount: 980,
       }),
     );
     const dispatchFinalize = createFinalizeDispatcher({
@@ -25,9 +27,11 @@ describe("createFinalizeDispatcher", () => {
         unitId: VALID_UNIT_ID,
       }),
     ).resolves.toEqual({
-      accepted: true,
-      state: "running",
+      status: "finalized",
       unitId: VALID_UNIT_ID,
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 980,
     });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);

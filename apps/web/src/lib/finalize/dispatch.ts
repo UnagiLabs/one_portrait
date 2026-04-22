@@ -4,11 +4,18 @@ export type FinalizeDispatchRequest = {
   readonly unitId: string;
 };
 
-export type FinalizeDispatchResult = {
-  readonly accepted: boolean;
-  readonly state?: "completed" | "running";
-  readonly unitId?: string;
-};
+export type FinalizeDispatchResult =
+  | {
+      readonly status: "finalized";
+      readonly unitId: string;
+      readonly mosaicBlobId: string;
+      readonly digest: string;
+      readonly placementCount: number;
+    }
+  | {
+      readonly status: "ignored_finalized" | "ignored_pending";
+      readonly unitId: string;
+    };
 
 export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 
