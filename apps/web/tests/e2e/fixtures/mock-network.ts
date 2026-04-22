@@ -80,6 +80,7 @@ export type InstallMockOptions = {
   readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
   readonly transactionBlockDelayMs?: number;
   readonly kakeraVisibleAfterExecute?: boolean;
+  readonly waitingRoomEventMode?: "idle" | "active";
 };
 
 /**
@@ -111,6 +112,7 @@ export async function installDefaultMocks(
     options.transactionExecutionStatus ?? "success";
   const transactionBlockDelayMs = options.transactionBlockDelayMs ?? 0;
   const kakeraVisibleAfterExecute = options.kakeraVisibleAfterExecute ?? true;
+  const waitingRoomEventMode = options.waitingRoomEventMode ?? "idle";
 
   if (autoConnectWallet) {
     await page.addInitScript(
@@ -141,6 +143,7 @@ export async function installDefaultMocks(
       transactionExecutionStatus,
       transactionBlockDelayMs,
       kakeraVisibleAfterExecute,
+      waitingRoomEventMode,
     }),
   );
 
@@ -244,6 +247,7 @@ async function handleSuiRpc(
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
     >
   >,
 ): Promise<void> {
@@ -288,6 +292,7 @@ async function buildRouteResponse(
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
     >
   >,
 ): Promise<Record<string, unknown> | MockHttpResponse> {
@@ -314,6 +319,7 @@ async function buildResponse(
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
     >
   >,
 ): Promise<Record<string, unknown> | MockHttpResponse> {
@@ -334,7 +340,11 @@ async function buildResponse(
       return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
       state.eventQueries += 1;
-      return envelope({ data: [], hasNextPage: false, nextCursor: null });
+      return envelope(
+        options.waitingRoomEventMode === "active"
+          ? buildWaitingRoomEventPage(state.eventQueries)
+          : { data: [], hasNextPage: false, nextCursor: null },
+      );
     case "suix_getOwnedObjects": {
       const ownedObjects = handleOwnedObjects(params, state, options);
       if (isMockHttpResponse(ownedObjects)) {
@@ -650,4 +660,104 @@ function safeParseJson(raw: string): unknown {
   } catch {
     return null;
   }
+}
+
+function buildWaitingRoomEventPage(
+  queryIndex: number,
+): Record<string, unknown> {
+  if (queryIndex === 1) {
+    return {
+      data: [
+        makeSubmittedEvent({
+          submittedCount: unitTileCount,
+          eventSeq: "1",
+        }),
+      ],
+      hasNextPage: true,
+      nextCursor: { txDigest: STUB_DIGEST, eventSeq: "1" },
+    };
+  }
+
+  if (queryIndex === 2) {
+    return {
+      data: [
+        makeUnitFilledEvent({ eventSeq: "2" }),
+        makeMosaicReadyEvent({ eventSeq: "3" }),
+        makeUnitFilledEvent({ eventSeq: "4" }),
+      ],
+      hasNextPage: false,
+      nextCursor: null,
+    };
+  }
+
+  return { data: [], hasNextPage: false, nextCursor: null };
+}
+
+function makeSubmittedEvent(opts: {
+  readonly submittedCount: number;
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      submitter: E2E_STUB_ACCOUNT_ADDRESS,
+      walrus_blob_id: Array.from(new TextEncoder().encode(STUB_BLOB_ID)),
+      submission_no: STUB_SUBMISSION_NO,
+      submitted_count: opts.submittedCount,
+      max_slots: unitTileCount,
+    },
+    type: `${STUB_PACKAGE_ID}::events::SubmittedEvent`,
+  });
+}
+
+function makeUnitFilledEvent(opts: {
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      filled_count: unitTileCount,
+      max_slots: unitTileCount,
+    },
+    type: `${STUB_PACKAGE_ID}::events::UnitFilledEvent`,
+  });
+}
+
+function makeMosaicReadyEvent(opts: {
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      master_id: STUB_MASTER_ID,
+      mosaic_walrus_blob_id: Array.from(
+        new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),
+      ),
+    },
+    type: `${STUB_PACKAGE_ID}::events::MosaicReadyEvent`,
+  });
+}
+
+function makeEvent(opts: {
+  readonly eventSeq: string;
+  readonly parsedJson: Record<string, unknown>;
+  readonly type: string;
+}): Record<string, unknown> {
+  return {
+    id: { txDigest: STUB_DIGEST, eventSeq: opts.eventSeq },
+    packageId: STUB_PACKAGE_ID,
+    transactionModule: "events",
+    sender: E2E_STUB_ACCOUNT_ADDRESS,
+    type: opts.type,
+    parsedJson: opts.parsedJson,
+    bcs: "",
+    bcsEncoding: "base64",
+    timestampMs: "0",
+  };
 }
