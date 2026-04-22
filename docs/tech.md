@@ -105,7 +105,8 @@ one_portrait/
 │       └── src/{app, lib/{sui,walrus,zklogin,image}, components/ui}
 ├── contracts/                # Move package root (`sui move new` をここで実行)
 │   ├── Move.toml
-│   └── sources/              # registry / unit / master_portrait / kakera / events
+│   ├── sources/              # 本番モジュール + `#[test_only]` helper
+│   └── tests/                # 独立した `#[test_only]` test modules
 ├── generator/                # on-demand Container (composer / finalize / walrus)
 ├── shared/                   # Web / Generator 共有の型・定数
 └── docs/{spec,tech}.md
@@ -127,8 +128,8 @@ one_portrait/
 | `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
 | `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
-| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` と `PlacementInput` 生成を公開する。 |
-| `accessors` | - | ファン向け `submit_photo` と、`Registry` / `Unit` / `MasterPortrait` の参照 API を集約する。 |
+| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` のみを公開し、配置入力の構築は package 内 helper に閉じる。 |
+| `accessors` | - | ファン向け公開 API を `submit_photo` と `current_unit_id` に限定する。 |
 
 ### 4.3 データモデル
 - `Registry`
@@ -277,11 +278,11 @@ one_portrait/
 
 ## 12. 開発・デプロイ
 
-- **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test`。
+- **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
 - **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
 - **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。Cloudflare 側では `ENOKI_PRIVATE_API_KEY`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY` を secret として置く。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。deploy 実行端末にも Docker CLI と daemon が必要。
-- **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test` を回す。`e2e` は Playwright の mock 経路を確認する。
+- **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test --test` を回す。`e2e` は Playwright の mock 経路を確認する。
 
 ---
 

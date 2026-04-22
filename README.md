@@ -178,10 +178,13 @@ corepack pnpm --filter web build
 ```bash
 cd contracts
 sui move build
-sui move test
+sui move test --test
+sui move test --list --test
 ```
 
-- `sui` CLI が入っていない環境では、`contracts/Move.toml` と `contracts/sources/` の雛形を確認してください
+- 独立した Move テストモジュールは `contracts/tests/` に置きます。`contracts/sources/` には本番モジュールと `#[test_only]` helper だけを残します
+- `sui move test --help` のとおり、`contracts/tests/` を確実に含める標準コマンドは `sui move test --test` です
+- `sui` CLI が入っていない環境では、`contracts/Move.toml` と `contracts/{sources,tests}/` の雛形を確認してください
 - 本リポジトリの devcontainer には Node は入っていますが、`sui` CLI は別途用意が必要です
 
 ---

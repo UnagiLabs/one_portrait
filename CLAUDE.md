@@ -79,8 +79,11 @@ Move パッケージ（`contracts/`）:
 
 ```bash
 sui move build
-sui move test
+sui move test --test
 ```
+
+- 独立した `#[test_only] module ..._tests;` は `contracts/tests/` に置く。`contracts/sources/` には本番モジュールと `#[test_only]` helper だけを残す
+- `sui move test --list --test` で `contracts/tests/` 配下の列挙も確認できる
 
 ## Devcontainer
 
