@@ -4,12 +4,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  useEnokiConfigStateMock,
   useWalletsMock,
   useCurrentAccountMock,
   useCurrentWalletMock,
   useConnectWalletMock,
   useDisconnectWalletMock,
 } = vi.hoisted(() => ({
+  useEnokiConfigStateMock: vi.fn(),
   useWalletsMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
   useCurrentWalletMock: vi.fn(),
@@ -17,12 +19,14 @@ const {
   useDisconnectWalletMock: vi.fn(),
 }));
 
+vi.mock("../lib/enoki/provider", () => ({
+  useEnokiConfigState: () => useEnokiConfigStateMock(),
+}));
+
 vi.mock("@mysten/dapp-kit", () => ({
-  ConnectModal: ({
-    trigger,
-  }: {
-    readonly trigger: React.ReactNode;
-  }) => <>{trigger}</>,
+  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
+    <>{trigger}</>
+  ),
   useWallets: () => useWalletsMock(),
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
@@ -37,6 +41,10 @@ vi.mock("@mysten/enoki", () => ({
 import { GlobalWalletEntry } from "./global-wallet-entry";
 
 beforeEach(() => {
+  useEnokiConfigStateMock.mockReturnValue({
+    submitEnabled: true,
+    config: {},
+  });
   useWalletsMock.mockReturnValue([
     { id: "google-wallet" },
     { id: "sui-wallet" },
@@ -57,6 +65,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  useEnokiConfigStateMock.mockReset();
   useWalletsMock.mockReset();
   useCurrentAccountMock.mockReset();
   useCurrentWalletMock.mockReset();
@@ -65,14 +74,24 @@ afterEach(() => {
 });
 
 describe("GlobalWalletEntry", () => {
+  it("renders a disabled placeholder when submit config is unavailable", () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: false,
+      reason: "submit-env-missing",
+    });
+
+    render(<GlobalWalletEntry />);
+
+    const button = screen.getByRole("button", { name: "ログイン準備中" });
+    expect(button.getAttribute("disabled")).not.toBeNull();
+  });
+
   it("shows Google zkLogin and Sui wallet choices from the login menu", () => {
     render(<GlobalWalletEntry />);
 
     fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
 
-    expect(
-      screen.getByRole("button", { name: "Google zkLogin" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
   });
 

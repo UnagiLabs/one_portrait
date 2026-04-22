@@ -19,6 +19,7 @@ import type { Page, Route } from "@playwright/test";
 
 import {
   E2E_STUB_ACCOUNT_ADDRESS,
+  E2E_STUB_SUI_WALLET_NAME,
   E2E_STUB_WALLET_NAME,
 } from "../../../src/lib/enoki/stub-wallet";
 
@@ -63,6 +64,7 @@ type MockHttpResponse = {
 
 export type InstallMockOptions = {
   readonly autoConnectWallet?: boolean;
+  readonly autoConnectWalletKind?: "google" | "sui";
   readonly executeApiMode?: "success" | "recovering_http_error";
   /**
    * Deterministic gallery switch used by the E2E suite:
@@ -103,6 +105,7 @@ export async function installDefaultMocks(
     lastFinalizeUnitId: null,
   };
   const autoConnectWallet = options.autoConnectWallet ?? true;
+  const autoConnectWalletKind = options.autoConnectWalletKind ?? "google";
   const executeApiMode = options.executeApiMode ?? "success";
   const galleryEntryMode = options.galleryEntryMode ?? "empty";
   const originalImageMode = options.originalImageMode ?? "success";
@@ -132,7 +135,13 @@ export async function installDefaultMocks(
           // localStorage may be unavailable (iframe / privacy mode); swallow.
         }
       },
-      { walletName: E2E_STUB_WALLET_NAME, address: E2E_STUB_ACCOUNT_ADDRESS },
+      {
+        walletName:
+          autoConnectWalletKind === "sui"
+            ? E2E_STUB_SUI_WALLET_NAME
+            : E2E_STUB_WALLET_NAME,
+        address: E2E_STUB_ACCOUNT_ADDRESS,
+      },
     );
   }
 

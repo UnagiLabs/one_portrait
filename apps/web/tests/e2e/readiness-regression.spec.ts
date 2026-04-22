@@ -70,11 +70,14 @@ test.describe("readiness regression", () => {
 
     await expect(
       page.getByText(
-        /先に Google でログインすると、あなたの Kakera 履歴を読み込めます。/,
+        /Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。/,
       ),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Google でログイン" }),
+      page.getByRole("button", { name: "Google zkLogin" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sui wallet" }),
     ).toBeVisible();
   });
 

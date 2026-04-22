@@ -11,6 +11,8 @@ import {
 import { isGoogleWallet } from "@mysten/enoki";
 import { useEffect, useRef, useState } from "react";
 
+import { useEnokiConfigState } from "../lib/enoki/provider";
+
 function shortenAddress(address: string): string {
   if (address.length <= 12) {
     return address;
@@ -23,6 +25,24 @@ function buildExplorerUrl(address: string): string {
 }
 
 export function GlobalWalletEntry(): React.ReactElement {
+  const state = useEnokiConfigState();
+
+  if (!state.submitEnabled) {
+    return (
+      <button
+        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300"
+        disabled
+        type="button"
+      >
+        ログイン準備中
+      </button>
+    );
+  }
+
+  return <GlobalWalletEntryEnabled />;
+}
+
+function GlobalWalletEntryEnabled(): React.ReactElement {
   const wallets = useWallets();
   const currentAccount = useCurrentAccount();
   const currentWallet = useCurrentWallet();
