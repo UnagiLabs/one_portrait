@@ -129,13 +129,17 @@ export function createSeedingDemoSubmissionRunner(
       const existingLedger = await deps.readLedger(options.ledger);
       const snapshot = await deps.readSeedingSnapshot(options.unitId);
       const targetCount = options.targetCount ?? snapshot.maxSlots - 1;
+      const preflight = validateSeedingPreflight(
+        snapshot,
+        targetCount,
+        senderAddresses,
+      );
       const inputLedger = buildSeedingLedgerRows({
         entries: inputEntries,
         existingLedger,
-        senderAddresses,
+        availableSenderAddresses: preflight.availableSenderAddresses,
         targetCount,
       });
-      validateSeedingPreflight(snapshot, targetCount, senderAddresses);
 
       const reconciled = await reconcileSeedingLedger({
         checkDigestStatus: deps.checkDigestStatus,
@@ -154,17 +158,6 @@ export function createSeedingDemoSubmissionRunner(
       const senderByAddress = new Map(
         senders.map((sender) => [sender.address, sender] as const),
       );
-      const newRowCount = countNewRows(existingLedger, workingLedger.rows);
-      const availableSenderCount = countAvailableSenders(
-        senderAddresses,
-        existingLedger,
-      );
-
-      if (availableSenderCount < newRowCount) {
-        throw new Error(
-          `Not enough available sender addresses for ${newRowCount} new row(s).`,
-        );
-      }
 
       if (options.mode === "simulate") {
         const simulation = await simulateRows({
@@ -300,9 +293,9 @@ export function deriveSeedingSenders(
 }
 
 export function buildSeedingLedgerRows(input: {
+  readonly availableSenderAddresses: readonly string[];
   readonly entries: readonly SeedingInputEntry[];
   readonly existingLedger: SeedingLedger;
-  readonly senderAddresses: readonly string[];
   readonly targetCount: number;
 }): SeedingLedger {
   if (input.targetCount <= 0) {
@@ -327,7 +320,7 @@ export function buildSeedingLedgerRows(input: {
   const usedSenderAddresses = new Set(
     input.existingLedger.rows.map((row) => row.senderAddress),
   );
-  const availableSenderAddresses = input.senderAddresses.filter(
+  const availableSenderAddresses = input.availableSenderAddresses.filter(
     (senderAddress) => !usedSenderAddresses.has(senderAddress),
   );
   const rows: SeedingLedgerRow[] = [];
@@ -599,30 +592,6 @@ function readMode(value: string | undefined): SeedingDemoSubmissionMode {
   throw new Error('--mode must be either "simulate" or "live".');
 }
 
-function countAvailableSenders(
-  senderAddresses: readonly string[],
-  existingLedger: SeedingLedger,
-): number {
-  const usedSenderAddresses = new Set(
-    existingLedger.rows.map((row) => row.senderAddress),
-  );
-
-  return senderAddresses.filter(
-    (senderAddress) => !usedSenderAddresses.has(senderAddress),
-  ).length;
-}
-
-function countNewRows(
-  existingLedger: SeedingLedger,
-  rows: readonly SeedingLedgerRow[],
-): number {
-  const existingByImageKey = new Set(
-    existingLedger.rows.map((row) => row.imageKey),
-  );
-
-  return rows.filter((row) => !existingByImageKey.has(row.imageKey)).length;
-}
-
 function determineRowAction(
   row: SeedingLedgerRow,
 ): SeedingLedgerRowStatus | "submit_only" | "upload_and_submit" | "skip" {
@@ -770,61 +739,86 @@ async function executeRows(input: {
 
     if (action === "upload_and_submit") {
       const preprocessed = await input.preprocessSeedingImage(entry);
-      const uploaded = await input.putBlob(
-        preprocessed.bytes,
-        preprocessed.contentType,
-      );
-
-      input.uploadCandidates.push({
-        imageKey: row.imageKey,
-        blobId: uploaded.blobId,
-      });
-      validateUniqueSeedingBlobIds(input.uploadCandidates);
-
       nextRow = {
         ...nextRow,
-        blobId: uploaded.blobId,
-        aggregatorUrl: uploaded.aggregatorUrl,
-        status: "uploaded",
         preprocessLog: preprocessed.log,
-        failureReason: null,
       };
-      input.ledgerRows[index] = nextRow;
-      uploadedRows += 1;
-      await input.writeLedger();
+
+      try {
+        const uploaded = await input.putBlob(
+          preprocessed.bytes,
+          preprocessed.contentType,
+        );
+
+        input.uploadCandidates.push({
+          imageKey: row.imageKey,
+          blobId: uploaded.blobId,
+        });
+        validateUniqueSeedingBlobIds(input.uploadCandidates);
+
+        nextRow = {
+          ...nextRow,
+          blobId: uploaded.blobId,
+          aggregatorUrl: uploaded.aggregatorUrl,
+          status: "uploaded",
+          failureReason: null,
+        };
+        input.ledgerRows[index] = nextRow;
+        uploadedRows += 1;
+        await input.writeLedger();
+      } catch (error) {
+        input.ledgerRows[index] = {
+          ...nextRow,
+          failureReason: errorToMessage(error),
+        };
+        await input.writeLedger();
+        throw error;
+      }
     }
 
     if (!input.senderByAddress.has(nextRow.senderAddress)) {
       throw new Error(`Missing sender config for ${nextRow.senderAddress}.`);
     }
 
-    const submission = await input.submitPhotoForSender(nextRow.senderAddress, {
-      blobId: nextRow.blobId ?? "",
-      unitId: input.unitId,
-    });
-
-    if (submission.senderAddress !== nextRow.senderAddress) {
-      throw new Error(
-        `submit_photo returned ${submission.senderAddress} for ${nextRow.senderAddress}.`,
+    try {
+      const submission = await input.submitPhotoForSender(
+        nextRow.senderAddress,
+        {
+          blobId: nextRow.blobId ?? "",
+          unitId: input.unitId,
+        },
       );
-    }
 
-    latestSnapshot = submission.snapshot;
-    nextRow = {
-      ...nextRow,
-      blobId: nextRow.blobId ?? null,
-      senderAddress: submission.senderAddress,
-      submissionNo: submission.submissionNo,
-      status: "submitted",
-      txDigest: submission.digest,
-      observedSubmittedCount: submission.submittedCount,
-      observedUnitStatus: submission.status,
-      failureReason: null,
-    };
-    input.ledgerRows[index] = nextRow;
-    processedRows += 1;
-    submittedRows += 1;
-    await input.writeLedger();
+      if (submission.senderAddress !== nextRow.senderAddress) {
+        throw new Error(
+          `submit_photo returned ${submission.senderAddress} for ${nextRow.senderAddress}.`,
+        );
+      }
+
+      latestSnapshot = submission.snapshot;
+      nextRow = {
+        ...nextRow,
+        blobId: nextRow.blobId ?? null,
+        senderAddress: submission.senderAddress,
+        submissionNo: submission.submissionNo,
+        status: "submitted",
+        txDigest: submission.digest,
+        observedSubmittedCount: submission.submittedCount,
+        observedUnitStatus: submission.status,
+        failureReason: null,
+      };
+      input.ledgerRows[index] = nextRow;
+      processedRows += 1;
+      submittedRows += 1;
+      await input.writeLedger();
+    } catch (error) {
+      input.ledgerRows[index] = {
+        ...nextRow,
+        failureReason: errorToMessage(error),
+      };
+      await input.writeLedger();
+      throw error;
+    }
   }
 
   return {
@@ -834,4 +828,12 @@ async function executeRows(input: {
     submittedRows,
     uploadedRows,
   };
+}
+
+function errorToMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }

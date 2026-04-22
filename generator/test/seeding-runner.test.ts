@@ -88,6 +88,7 @@ describe("buildSeedingLedgerRows", () => {
     };
 
     const result = buildSeedingLedgerRows({
+      availableSenderAddresses: ["0xsender-1", "0xsender-2"],
       entries: [
         {
           imageKey: "a.png",
@@ -103,7 +104,6 @@ describe("buildSeedingLedgerRows", () => {
         },
       ],
       existingLedger,
-      senderAddresses: ["0xsender-existing", "0xsender-1", "0xsender-2"],
       targetCount: 3,
     });
 
@@ -127,6 +127,26 @@ describe("buildSeedingLedgerRows", () => {
         status: "pending_upload",
       }),
     ]);
+  });
+
+  it("rejects new assignments when on-chain used senders are not available", () => {
+    expect(() =>
+      buildSeedingLedgerRows({
+        availableSenderAddresses: ["0xsender-2"],
+        entries: [
+          {
+            imageKey: "a.png",
+            filePath: "/tmp/a.png",
+          },
+          {
+            imageKey: "b.png",
+            filePath: "/tmp/b.png",
+          },
+        ],
+        existingLedger: { rows: [] },
+        targetCount: 2,
+      }),
+    ).toThrow(/not enough sender addresses available/i);
   });
 });
 
@@ -291,6 +311,125 @@ describe("createSeedingDemoSubmissionRunner", () => {
       }),
     );
     expect(writes.length).toBeGreaterThan(0);
+  });
+
+  it("rejects runs when the ledger does not cover already-used on-chain senders", async () => {
+    const runner = createSeedingDemoSubmissionRunner({
+      deriveSenders: (entries) =>
+        entries.map((entry, index) => ({
+          address: `0xsender-${index + 1}`,
+          privateKey: entry.privateKey,
+        })),
+      loadInputEntries: vi.fn(async () => [
+        {
+          imageKey: "a.png",
+          filePath: "/tmp/a.png",
+        },
+        {
+          imageKey: "b.png",
+          filePath: "/tmp/b.png",
+        },
+      ]),
+      loadSenderConfig: vi.fn(async () => [
+        {
+          privateKey: new Uint8Array([1, 2, 3]),
+        },
+        {
+          privateKey: new Uint8Array([4, 5, 6]),
+        },
+      ]),
+      readLedger: vi.fn(async () => ({ rows: [] })),
+      writeLedger: vi.fn(),
+      readSeedingSnapshot: vi.fn(async () =>
+        snapshot({
+          submittedCount: 1,
+          submitterAddresses: ["0xsender-1"],
+        }),
+      ),
+      checkDigestStatus: vi.fn(async () => "unknown" as const),
+      preprocessSeedingImage: vi.fn(async (entry: SeedingInputEntry) =>
+        preprocessed(entry),
+      ),
+      putBlob: vi.fn(async () => ({
+        blobId: "blob-1",
+        aggregatorUrl: "https://aggregator/v1/blobs/blob-1",
+      })),
+      submitPhotoForSender: vi.fn(),
+    });
+
+    await expect(
+      runner.run({
+        unitId: "0xunit-1",
+        images: "/tmp/images",
+        manifest: null,
+        senderConfig: "/tmp/senders.json",
+        targetCount: 2,
+        limit: null,
+        ledger: "/tmp/ledger.json",
+        mode: "simulate",
+      }),
+    ).rejects.toThrow(/not enough sender addresses available/i);
+  });
+
+  it("persists failure reasons when submit execution fails", async () => {
+    const writes: SeedingLedger[] = [];
+    const runner = createSeedingDemoSubmissionRunner({
+      deriveSenders: (entries) =>
+        entries.map((entry, index) => ({
+          address: `0xsender-${index + 1}`,
+          privateKey: entry.privateKey,
+        })),
+      loadInputEntries: vi.fn(async () => [
+        {
+          imageKey: "a.png",
+          filePath: "/tmp/a.png",
+        },
+      ]),
+      loadSenderConfig: vi.fn(async () => [
+        {
+          privateKey: new Uint8Array([1, 2, 3]),
+        },
+      ]),
+      readLedger: vi.fn(async () => ({ rows: [] })),
+      writeLedger: vi.fn(async (_path: string, ledger: SeedingLedger) => {
+        writes.push({
+          rows: ledger.rows.map((entry) => ({ ...entry })),
+        });
+      }),
+      readSeedingSnapshot: vi.fn(async () => snapshot()),
+      checkDigestStatus: vi.fn(async () => "unknown" as const),
+      preprocessSeedingImage: vi.fn(async (entry: SeedingInputEntry) =>
+        preprocessed(entry),
+      ),
+      putBlob: vi.fn(async () => ({
+        blobId: "blob-1",
+        aggregatorUrl: "https://aggregator/v1/blobs/blob-1",
+      })),
+      submitPhotoForSender: vi.fn(async () => {
+        throw new Error("submit failed");
+      }),
+    });
+
+    await expect(
+      runner.run({
+        unitId: "0xunit-1",
+        images: "/tmp/images",
+        manifest: null,
+        senderConfig: "/tmp/senders.json",
+        targetCount: 1,
+        limit: null,
+        ledger: "/tmp/ledger.json",
+        mode: "live",
+      }),
+    ).rejects.toThrow(/submit failed/i);
+
+    expect(writes.at(-1)?.rows[0]).toEqual(
+      expect.objectContaining({
+        blobId: "blob-1",
+        status: "uploaded",
+        failureReason: "submit failed",
+      }),
+    );
   });
 });
 
