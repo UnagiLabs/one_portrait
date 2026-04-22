@@ -49,10 +49,17 @@ export {
 export {
   createFinalizeTransactionExecutor,
   createSuiClient,
+  createSeedingSnapshotLoader,
   createUnitSnapshotLoader,
   type FinalizeTransactionResult,
   type GeneratorUnitSnapshotLoader,
+  type GeneratorSeedingSnapshot,
+  type GeneratorSeedingSnapshotLoader,
 } from "./sui";
+export {
+  type SeedingPreflightResult,
+  validateSeedingPreflight,
+} from "./seeding-preflight";
 export {
   createWalrusReadClient,
   type WalrusReadClient,

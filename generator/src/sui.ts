@@ -14,9 +14,19 @@ export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
   readonly status: "filled" | "finalized" | "pending";
 };
 
+export type GeneratorSeedingSnapshot = GeneratorFinalizeSnapshot & {
+  readonly maxSlots: number;
+  readonly submittedCount: number;
+  readonly submitterAddresses: readonly string[];
+};
+
 export type GeneratorUnitSnapshotLoader = (
   unitId: string,
 ) => Promise<GeneratorFinalizeSnapshot>;
+
+export type GeneratorSeedingSnapshotLoader = (
+  unitId: string,
+) => Promise<GeneratorSeedingSnapshot>;
 
 export type FinalizeTransactionResult = {
   readonly digest: string;
@@ -50,33 +60,23 @@ export function createUnitSnapshotLoader(
   client: GeneratorSuiReadClient,
 ): GeneratorUnitSnapshotLoader {
   return async (unitId: string) => {
-    const response = await client.getObject({
-      id: unitId,
-      options: {
-        showContent: true,
-        showType: true,
-      },
-    });
-    const data = response.data;
-
-    if (!data?.content) {
-      throw new Error(`Unit object not found: ${unitId}`);
-    }
-
-    const fields = extractMoveObjectFields(data.content);
+    const snapshot = await readUnitSnapshot(client, unitId);
 
     return {
       unitId,
-      athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
-      targetWalrusBlobId: readVectorU8AsString(
-        fields.target_walrus_blob,
-        "target_walrus_blob",
-      ),
-      submissions: readSubmissions(fields.submissions),
-      status: normalizeUnitStatus(fields.status),
-      masterId: extractOptionalId(fields.master_id),
+      athleteId: snapshot.athleteId,
+      targetWalrusBlobId: snapshot.targetWalrusBlobId,
+      submissions: snapshot.submissions,
+      status: snapshot.status,
+      masterId: snapshot.masterId,
     };
   };
+}
+
+export function createSeedingSnapshotLoader(
+  client: GeneratorSuiReadClient,
+): GeneratorSeedingSnapshotLoader {
+  return (unitId: string) => readUnitSnapshot(client, unitId);
 }
 
 export function createFinalizeTransactionExecutor(input: {
@@ -199,6 +199,43 @@ function readSubmissions(value: unknown): readonly GeneratorSubmissionRef[] {
   });
 }
 
+async function readUnitSnapshot(
+  client: GeneratorSuiReadClient,
+  unitId: string,
+): Promise<GeneratorSeedingSnapshot> {
+  const response = await client.getObject({
+    id: unitId,
+    options: {
+      showContent: true,
+      showType: true,
+    },
+  });
+  const data = response.data;
+
+  if (!data?.content) {
+    throw new Error(`Unit object not found: ${unitId}`);
+  }
+
+  const fields = extractMoveObjectFields(data.content);
+  const submissions = readSubmissions(fields.submissions);
+  const submitterAddresses = uniqueSubmitterAddresses(submissions);
+
+  return {
+    unitId,
+    athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
+    targetWalrusBlobId: readVectorU8AsString(
+      fields.target_walrus_blob,
+      "target_walrus_blob",
+    ),
+    submissions,
+    submittedCount: submissions.length,
+    maxSlots: readIntegerField(fields.max_slots, "max_slots"),
+    status: normalizeUnitStatus(fields.status),
+    masterId: extractOptionalId(fields.master_id),
+    submitterAddresses,
+  };
+}
+
 function normalizeUnitStatus(
   value: unknown,
 ): "filled" | "finalized" | "pending" {
@@ -278,4 +315,22 @@ function extractOptionalId(value: unknown): string | null {
   }
 
   return null;
+}
+
+function uniqueSubmitterAddresses(
+  submissions: readonly GeneratorSubmissionRef[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const submission of submissions) {
+    if (seen.has(submission.submitter)) {
+      continue;
+    }
+
+    seen.add(submission.submitter);
+    result.push(submission.submitter);
+  }
+
+  return result;
 }
