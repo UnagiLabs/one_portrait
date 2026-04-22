@@ -5,6 +5,11 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../../../lib/demo";
+import {
+  STUB_ATHLETE_ID,
+  STUB_MASTER_ID,
+  STUB_UNIT_ID,
+} from "../../../lib/e2e/stub-data";
 
 const {
   getUnitProgressMock,
@@ -392,6 +397,108 @@ describe("UnitPage", () => {
         new RegExp(`${unitTileCount - 1}\\s*/\\s*${unitTileCount}`),
       ),
     ).toBeTruthy();
+  });
+
+  it("applies the finalized unit bootstrap only for the shared stub unit", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: STUB_UNIT_ID }),
+      searchParams: Promise.resolve({
+        athleteName: "Demo Athlete One",
+        op_e2e_unit_progress: "finalized",
+      }),
+    });
+    render(ui);
+
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe(STUB_MASTER_ID);
+    expect(unitRevealClientMock).toHaveBeenCalledWith({
+      initialSubmittedCount: unitTileCount,
+      maxSlots: unitTileCount,
+      initialMasterId: STUB_MASTER_ID,
+    });
+    expect(getAthleteByPublicIdMock).toHaveBeenCalledWith(STUB_ATHLETE_ID);
+  });
+
+  it("ignores the finalized unit bootstrap for non-stub units", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({
+        athleteName: "Route Athlete Name",
+        op_e2e_unit_progress: "finalized",
+      }),
+    });
+    render(ui);
+
+    expect(getUnitProgressMock).toHaveBeenCalledWith("0xunit-1");
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe("");
+  });
+
+  it("ignores the finalized unit bootstrap outside stub E2E mode", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: STUB_UNIT_ID,
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: STUB_UNIT_ID }),
+      searchParams: Promise.resolve({
+        athleteName: "Route Athlete Name",
+        op_e2e_unit_progress: "finalized",
+      }),
+    });
+    render(ui);
+
+    expect(getUnitProgressMock).toHaveBeenCalledWith(STUB_UNIT_ID);
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe("");
   });
 
   it("ignores the degraded unit seam outside stub E2E mode", async () => {
