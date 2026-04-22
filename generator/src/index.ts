@@ -85,3 +85,20 @@ export {
   type WalrusWriteClient,
   WalrusWriteError,
 } from "./walrus-write";
+export {
+  loadSeedingInputFromDirectory,
+  loadSeedingInputFromManifest,
+  type SeedingInputEntry,
+} from "./seeding-input";
+export {
+  createSeedingWalrusUploadClient,
+  preprocessSeedingImage,
+  validateUniqueSeedingBlobIds,
+  type SeedingPreprocessLog,
+  type SeedingPreprocessMetadata,
+  type SeedingPreprocessedImage,
+  type SeedingUploadCandidate,
+  type SeedingWalrusUploadClient,
+  type SeedingWalrusUploadError,
+  type SeedingWalrusUploadResult,
+} from "./seeding-upload";
