@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { GlobalWalletEntry } from "./global-wallet-entry";
+
 type AppShellProps = {
   readonly children: ReactNode;
 };
@@ -37,6 +39,7 @@ function GlobalHeader(): React.ReactElement {
             Gallery
           </Link>
         </nav>
+        <GlobalWalletEntry />
       </div>
     </header>
   );

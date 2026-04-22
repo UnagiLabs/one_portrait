@@ -17,6 +17,10 @@ vi.mock("../lib/enoki/provider", () => ({
   },
 }));
 
+vi.mock("./global-wallet-entry", () => ({
+  GlobalWalletEntry: () => <div>wallet entry</div>,
+}));
+
 import { AppShell } from "./app-shell";
 import RootLayout from "./layout";
 

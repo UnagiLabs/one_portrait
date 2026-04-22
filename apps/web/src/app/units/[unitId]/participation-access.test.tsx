@@ -178,6 +178,38 @@ describe("ParticipationAccess", () => {
     ).toBeTruthy();
   });
 
+  it("shows a safe waiting-room message for a non-Google wallet", () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: true,
+      config: {},
+    });
+    useWalletsMock.mockReturnValue([
+      { id: "google-wallet" },
+      { id: "sui-wallet" },
+    ]);
+    useCurrentAccountMock.mockReturnValue({ address: "0xsui123" });
+    useCurrentWalletMock.mockReturnValue({
+      connectionStatus: "connected",
+      currentWallet: { id: "sui-wallet" },
+    });
+    useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
+    useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
+
+    render(<ParticipationAccess unitId="0xunit-1" />);
+
+    expect(
+      screen.getByText(/Sui wallet 接続を確認できました/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "履歴ギャラリーを見る" }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
+  });
+
   it("shows a retry message when login fails", async () => {
     useEnokiConfigStateMock.mockReturnValue({
       submitEnabled: true,

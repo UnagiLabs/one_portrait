@@ -216,6 +216,9 @@ function ParticipationAccessEnabled({
 
   const googleWallet = wallets.find(isGoogleWallet) ?? null;
   const isConnecting = currentWallet.connectionStatus === "connecting";
+  const connectedWallet = currentWallet.currentWallet ?? (currentAccount ? googleWallet : null);
+  const isGoogleConnected =
+    connectedWallet !== null && isGoogleWallet(connectedWallet);
 
   // Kakera polling kicks in only once we know the Walrus blob id and the
   // zkLogin address. The hook stays idle while any of the inputs are
@@ -432,171 +435,203 @@ function ParticipationAccessEnabled({
 
       {currentAccount ? (
         <>
-          <p className="text-sm text-slate-200">
-            zkLogin アドレスを確認できました。投稿の署名に使うのはこの住所です。
-          </p>
-          <p className="font-mono text-xs break-all text-cyan-100">
-            {currentAccount.address}
-          </p>
-
-          {showConsentAndFilePicker ? (
-            <>
-              <label className="flex items-start gap-2 text-sm text-slate-200">
-                <input
-                  checked={consented}
-                  className="mt-1"
-                  onChange={(event) => {
-                    setConsented(event.target.checked);
-                  }}
-                  type="checkbox"
-                />
-                <span>
-                  投稿した原画像は Walrus に保存され、blob_id
-                  を知る人は誰でも取得できます。 また、参加の証として
-                  Soulbound（譲渡不可）の Kakera NFT
-                  が自分のウォレットに発行されることに同意します。
-                </span>
-              </label>
-
-              <label className="grid gap-2 text-sm text-slate-200">
-                <span>写真を選択</span>
-                <input
-                  accept="image/*"
-                  disabled={fileInputDisabled}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void handleFileChange(file);
-                    }
-                  }}
-                  type="file"
-                />
-              </label>
-            </>
-          ) : null}
-
-          {isProcessing ? (
-            <p className="text-sm text-slate-300" role="status">
-              処理中…
-            </p>
-          ) : null}
-
-          {previewPhoto ? (
-            // biome-ignore lint: client-side object URL preview, next/image not applicable.
-            <img
-              alt="投稿プレビュー"
-              className="max-w-full rounded-2xl border border-white/10"
-              src={previewPhoto.previewUrl}
-            />
-          ) : null}
-
-          {isUploading ? (
-            <p className="text-sm text-slate-300" role="status">
-              Walrus に保存しています…
-            </p>
-          ) : null}
-
-          {isSubmitting ? (
-            <p className="text-sm text-slate-300" role="status">
-              オンチェーンに投稿しています…
-            </p>
-          ) : null}
-
-          {isRecovering ? (
-            <p className="text-sm text-slate-300" role="status">
-              投稿結果を確認しています。しばらくお待ちください。
-            </p>
-          ) : null}
-
-          {showSubmitButton ? (
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
-                disabled={submitButtonDisabled}
-                onClick={() => {
-                  if (phase.kind === "previewing") {
-                    void handleSubmit(phase.photo);
-                  }
-                }}
-                type="button"
-              >
-                投稿を確定
-              </button>
-            </div>
-          ) : null}
-
-          {donePhase ? (
-            <div
-              className="grid gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100"
-              role="status"
-            >
-              <p className="text-base">投稿が完了しました。</p>
-              <p className="text-sm text-emerald-50">
-                次は履歴ギャラリーで参加記録を確認できます。
+          {!isGoogleConnected ? (
+            <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4 text-sm text-slate-200">
+              <p>
+                Sui wallet 接続を確認できました。投稿の Sponsored
+                対応をこの画面へつなぐ準備中です。
               </p>
-
-              {/* biome-ignore lint: local object URL preview, next/image N/A. */}
-              <img
-                alt="投稿プレビュー"
-                className="max-w-full rounded-xl border border-white/10"
-                src={donePhase.photo.previewUrl}
-              />
-
-              <dl className="grid gap-2">
-                <div className="grid gap-0.5">
-                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
-                    送信アドレス
-                  </dt>
-                  <dd className="font-mono text-xs break-all">
-                    {donePhase.result.sender}
-                  </dd>
-                </div>
-
-                <div className="grid gap-0.5">
-                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
-                    submission_no
-                  </dt>
-                  <dd className="font-mono text-sm">
-                    {ownedKakera.kakera
-                      ? `#${ownedKakera.kakera.submissionNo}`
-                      : "確認中…"}
-                  </dd>
-                </div>
-
-                <div className="grid gap-0.5">
-                  <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
-                    digest
-                  </dt>
-                  <dd className="font-mono text-xs break-all">
-                    {donePhase.result.digest}
-                  </dd>
-                </div>
-              </dl>
-
-              <p aria-live="polite" className="text-xs text-emerald-100/90">
-                {describeKakeraStatus(ownedKakera.status)}
+              <p className="font-mono text-xs break-all text-cyan-100">
+                {currentAccount.address}
               </p>
-
+              <p className="text-sm text-slate-300">
+                この段階では履歴ギャラリーの確認だけ利用できます。
+              </p>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  className="inline-flex items-center rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-950 transition hover:bg-white"
+                  className="inline-flex items-center rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-200"
                   href="/gallery"
                 >
                   履歴ギャラリーを見る
                 </Link>
+                <button
+                  className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+                  onClick={() => disconnectWallet.mutate()}
+                  type="button"
+                >
+                  接続を解除する
+                </button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <>
+              <p className="text-sm text-slate-200">
+                zkLogin アドレスを確認できました。投稿の署名に使うのはこの住所です。
+              </p>
+              <p className="font-mono text-xs break-all text-cyan-100">
+                {currentAccount.address}
+              </p>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
-              onClick={() => disconnectWallet.mutate()}
-              type="button"
-            >
-              ログイン解除
-            </button>
-          </div>
+              {showConsentAndFilePicker ? (
+                <>
+                  <label className="flex items-start gap-2 text-sm text-slate-200">
+                    <input
+                      checked={consented}
+                      className="mt-1"
+                      onChange={(event) => {
+                        setConsented(event.target.checked);
+                      }}
+                      type="checkbox"
+                    />
+                    <span>
+                      投稿した原画像は Walrus に保存され、blob_id
+                      を知る人は誰でも取得できます。 また、参加の証として
+                      Soulbound（譲渡不可）の Kakera NFT
+                      が自分のウォレットに発行されることに同意します。
+                    </span>
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-slate-200">
+                    <span>写真を選択</span>
+                    <input
+                      accept="image/*"
+                      disabled={fileInputDisabled}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void handleFileChange(file);
+                        }
+                      }}
+                      type="file"
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              {isProcessing ? (
+                <p className="text-sm text-slate-300" role="status">
+                  処理中…
+                </p>
+              ) : null}
+
+              {previewPhoto ? (
+                // biome-ignore lint: client-side object URL preview, next/image not applicable.
+                <img
+                  alt="投稿プレビュー"
+                  className="max-w-full rounded-2xl border border-white/10"
+                  src={previewPhoto.previewUrl}
+                />
+              ) : null}
+
+              {isUploading ? (
+                <p className="text-sm text-slate-300" role="status">
+                  Walrus に保存しています…
+                </p>
+              ) : null}
+
+              {isSubmitting ? (
+                <p className="text-sm text-slate-300" role="status">
+                  オンチェーンに投稿しています…
+                </p>
+              ) : null}
+
+              {isRecovering ? (
+                <p className="text-sm text-slate-300" role="status">
+                  投稿結果を確認しています。しばらくお待ちください。
+                </p>
+              ) : null}
+
+              {showSubmitButton ? (
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
+                    disabled={submitButtonDisabled}
+                    onClick={() => {
+                      if (phase.kind === "previewing") {
+                        void handleSubmit(phase.photo);
+                      }
+                    }}
+                    type="button"
+                  >
+                    投稿を確定
+                  </button>
+                </div>
+              ) : null}
+
+              {donePhase ? (
+                <div
+                  className="grid gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100"
+                  role="status"
+                >
+                  <p className="text-base">投稿が完了しました。</p>
+                  <p className="text-sm text-emerald-50">
+                    次は履歴ギャラリーで参加記録を確認できます。
+                  </p>
+
+                  {/* biome-ignore lint: local object URL preview, next/image N/A. */}
+                  <img
+                    alt="投稿プレビュー"
+                    className="max-w-full rounded-xl border border-white/10"
+                    src={donePhase.photo.previewUrl}
+                  />
+
+                  <dl className="grid gap-2">
+                    <div className="grid gap-0.5">
+                      <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                        送信アドレス
+                      </dt>
+                      <dd className="font-mono text-xs break-all">
+                        {donePhase.result.sender}
+                      </dd>
+                    </div>
+
+                    <div className="grid gap-0.5">
+                      <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                        submission_no
+                      </dt>
+                      <dd className="font-mono text-sm">
+                        {ownedKakera.kakera
+                          ? `#${ownedKakera.kakera.submissionNo}`
+                          : "確認中…"}
+                      </dd>
+                    </div>
+
+                    <div className="grid gap-0.5">
+                      <dt className="text-xs uppercase tracking-[0.3em] text-emerald-200/70">
+                        digest
+                      </dt>
+                      <dd className="font-mono text-xs break-all">
+                        {donePhase.result.digest}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p aria-live="polite" className="text-xs text-emerald-100/90">
+                    {describeKakeraStatus(ownedKakera.status)}
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      className="inline-flex items-center rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-950 transition hover:bg-white"
+                      href="/gallery"
+                    >
+                      履歴ギャラリーを見る
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+                  onClick={() => disconnectWallet.mutate()}
+                  type="button"
+                >
+                  ログイン解除
+                </button>
+              </div>
+            </>
+          )}
         </>
       ) : (
         <>
