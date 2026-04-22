@@ -15,10 +15,10 @@
  * jsdom）でもロジックを検証できるようにしている。
  */
 
-export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
-export const MAX_LONG_EDGE_PX = 1024;
-export const JPEG_QUALITY = 0.85;
-export const OUTPUT_CONTENT_TYPE = "image/jpeg";
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const MAX_LONG_EDGE_PX = 1024;
+const JPEG_QUALITY = 0.85;
+const OUTPUT_CONTENT_TYPE = "image/jpeg";
 
 export type ImagePreprocessErrorCode =
   | "file_too_large"

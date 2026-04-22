@@ -21,13 +21,13 @@ import type { PreprocessedPhoto } from "../image/preprocess";
  * する。
  */
 
-export const WALRUS_EPOCHS = 5;
-export const WALRUS_MAX_ATTEMPTS = 3;
+const WALRUS_EPOCHS = 5;
+const WALRUS_MAX_ATTEMPTS = 3;
 /** Base delay for exponential backoff. Kept small – retries are cheap. */
-export const WALRUS_BASE_BACKOFF_MS = 200;
+const WALRUS_BASE_BACKOFF_MS = 200;
 /** Per-attempt request timeout. 30s covers mobile uploads; beyond that we
  * abort and classify as transient so the retry loop / final error kicks in. */
-export const WALRUS_REQUEST_TIMEOUT_MS = 30_000;
+const WALRUS_REQUEST_TIMEOUT_MS = 30_000;
 
 export type WalrusPutErrorKind = "transient" | "final" | "config_missing";
 

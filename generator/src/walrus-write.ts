@@ -1,4 +1,4 @@
-export const MOSAIC_WALRUS_EPOCHS = 100;
+const MOSAIC_WALRUS_EPOCHS = 100;
 
 export class WalrusWriteError extends Error {
   readonly status: number | null;
