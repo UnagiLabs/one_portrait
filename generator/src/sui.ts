@@ -8,15 +8,26 @@ import type {
 } from "@one-portrait/shared";
 import type { MosaicPlacement } from "./assignment";
 import type { SuiNetwork } from "./env";
+import type { SeedingDigestStatus } from "./seeding-reconciliation";
 
 export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
   readonly masterId: string | null;
   readonly status: "filled" | "finalized" | "pending";
 };
 
+export type GeneratorSeedingSnapshot = GeneratorFinalizeSnapshot & {
+  readonly maxSlots: number;
+  readonly submittedCount: number;
+  readonly submitterAddresses: readonly string[];
+};
+
 export type GeneratorUnitSnapshotLoader = (
   unitId: string,
 ) => Promise<GeneratorFinalizeSnapshot>;
+
+export type GeneratorSeedingSnapshotLoader = (
+  unitId: string,
+) => Promise<GeneratorSeedingSnapshot>;
 
 export type FinalizeTransactionResult = {
   readonly digest: string;
@@ -24,10 +35,20 @@ export type FinalizeTransactionResult = {
 
 export type GeneratorSuiReadClient = Pick<SuiJsonRpcClient, "getObject">;
 
+export type GeneratorSuiTransactionBlockClient = Pick<
+  SuiJsonRpcClient,
+  "getTransactionBlock"
+>;
+
 export type GeneratorSuiWriteClient = Pick<
   SuiJsonRpcClient,
   "signAndExecuteTransaction" | "waitForTransaction"
 >;
+
+export type SubmitPhotoTransactionResult = {
+  readonly digest: string;
+  readonly senderAddress: string;
+};
 
 const placementInputBcs = bcs.struct("PlacementInput", {
   blob_id: bcs.vector(bcs.u8()),
@@ -50,33 +71,23 @@ export function createUnitSnapshotLoader(
   client: GeneratorSuiReadClient,
 ): GeneratorUnitSnapshotLoader {
   return async (unitId: string) => {
-    const response = await client.getObject({
-      id: unitId,
-      options: {
-        showContent: true,
-        showType: true,
-      },
-    });
-    const data = response.data;
-
-    if (!data?.content) {
-      throw new Error(`Unit object not found: ${unitId}`);
-    }
-
-    const fields = extractMoveObjectFields(data.content);
+    const snapshot = await readUnitSnapshot(client, unitId);
 
     return {
       unitId,
-      athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
-      targetWalrusBlobId: readVectorU8AsString(
-        fields.target_walrus_blob,
-        "target_walrus_blob",
-      ),
-      submissions: readSubmissions(fields.submissions),
-      status: normalizeUnitStatus(fields.status),
-      masterId: extractOptionalId(fields.master_id),
+      athleteId: snapshot.athleteId,
+      targetWalrusBlobId: snapshot.targetWalrusBlobId,
+      submissions: snapshot.submissions,
+      status: snapshot.status,
+      masterId: snapshot.masterId,
     };
   };
+}
+
+export function createSeedingSnapshotLoader(
+  client: GeneratorSuiReadClient,
+): GeneratorSeedingSnapshotLoader {
+  return (unitId: string) => readUnitSnapshot(client, unitId);
 }
 
 export function createFinalizeTransactionExecutor(input: {
@@ -147,6 +158,75 @@ export function createFinalizeTransactionExecutor(input: {
   };
 }
 
+export function createSubmitPhotoTransactionExecutor(input: {
+  readonly client: GeneratorSuiWriteClient;
+  readonly packageId: string;
+  readonly privateKey: string | Uint8Array;
+}): (args: {
+  readonly blobId: string;
+  readonly unitId: string;
+}) => Promise<SubmitPhotoTransactionResult> {
+  const signer = Ed25519Keypair.fromSecretKey(input.privateKey);
+
+  return async (args) => {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${input.packageId}::accessors::submit_photo`,
+      arguments: [
+        tx.object(args.unitId),
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(args.blobId))),
+        tx.object.clock(),
+      ],
+    });
+
+    const execution = await input.client.signAndExecuteTransaction({
+      signer,
+      transaction: tx,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    const confirmed = await input.client.waitForTransaction({
+      digest: execution.digest,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    if (readTransactionBlockStatus(confirmed) !== "success") {
+      throw new Error(
+        confirmed.effects?.status.error ?? "Submit photo transaction failed.",
+      );
+    }
+
+    return {
+      digest: execution.digest,
+      senderAddress: signer.toSuiAddress(),
+    };
+  };
+}
+
+export function createSeedingDigestStatusChecker(
+  client: GeneratorSuiTransactionBlockClient,
+): (txDigest: string) => Promise<SeedingDigestStatus> {
+  return async (txDigest: string) => {
+    try {
+      const transactionBlock = await client.getTransactionBlock({
+        digest: txDigest,
+        options: {
+          showEffects: true,
+        },
+      });
+
+      return readTransactionBlockStatus(transactionBlock);
+    } catch {
+      return "unknown";
+    }
+  };
+}
+
 type MoveStructLike = {
   readonly dataType: "moveObject";
   readonly fields: Record<string, unknown>;
@@ -166,6 +246,31 @@ function extractMoveObjectFields(content: unknown): Record<string, unknown> {
   }
 
   throw new Error("Expected moveObject fields in getObject response.");
+}
+
+export function readTransactionBlockStatus(
+  transactionBlock:
+    | {
+        readonly effects?: {
+          readonly status?: {
+            readonly status?: string;
+          };
+        } | null;
+      }
+    | null
+    | undefined,
+): SeedingDigestStatus {
+  const status = transactionBlock?.effects?.status?.status;
+
+  if (status === "success") {
+    return "success";
+  }
+
+  if (status === "failure") {
+    return "failed";
+  }
+
+  return "unknown";
 }
 
 function readSubmissions(value: unknown): readonly GeneratorSubmissionRef[] {
@@ -197,6 +302,43 @@ function readSubmissions(value: unknown): readonly GeneratorSubmissionRef[] {
       ),
     };
   });
+}
+
+async function readUnitSnapshot(
+  client: GeneratorSuiReadClient,
+  unitId: string,
+): Promise<GeneratorSeedingSnapshot> {
+  const response = await client.getObject({
+    id: unitId,
+    options: {
+      showContent: true,
+      showType: true,
+    },
+  });
+  const data = response.data;
+
+  if (!data?.content) {
+    throw new Error(`Unit object not found: ${unitId}`);
+  }
+
+  const fields = extractMoveObjectFields(data.content);
+  const submissions = readSubmissions(fields.submissions);
+  const submitterAddresses = uniqueSubmitterAddresses(submissions);
+
+  return {
+    unitId,
+    athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
+    targetWalrusBlobId: readVectorU8AsString(
+      fields.target_walrus_blob,
+      "target_walrus_blob",
+    ),
+    submissions,
+    submittedCount: submissions.length,
+    maxSlots: readIntegerField(fields.max_slots, "max_slots"),
+    status: normalizeUnitStatus(fields.status),
+    masterId: extractOptionalId(fields.master_id),
+    submitterAddresses,
+  };
 }
 
 function normalizeUnitStatus(
@@ -278,4 +420,22 @@ function extractOptionalId(value: unknown): string | null {
   }
 
   return null;
+}
+
+function uniqueSubmitterAddresses(
+  submissions: readonly GeneratorSubmissionRef[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const submission of submissions) {
+    if (seen.has(submission.submitter)) {
+      continue;
+    }
+
+    seen.add(submission.submitter);
+    result.push(submission.submitter);
+  }
+
+  return result;
 }
