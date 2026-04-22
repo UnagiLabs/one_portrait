@@ -189,7 +189,17 @@ export function createSeedingDemoSubmissionRunner(
 
       await deps.writeLedger(options.ledger, workingLedger);
 
-      const uploadCandidates: SeedingUploadCandidate[] = [];
+      const uploadCandidates: SeedingUploadCandidate[] = workingRows
+        .filter(
+          (row) =>
+            row.blobId !== null &&
+            row.status !== "failed",
+        )
+        .map((row) => ({
+          imageKey: row.imageKey,
+          blobId: row.blobId as string,
+        }));
+      validateUniqueSeedingBlobIds(uploadCandidates);
       const execution = await executeRows({
         byImageKey,
         initialSnapshot: snapshot,
