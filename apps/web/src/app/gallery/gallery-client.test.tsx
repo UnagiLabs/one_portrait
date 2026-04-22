@@ -121,6 +121,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
+  delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
   useCurrentWalletMock.mockReset();
@@ -387,6 +388,9 @@ describe("GalleryClient", () => {
 
     expect(screen.getByText(/Waiting for reveal/i)).toBeTruthy();
     expect(screen.getByText(/Submission #17/i)).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: /unit ページで位置を見る/i }),
+    ).toBeNull();
   });
 
   it("renders completed entries with mosaic and metadata", async () => {
@@ -410,6 +414,39 @@ describe("GalleryClient", () => {
         .getByAltText(/Demo Athlete One completed mosaic/i)
         .getAttribute("src"),
     ).toContain("/v1/blobs/walrus-mosaic-1");
+  });
+
+  it("adds a unit-page CTA link to completed entries", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([ownedKakera()]);
+    getGalleryEntryMock.mockResolvedValue(completedEntry());
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    const unitLink = await screen.findByRole("link", {
+      name: /unit ページで位置を見る/i,
+    });
+
+    expect(unitLink.getAttribute("href")).toBe(
+      "/units/0xunit-1?athleteName=Demo+Athlete+One",
+    );
+  });
+
+  it("adds the finalized bootstrap query to the CTA only in stub E2E mode", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([ownedKakera()]);
+    getGalleryEntryMock.mockResolvedValue(completedEntry());
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    const unitLink = await screen.findByRole("link", {
+      name: /unit ページで位置を見る/i,
+    });
+
+    expect(unitLink.getAttribute("href")).toBe(
+      "/units/0xunit-1?athleteName=Demo+Athlete+One&op_e2e_unit_progress=finalized",
+    );
   });
 
   it("sorts entries by mintedAtMs across units", async () => {

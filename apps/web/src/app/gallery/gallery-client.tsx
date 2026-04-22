@@ -7,6 +7,7 @@ import {
   useWallets,
 } from "@mysten/dapp-kit";
 import { isGoogleWallet } from "@mysten/enoki";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { AthleteCatalogEntry } from "../../lib/catalog";
@@ -432,6 +433,19 @@ function GalleryCard({
         </p>
         <h2 className="font-serif text-2xl text-white">{displayName}</h2>
         <p className="font-mono text-xs text-slate-400">{entry.unitId}</p>
+        {completedEntry ? (
+          <div className="mt-3">
+            <Link
+              className="inline-flex items-center rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-cyan-50"
+              href={buildUnitPageHref({
+                displayName,
+                unitId: entry.unitId,
+              })}
+            >
+              Unit ページで位置を見る
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-4">
@@ -557,6 +571,21 @@ function buildWalrusAggregatorUrl(blobId: string | null): string | null {
   }
 
   return `${aggregator}/v1/blobs/${blobId}`;
+}
+
+function buildUnitPageHref(args: {
+  readonly unitId: string;
+  readonly displayName: string;
+}): string {
+  const searchParams = new URLSearchParams({
+    athleteName: args.displayName,
+  });
+
+  if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1") {
+    searchParams.set("op_e2e_unit_progress", "finalized");
+  }
+
+  return `/units/${args.unitId}?${searchParams.toString()}`;
 }
 
 function createUnavailableEntry(kakera: OwnedKakera): GalleryUnavailableEntry {
