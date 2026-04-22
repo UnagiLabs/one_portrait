@@ -2,6 +2,7 @@ import { appMeta } from "@one-portrait/shared";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AppShell } from "./app-shell";
 import { AppWalletProvider } from "../lib/enoki/provider";
 
 import "./globals.css";
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ja">
       <body>
-        <AppWalletProvider>{children}</AppWalletProvider>
+        <AppWalletProvider>
+          <AppShell>{children}</AppShell>
+        </AppWalletProvider>
       </body>
     </html>
   );
