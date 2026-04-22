@@ -12,13 +12,17 @@ import {
 export async function POST(request: Request): Promise<Response> {
   try {
     const input = parseSubmitPhotoInput(await request.json());
-    const jwt = readZkLoginJwt(request.headers);
     const env = resolveRuntimeEnv(process.env);
     const result = await sponsorSubmitPhoto(
-      {
-        ...input,
-        jwt,
-      },
+      "sender" in input && typeof input.sender === "string"
+        ? {
+            ...input,
+            sender: input.sender,
+          }
+        : {
+            ...input,
+            jwt: readZkLoginJwt(request.headers),
+          },
       env,
     );
 

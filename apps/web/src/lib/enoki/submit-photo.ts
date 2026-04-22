@@ -22,11 +22,18 @@ const WALRUS_BLOB_ID_PATTERN = /^[A-Za-z0-9._:-]{1,512}$/;
 export type SubmitPhotoInput = {
   readonly unitId: string;
   readonly blobId: string;
+  readonly sender?: string;
 };
 
 export type ExecuteSponsoredInput = {
   readonly digest: string;
   readonly signature: string;
+  readonly sender?: string;
+};
+
+export type SubmitPhotoAuth = {
+  readonly jwt?: string;
+  readonly sender?: string;
 };
 
 export type SponsorSubmitPhotoResult = {
@@ -68,11 +75,15 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
 
   const keys = Object.keys(input);
   if (
-    keys.length !== 2 ||
+    keys.length < 2 ||
+    keys.length > 3 ||
     !keys.includes("unitId") ||
-    !keys.includes("blobId")
+    !keys.includes("blobId") ||
+    keys.some((key) => key !== "unitId" && key !== "blobId" && key !== "sender")
   ) {
-    throw invalidArgs("`unitId` と `blobId` だけを送ってください。");
+    throw invalidArgs(
+      "`unitId` と `blobId`、必要なら `sender` だけを送ってください。",
+    );
   }
 
   const unitId = typeof input.unitId === "string" ? input.unitId.trim() : "";
@@ -86,10 +97,21 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
     throw invalidArgs("`blobId` の形式が不正です。");
   }
 
-  return {
-    unitId,
-    blobId,
-  };
+  const sender =
+    typeof input.sender === "string" && input.sender.trim().length > 0
+      ? input.sender.trim()
+      : undefined;
+
+  return sender
+    ? {
+        unitId,
+        blobId,
+        sender,
+      }
+    : {
+        unitId,
+        blobId,
+      };
 }
 
 export function parseExecuteSponsoredInput(
@@ -101,11 +123,17 @@ export function parseExecuteSponsoredInput(
 
   const keys = Object.keys(input);
   if (
-    keys.length !== 2 ||
+    keys.length < 2 ||
+    keys.length > 3 ||
     !keys.includes("digest") ||
-    !keys.includes("signature")
+    !keys.includes("signature") ||
+    keys.some(
+      (key) => key !== "digest" && key !== "signature" && key !== "sender",
+    )
   ) {
-    throw invalidArgs("`digest` と `signature` だけを送ってください。");
+    throw invalidArgs(
+      "`digest` と `signature`、必要なら `sender` だけを送ってください。",
+    );
   }
 
   const digest = typeof input.digest === "string" ? input.digest.trim() : "";
@@ -116,10 +144,21 @@ export function parseExecuteSponsoredInput(
     throw invalidArgs("`digest` と `signature` は必須です。");
   }
 
-  return {
-    digest,
-    signature,
-  };
+  const sender =
+    typeof input.sender === "string" && input.sender.trim().length > 0
+      ? input.sender.trim()
+      : undefined;
+
+  return sender
+    ? {
+        digest,
+        signature,
+        sender,
+      }
+    : {
+        digest,
+        signature,
+      };
 }
 
 export function readZkLoginJwt(headers: Headers): string {
@@ -166,14 +205,26 @@ export function resolveRuntimeEnv(
 }
 
 export async function sponsorSubmitPhoto(
-  input: SubmitPhotoInput & { readonly jwt: string },
+  input: SubmitPhotoInput & SubmitPhotoAuth,
   env: RuntimeEnv,
   deps: SponsorDeps = createSponsorDeps(env.privateApiKey),
 ): Promise<SponsorSubmitPhotoResult> {
   try {
-    const zkLogin = await deps.enokiClient.getZkLogin({
-      jwt: input.jwt,
-    });
+    const sender = input.jwt
+      ? (
+          await deps.enokiClient.getZkLogin({
+            jwt: input.jwt,
+          })
+        ).address
+      : input.sender;
+
+    if (!sender) {
+      throw new EnokiApiError(
+        401,
+        "auth_expired",
+        "ログイン情報を確認できません。もう一度お試しください。",
+      );
+    }
     const transactionKindBytes = await deps.buildTransactionKind({
       network: env.network,
       packageId: env.packageId,
@@ -183,7 +234,7 @@ export async function sponsorSubmitPhoto(
 
     const sponsored = await deps.enokiClient.createSponsoredTransaction({
       network: env.network,
-      sender: zkLogin.address,
+      sender,
       transactionKindBytes,
       allowedMoveCallTargets: [submitPhotoTarget(env.packageId)],
     });
@@ -191,7 +242,7 @@ export async function sponsorSubmitPhoto(
     return {
       bytes: sponsored.bytes,
       digest: sponsored.digest,
-      sender: zkLogin.address,
+      sender,
     };
   } catch (error) {
     throw mapEnokiError(error);
@@ -199,14 +250,16 @@ export async function sponsorSubmitPhoto(
 }
 
 export async function executeSponsoredSubmitPhoto(
-  input: ExecuteSponsoredInput & { readonly jwt: string },
+  input: ExecuteSponsoredInput & SubmitPhotoAuth,
   env: RuntimeEnv,
   deps: ExecuteDeps = createExecuteDeps(env.privateApiKey),
 ): Promise<{ digest: string }> {
   try {
-    await deps.enokiClient.getZkLogin({
-      jwt: input.jwt,
-    });
+    if (input.jwt) {
+      await deps.enokiClient.getZkLogin({
+        jwt: input.jwt,
+      });
+    }
 
     return await deps.enokiClient.executeSponsoredTransaction({
       digest: input.digest,

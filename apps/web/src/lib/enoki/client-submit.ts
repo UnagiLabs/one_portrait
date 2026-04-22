@@ -1,7 +1,11 @@
 "use client";
 
-import { useCurrentWallet, useSignTransaction } from "@mysten/dapp-kit";
-import { getSession } from "@mysten/enoki";
+import {
+  useCurrentAccount,
+  useCurrentWallet,
+  useSignTransaction,
+} from "@mysten/dapp-kit";
+import { getSession, isGoogleWallet } from "@mysten/enoki";
 import { useState } from "react";
 
 import { ENOKI_JWT_HEADER, type EnokiApiErrorCode } from "./api";
@@ -57,7 +61,11 @@ export class EnokiSubmitClientError extends Error {
 
 type SubmitPhotoDeps = {
   readonly fetchFn?: typeof fetch;
-  readonly getJwt: () => Promise<string | null>;
+  readonly getAuth: () => Promise<
+    | { readonly kind: "jwt"; readonly jwt: string }
+    | { readonly kind: "sender"; readonly sender: string }
+    | null
+  >;
   readonly signTransaction: (
     transactionBytes: string,
   ) => Promise<{ readonly signature: string }>;
@@ -70,9 +78,9 @@ export async function submitPhotoWithEnoki(
   },
   deps: SubmitPhotoDeps,
 ): Promise<SubmitPhotoSuccess> {
-  const jwt = await deps.getJwt();
+  const auth = await deps.getAuth();
 
-  if (!jwt) {
+  if (!auth) {
     throw new EnokiSubmitClientError(
       401,
       "auth_expired",
@@ -84,7 +92,7 @@ export async function submitPhotoWithEnoki(
   const sponsor = await postJson<SponsorSubmitPhotoResponse>(
     fetchFn,
     "/api/enoki/submit-photo/sponsor",
-    jwt,
+    auth,
     input,
   );
   const signed = await deps.signTransaction(sponsor.bytes);
@@ -94,7 +102,7 @@ export async function submitPhotoWithEnoki(
     executed = await postJson<ExecuteSponsoredResponse>(
       fetchFn,
       "/api/enoki/submit-photo/execute",
-      jwt,
+      auth,
       {
         digest: sponsor.digest,
         signature: signed.signature,
@@ -118,6 +126,7 @@ export function useSubmitPhoto(unitId: string): {
   readonly isSubmitting: boolean;
   readonly submitPhoto: (blobId: string) => Promise<SubmitPhotoSuccess>;
 } {
+  const currentAccount = useCurrentAccount();
   const currentWallet = useCurrentWallet();
   const signTransaction = useSignTransaction();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,13 +143,25 @@ export function useSubmitPhoto(unitId: string): {
             blobId,
           },
           {
-            getJwt: async () => {
-              if (!currentWallet.isConnected || !currentWallet.currentWallet) {
+            getAuth: async () => {
+              if (
+                !currentWallet.isConnected ||
+                !currentWallet.currentWallet ||
+                !currentAccount?.address
+              ) {
                 return null;
               }
 
-              const session = await getSession(currentWallet.currentWallet);
-              return session?.jwt?.trim() ?? null;
+              if (isGoogleWallet(currentWallet.currentWallet)) {
+                const session = await getSession(currentWallet.currentWallet);
+                const jwt = session?.jwt?.trim() ?? null;
+                return jwt ? { kind: "jwt", jwt } : null;
+              }
+
+              return {
+                kind: "sender",
+                sender: currentAccount.address,
+              };
             },
             signTransaction: async (transactionBytes) => {
               const signed = await signTransaction.mutateAsync({
@@ -163,16 +184,25 @@ export function useSubmitPhoto(unitId: string): {
 async function postJson<T>(
   fetchFn: typeof fetch,
   url: string,
-  jwt: string,
+  auth:
+    | { readonly kind: "jwt"; readonly jwt: string }
+    | { readonly kind: "sender"; readonly sender: string },
   body: Record<string, string>,
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  const requestBody =
+    auth.kind === "sender" ? { ...body, sender: auth.sender } : body;
+
+  if (auth.kind === "jwt") {
+    headers[ENOKI_JWT_HEADER] = auth.jwt;
+  }
+
   const response = await fetchFn(url, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      [ENOKI_JWT_HEADER]: jwt,
-    },
-    body: JSON.stringify(body),
+    headers,
+    body: JSON.stringify(requestBody),
   });
   const payload = (await response.json().catch(() => null)) as unknown;
 

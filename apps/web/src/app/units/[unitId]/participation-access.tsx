@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ConnectModal,
   useConnectWallet,
   useCurrentAccount,
   useCurrentWallet,
@@ -216,6 +217,10 @@ function ParticipationAccessEnabled({
 
   const googleWallet = wallets.find(isGoogleWallet) ?? null;
   const isConnecting = currentWallet.connectionStatus === "connecting";
+  const connectedWallet =
+    currentWallet.currentWallet ?? (currentAccount ? googleWallet : null);
+  const isGoogleConnected =
+    connectedWallet !== null && isGoogleWallet(connectedWallet);
 
   // Kakera polling kicks in only once we know the Walrus blob id and the
   // zkLogin address. The hook stays idle while any of the inputs are
@@ -420,6 +425,10 @@ function ParticipationAccessEnabled({
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
   const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
+  const connectedWalletLabel = isGoogleConnected ? "zkLogin" : "Sui wallet";
+  const connectedWalletMessage = isGoogleConnected
+    ? "zkLogin アドレスを確認できました。投稿の署名に使うのはこの住所です。"
+    : "Sui wallet アドレスを確認できました。Sponsored Tx の署名に使うのはこの住所です。";
 
   return (
     <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
@@ -427,14 +436,12 @@ function ParticipationAccessEnabled({
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
           Submit access
         </p>
-        <h2 className="font-serif text-2xl text-white">Google login</h2>
+        <h2 className="font-serif text-2xl text-white">Participation wallet</h2>
       </div>
 
       {currentAccount ? (
         <>
-          <p className="text-sm text-slate-200">
-            zkLogin アドレスを確認できました。投稿の署名に使うのはこの住所です。
-          </p>
+          <p className="text-sm text-slate-200">{connectedWalletMessage}</p>
           <p className="font-mono text-xs break-all text-cyan-100">
             {currentAccount.address}
           </p>
@@ -594,14 +601,15 @@ function ParticipationAccessEnabled({
               onClick={() => disconnectWallet.mutate()}
               type="button"
             >
-              ログイン解除
+              {connectedWalletLabel} を解除する
             </button>
           </div>
         </>
       ) : (
         <>
           <p className="text-sm text-slate-300">
-            先に Google でログインすると、zkLogin の参加用アドレスを作れます。
+            Google zkLogin または Sui wallet
+            を接続すると、この待機室から投稿できます。
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -612,8 +620,23 @@ function ParticipationAccessEnabled({
               }}
               type="button"
             >
-              {connectError ? "もう一度ログイン" : "Google でログイン"}
+              {isConnecting
+                ? "Google zkLogin 接続中…"
+                : connectError
+                  ? "Google zkLogin をやり直す"
+                  : "Google zkLogin"}
             </button>
+            <ConnectModal
+              trigger={
+                <button
+                  className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
+                  type="button"
+                >
+                  Sui wallet
+                </button>
+              }
+              walletFilter={(wallet) => !isGoogleWallet(wallet)}
+            />
           </div>
         </>
       )}

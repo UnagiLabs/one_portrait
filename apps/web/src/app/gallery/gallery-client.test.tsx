@@ -24,6 +24,9 @@ const {
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
+  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
+    <>{trigger}</>
+  ),
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
   useWallets: () => useWalletsMock(),
@@ -112,7 +115,10 @@ beforeEach(() => {
   useCurrentWalletMock.mockReturnValue({
     connectionStatus: "disconnected",
   });
-  useWalletsMock.mockReturnValue([{ id: "google-wallet" }]);
+  useWalletsMock.mockReturnValue([
+    { id: "google-wallet" },
+    { id: "sui-wallet" },
+  ]);
   useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
   getSuiClientMock.mockReturnValue({ network: "testnet" });
   listOwnedKakeraMock.mockResolvedValue([]);
@@ -138,12 +144,11 @@ describe("GalleryClient", () => {
 
     expect(
       screen.getByText(
-        /先に Google でログインすると、あなたの Kakera 履歴を読み込めます。/,
+        /Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。/,
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Google でログイン" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
   });
 
@@ -153,7 +158,7 @@ describe("GalleryClient", () => {
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
@@ -171,7 +176,7 @@ describe("GalleryClient", () => {
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
@@ -189,13 +194,13 @@ describe("GalleryClient", () => {
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
       "ログインに失敗しました。",
     );
     expect(
-      screen.getByRole("button", { name: "もう一度ログイン" }),
+      screen.getByRole("button", { name: "Google zkLogin をやり直す" }),
     ).toBeTruthy();
   });
 
@@ -206,7 +211,9 @@ describe("GalleryClient", () => {
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
-    const button = screen.getByRole("button", { name: "ログイン中…" });
+    const button = screen.getByRole("button", {
+      name: "Google zkLogin 接続中…",
+    });
 
     expect(button.getAttribute("disabled")).not.toBeNull();
   });

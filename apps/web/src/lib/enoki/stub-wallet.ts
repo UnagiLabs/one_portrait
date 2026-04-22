@@ -22,6 +22,7 @@ import type {
 import { getWallets, SUI_TESTNET_CHAIN } from "@mysten/wallet-standard";
 
 export const E2E_STUB_WALLET_NAME = "ONE Portrait E2E Stub";
+export const E2E_STUB_SUI_WALLET_NAME = "ONE Portrait E2E Sui Stub";
 export const E2E_STUB_ACCOUNT_ADDRESS =
   "0xe2e0000000000000000000000000000000000000000000000000000000000001";
 /** Opaque JWT shipped with the intercepted sponsor/execute requests. */
@@ -89,17 +90,56 @@ type StubFeatures = StandardConnectFeature &
   EnokiGetMetadataFeature &
   EnokiGetSessionFeature;
 
+type PlainStubFeatures = StandardConnectFeature &
+  StandardDisconnectFeature &
+  StandardEventsFeature &
+  SuiSignTransactionFeature &
+  SuiSignPersonalMessageFeature;
+
 type EventListeners = {
   [K in keyof StandardEventsListeners]: Set<StandardEventsListeners[K]>;
 };
 
 function makeStubWallet(): Wallet {
+  return makeWallet({
+    features: makeGoogleFeatures(),
+    name: E2E_STUB_WALLET_NAME,
+  });
+}
+
+function makePlainStubWallet(): Wallet {
+  return makeWallet({
+    features: makePlainFeatures(),
+    name: E2E_STUB_SUI_WALLET_NAME,
+  });
+}
+
+function makeWallet({
+  features,
+  name,
+}: {
+  readonly features: StubFeatures | PlainStubFeatures;
+  readonly name: string;
+}): Wallet {
+  const account = makeStubAccount();
+
+  return {
+    version: "1.0.0",
+    name,
+    icon: ICON_DATA_URL,
+    chains: [SUI_TESTNET_CHAIN],
+    accounts: [account],
+    features,
+  };
+}
+
+function makeGoogleFeatures(): StubFeatures {
   const account = makeStubAccount();
   const listeners: EventListeners = {
     change: new Set(),
   };
 
-  const features: StubFeatures = {
+  return {
     "standard:connect": {
       version: "1.0.0",
       connect: async () => ({ accounts: [account] }),
@@ -144,14 +184,50 @@ function makeStubWallet(): Wallet {
       getSession: async () => ({ jwt: E2E_STUB_JWT }),
     },
   };
+}
+
+function makePlainFeatures(): PlainStubFeatures {
+  const account = makeStubAccount();
+  const listeners: EventListeners = {
+    change: new Set(),
+  };
 
   return {
-    version: "1.0.0",
-    name: E2E_STUB_WALLET_NAME,
-    icon: ICON_DATA_URL,
-    chains: [SUI_TESTNET_CHAIN],
-    accounts: [account],
-    features,
+    "standard:connect": {
+      version: "1.0.0",
+      connect: async () => ({ accounts: [account] }),
+    },
+    "standard:disconnect": {
+      version: "1.0.0",
+      disconnect: async () => {},
+    },
+    "standard:events": {
+      version: "1.0.0",
+      on: (event, listener) => {
+        const bucket = listeners[event];
+        if (!bucket) {
+          return () => {};
+        }
+        bucket.add(listener);
+        return () => {
+          bucket.delete(listener);
+        };
+      },
+    },
+    "sui:signTransaction": {
+      version: "2.0.0",
+      signTransaction: async ({ transaction }) => {
+        const bytes = await transaction.toJSON().catch(() => "AAAA");
+        return { bytes, signature: DUMMY_SIGNATURE };
+      },
+    },
+    "sui:signPersonalMessage": {
+      version: "1.1.0",
+      signPersonalMessage: async ({ message }) => ({
+        bytes: toBase64(message),
+        signature: DUMMY_SIGNATURE,
+      }),
+    },
   };
 }
 
@@ -164,7 +240,12 @@ export function registerE2EStubWallet(): () => void {
     return () => {};
   }
   const api = getWallets();
-  return api.register(makeStubWallet());
+  const unregisterGoogle = api.register(makeStubWallet());
+  const unregisterSui = api.register(makePlainStubWallet());
+  return () => {
+    unregisterSui();
+    unregisterGoogle();
+  };
 }
 
 function toBase64(bytes: Uint8Array): string {
