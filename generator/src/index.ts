@@ -61,6 +61,21 @@ export {
   validateSeedingPreflight,
 } from "./seeding-preflight";
 export {
+  createEmptySeedingLedger,
+  readSeedingLedger,
+  type SeedingLedger,
+  type SeedingLedgerRow,
+  type SeedingLedgerRowStatus,
+  writeSeedingLedger,
+} from "./seeding-ledger";
+export {
+  reconcileSeedingLedger,
+  type SeedingDigestStatus,
+  type SeedingDigestStatusChecker,
+  type SeedingReconciliationResult,
+  type SeedingReconciliationSummary,
+} from "./seeding-reconciliation";
+export {
   createWalrusReadClient,
   type WalrusReadClient,
   WalrusReadError,
