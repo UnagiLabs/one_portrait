@@ -522,8 +522,8 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
     let placements = vector[
-        admin_api::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
-        admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+        master_portrait::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
+        master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
     ];
 
     admin_api::finalize(&admin_cap, &mut unit, mosaic_blob_id, placements, scenario.ctx());
@@ -705,8 +705,8 @@ fun finalize_rejects_double_finalize() {
         &mut unit,
         b"mosaic-blob",
         vector[
-            admin_api::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
-            admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+            master_portrait::new_placement_input(b"photo-1", 10, 20, first_submitter, 1),
+            master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
         ],
         scenario.ctx(),
     );
@@ -834,8 +834,8 @@ fun finalize_rejects_mismatched_placements() {
         &mut unit,
         b"mosaic-blob",
         vector[
-            admin_api::new_placement_input(b"photo-1", 10, 20, second_submitter, 1),
-            admin_api::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
+            master_portrait::new_placement_input(b"photo-1", 10, 20, second_submitter, 1),
+            master_portrait::new_placement_input(b"photo-2", 30, 40, second_submitter, 2),
         ],
         scenario.ctx(),
     );

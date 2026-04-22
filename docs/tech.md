@@ -127,8 +127,8 @@ one_portrait/
 | `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
 | `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
-| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` と `PlacementInput` 生成を公開する。 |
-| `accessors` | - | ファン向け `submit_photo` と、`Registry` / `Unit` / `MasterPortrait` の参照 API を集約する。 |
+| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` のみを公開し、配置入力の構築は package 内 helper に閉じる。 |
+| `accessors` | - | ファン向け公開 API を `submit_photo` と `current_unit_id` に限定する。 |
 
 ### 4.3 データモデル
 - `Registry`
