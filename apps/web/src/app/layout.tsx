@@ -1,9 +1,8 @@
 import { appMeta } from "@one-portrait/shared";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-
-import { AppShell } from "./app-shell";
 import { AppWalletProvider } from "../lib/enoki/provider";
+import { AppShell } from "./app-shell";
 
 import "./globals.css";
 

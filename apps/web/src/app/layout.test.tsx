@@ -34,12 +34,10 @@ describe("AppShell", () => {
 
     render(<AppShell>page body</AppShell>);
 
+    expect(screen.getByRole("link", { name: /one portrait/i })).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: /one portrait/i }),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: /gallery/i }).getAttribute("href")).toBe(
-      "/gallery",
-    );
+      screen.getByRole("link", { name: /gallery/i }).getAttribute("href"),
+    ).toBe("/gallery");
     expect(screen.getByText("page body")).toBeTruthy();
   });
 
@@ -48,9 +46,7 @@ describe("AppShell", () => {
 
     render(<AppShell>callback body</AppShell>);
 
-    expect(
-      screen.queryByRole("link", { name: /one portrait/i }),
-    ).toBeNull();
+    expect(screen.queryByRole("link", { name: /one portrait/i })).toBeNull();
     expect(screen.getByText("callback body")).toBeTruthy();
   });
 });

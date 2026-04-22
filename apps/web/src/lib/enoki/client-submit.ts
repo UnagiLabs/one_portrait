@@ -61,12 +61,11 @@ export class EnokiSubmitClientError extends Error {
 
 type SubmitPhotoDeps = {
   readonly fetchFn?: typeof fetch;
-  readonly getAuth: () =>
-    Promise<
-      | { readonly kind: "jwt"; readonly jwt: string }
-      | { readonly kind: "sender"; readonly sender: string }
-      | null
-    >;
+  readonly getAuth: () => Promise<
+    | { readonly kind: "jwt"; readonly jwt: string }
+    | { readonly kind: "sender"; readonly sender: string }
+    | null
+  >;
   readonly signTransaction: (
     transactionBytes: string,
   ) => Promise<{ readonly signature: string }>;

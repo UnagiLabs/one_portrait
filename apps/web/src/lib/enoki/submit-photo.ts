@@ -127,7 +127,9 @@ export function parseExecuteSponsoredInput(
     keys.length > 3 ||
     !keys.includes("digest") ||
     !keys.includes("signature") ||
-    keys.some((key) => key !== "digest" && key !== "signature" && key !== "sender")
+    keys.some(
+      (key) => key !== "digest" && key !== "signature" && key !== "sender",
+    )
   ) {
     throw invalidArgs(
       "`digest` と `signature`、必要なら `sender` だけを送ってください。",
