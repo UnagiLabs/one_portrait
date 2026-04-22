@@ -231,9 +231,13 @@ function row(overrides: Partial<SeedingLedgerRow> = {}): SeedingLedgerRow {
     imageKey: overrides.imageKey ?? "tiles/unit-1-row-1.png",
     senderAddress: overrides.senderAddress ?? "0xsender-1",
     blobId: overrides.blobId ?? "blob-1",
+    aggregatorUrl: overrides.aggregatorUrl ?? null,
     txDigest: overrides.txDigest ?? null,
     submissionNo: overrides.submissionNo ?? null,
     status: overrides.status ?? "pending_upload",
+    preprocessLog: overrides.preprocessLog ?? null,
+    observedSubmittedCount: overrides.observedSubmittedCount ?? null,
+    observedUnitStatus: overrides.observedUnitStatus ?? null,
     failureReason: overrides.failureReason ?? null,
   };
 }

@@ -161,7 +161,7 @@ export function createFinalizeTransactionExecutor(input: {
 export function createSubmitPhotoTransactionExecutor(input: {
   readonly client: GeneratorSuiWriteClient;
   readonly packageId: string;
-  readonly privateKey: string;
+  readonly privateKey: string | Uint8Array;
 }): (args: {
   readonly blobId: string;
   readonly unitId: string;

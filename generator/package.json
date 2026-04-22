@@ -11,6 +11,7 @@
   },
   "scripts": {
     "experiment:improved-counts": "tsx scripts/evaluate-improved-mosaic-counts.ts",
+    "seed:demo-submissions": "tsx scripts/seed-demo-submissions.ts",
     "render:mosaic": "tsx scripts/render-mosaic.ts",
     "sync:demo-tiles": "tsx scripts/sync-demo-tiles.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",

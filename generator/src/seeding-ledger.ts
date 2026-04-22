@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
+import type { SeedingPreprocessLog } from "./seeding-upload";
+
 export type SeedingLedgerRowStatus =
   | "pending_upload"
   | "uploaded"
@@ -8,13 +10,19 @@ export type SeedingLedgerRowStatus =
   | "recovered"
   | "failed";
 
+export type SeedingObservedUnitStatus = "pending" | "filled" | "finalized";
+
 export type SeedingLedgerRow = {
   readonly imageKey: string;
   readonly senderAddress: string;
   readonly blobId: string | null;
+  readonly aggregatorUrl: string | null;
   readonly txDigest: string | null;
   readonly submissionNo: number | null;
   readonly status: SeedingLedgerRowStatus;
+  readonly preprocessLog: SeedingPreprocessLog | null;
+  readonly observedSubmittedCount: number | null;
+  readonly observedUnitStatus: SeedingObservedUnitStatus | null;
   readonly failureReason: string | null;
 };
 
@@ -82,12 +90,19 @@ function parseSeedingLedgerRow(value: unknown): SeedingLedgerRow {
     imageKey: readStringField(record.imageKey, "imageKey"),
     senderAddress: readStringField(record.senderAddress, "senderAddress"),
     blobId: readNullableStringField(record.blobId, "blobId"),
+    aggregatorUrl: readNullableStringField(record.aggregatorUrl, "aggregatorUrl"),
     txDigest: readNullableStringField(record.txDigest, "txDigest"),
     submissionNo: readNullableNumberField(
       record.submissionNo,
       "submissionNo",
     ),
     status: readStatusField(record.status),
+    preprocessLog: readNullablePreprocessLog(record.preprocessLog),
+    observedSubmittedCount: readNullableNumberField(
+      record.observedSubmittedCount,
+      "observedSubmittedCount",
+    ),
+    observedUnitStatus: readNullableObservedUnitStatus(record.observedUnitStatus),
     failureReason: readNullableStringField(
       record.failureReason,
       "failureReason",
@@ -142,6 +157,69 @@ function readStatusField(value: unknown): SeedingLedgerRowStatus {
   }
 
   throw new Error(`status must be a valid seeding ledger status.`);
+}
+
+function readNullableObservedUnitStatus(
+  value: unknown,
+): SeedingObservedUnitStatus | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (value === "pending" || value === "filled" || value === "finalized") {
+    return value;
+  }
+
+  throw new Error("observedUnitStatus must be pending, filled, finalized, or null.");
+}
+
+function readNullablePreprocessLog(value: unknown): SeedingPreprocessLog | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== "object" || value === null) {
+    throw new Error("preprocessLog must be an object or null.");
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return {
+    imageKey: readStringField(record.imageKey, "preprocessLog.imageKey"),
+    filePath: readStringField(record.filePath, "preprocessLog.filePath"),
+    sourceByteSize: readNullableNumberField(
+      record.sourceByteSize,
+      "preprocessLog.sourceByteSize",
+    ) ?? 0,
+    outputByteSize: readNullableNumberField(
+      record.outputByteSize,
+      "preprocessLog.outputByteSize",
+    ) ?? 0,
+    originalWidth: readNullableNumberField(
+      record.originalWidth,
+      "preprocessLog.originalWidth",
+    ),
+    originalHeight: readNullableNumberField(
+      record.originalHeight,
+      "preprocessLog.originalHeight",
+    ),
+    originalFormat: readNullableStringField(
+      record.originalFormat,
+      "preprocessLog.originalFormat",
+    ),
+    normalizedWidth: readNullableNumberField(
+      record.normalizedWidth,
+      "preprocessLog.normalizedWidth",
+    ),
+    normalizedHeight: readNullableNumberField(
+      record.normalizedHeight,
+      "preprocessLog.normalizedHeight",
+    ),
+    normalizedFormat: readStringField(
+      record.normalizedFormat,
+      "preprocessLog.normalizedFormat",
+    ),
+  };
 }
 
 function isMissingFileError(error: unknown): boolean {

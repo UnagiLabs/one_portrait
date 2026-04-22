@@ -71,6 +71,22 @@ export {
   validateSeedingPreflight,
 } from "./seeding-preflight";
 export {
+  buildSeedingLedgerRows,
+  createSeedingDemoSubmissionRunner,
+  deriveSeedingSenders,
+  loadSeedingSenderConfig,
+  parseSeedingDemoSubmissionArgs,
+  parseSeedingSenderConfig,
+  type SeedingDemoSubmissionCliArgs,
+  type SeedingDemoSubmissionMode,
+  type SeedingDemoSubmissionRunResult,
+  type SeedingDemoSubmissionRunSummary,
+  type SeedingDemoSubmissionRunner,
+  type SeedingDemoSubmissionRunnerDeps,
+  type SeedingSender,
+  type SeedingSenderConfigEntry,
+} from "./seeding-runner";
+export {
   createEmptySeedingLedger,
   readSeedingLedger,
   type SeedingLedger,
