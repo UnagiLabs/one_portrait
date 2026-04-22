@@ -316,6 +316,7 @@ async function buildResponse(
     Pick<
       InstallMockOptions,
       | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
@@ -578,7 +579,9 @@ function handleOwnedObjects(
   options: Required<
     Pick<
       InstallMockOptions,
-      "ownedObjectsFailuresBeforeSuccess" | "kakeraVisibleAfterExecute"
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
+      | "kakeraVisibleAfterExecute"
     >
   >,
 ): Record<string, unknown> | MockHttpResponse {
