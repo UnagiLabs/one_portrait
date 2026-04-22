@@ -163,7 +163,13 @@ function DemoParticipationPreview(): React.ReactElement {
           className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950"
           type="button"
         >
-          Google でログイン
+          Google zkLogin
+        </button>
+        <button
+          className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100"
+          type="button"
+        >
+          Sui wallet
         </button>
       </div>
     </section>

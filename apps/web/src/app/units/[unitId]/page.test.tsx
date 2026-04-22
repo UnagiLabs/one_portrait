@@ -336,9 +336,8 @@ describe("UnitPage", () => {
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "347 /",
     );
-    expect(
-      screen.getByRole("button", { name: "Google でログイン" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
     expect(getUnitProgressMock).not.toHaveBeenCalled();
   });
 

@@ -80,6 +80,9 @@ vi.mock("@mysten/enoki", () => ({
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
+  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
+    <>{trigger}</>
+  ),
   useWallets: () => useWalletsMock(),
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
@@ -108,14 +111,26 @@ function makeFile(name = "photo.jpg", size = 1024): File {
   return new File([blob], name, { type: "image/jpeg" });
 }
 
-function setupSignedInEnv(): void {
+function setupSignedInEnv({
+  accountAddress = "0xabc123",
+  currentWalletId = "google-wallet",
+}: {
+  readonly accountAddress?: string;
+  readonly currentWalletId?: string;
+} = {}): void {
   useEnokiConfigStateMock.mockReturnValue({
     submitEnabled: true,
     config: {},
   });
-  useWalletsMock.mockReturnValue([{ id: "google-wallet" }]);
-  useCurrentAccountMock.mockReturnValue({ address: "0xabc123" });
-  useCurrentWalletMock.mockReturnValue({ connectionStatus: "connected" });
+  useWalletsMock.mockReturnValue([
+    { id: "google-wallet" },
+    { id: "sui-wallet" },
+  ]);
+  useCurrentAccountMock.mockReturnValue({ address: accountAddress });
+  useCurrentWalletMock.mockReturnValue({
+    connectionStatus: "connected",
+    currentWallet: { id: currentWalletId },
+  });
   useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
   useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
   useSubmitPhotoMock.mockReturnValue({
@@ -154,12 +169,15 @@ describe("ParticipationAccess", () => {
     expect(screen.getByText(/進捗の確認だけ使えます/)).toBeTruthy();
   });
 
-  it("shows the Google login button when the user is not signed in", () => {
+  it("shows both wallet choices when the user is not signed in", () => {
     useEnokiConfigStateMock.mockReturnValue({
       submitEnabled: true,
       config: {},
     });
-    useWalletsMock.mockReturnValue([{ id: "google-wallet" }]);
+    useWalletsMock.mockReturnValue([
+      { id: "google-wallet" },
+      { id: "sui-wallet" },
+    ]);
     useCurrentAccountMock.mockReturnValue(null);
     useCurrentWalletMock.mockReturnValue({
       connectionStatus: "disconnected",
@@ -174,11 +192,32 @@ describe("ParticipationAccess", () => {
     render(<ParticipationAccess unitId="0xunit-1" />);
 
     expect(
-      screen.getByRole("button", { name: "Google でログイン" }),
+      screen.getByText(
+        /Google zkLogin または Sui wallet を接続すると、この待機室から投稿できます。/,
+      ),
     ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
   });
 
-  it("shows a safe waiting-room message for a non-Google wallet", () => {
+  it("allows a connected Sui wallet to continue into the submit form", () => {
+    setupSignedInEnv({
+      accountAddress: "0xsui123",
+      currentWalletId: "sui-wallet",
+    });
+
+    render(<ParticipationAccess unitId="0xunit-1" />);
+
+    expect(
+      screen.getByText(/Sui wallet アドレスを確認できました/),
+    ).toBeTruthy();
+    expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
+    expect(
+      screen.queryByText(/履歴ギャラリーの確認だけ利用できます。/),
+    ).toBeNull();
+  });
+
+  it("shows a retry message when login fails", async () => {
     useEnokiConfigStateMock.mockReturnValue({
       submitEnabled: true,
       config: {},
@@ -187,35 +226,6 @@ describe("ParticipationAccess", () => {
       { id: "google-wallet" },
       { id: "sui-wallet" },
     ]);
-    useCurrentAccountMock.mockReturnValue({ address: "0xsui123" });
-    useCurrentWalletMock.mockReturnValue({
-      connectionStatus: "connected",
-      currentWallet: { id: "sui-wallet" },
-    });
-    useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
-    useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
-    useSubmitPhotoMock.mockReturnValue({
-      isSubmitting: false,
-      submitPhoto: vi.fn(),
-    });
-
-    render(<ParticipationAccess unitId="0xunit-1" />);
-
-    expect(
-      screen.getByText(/Sui wallet 接続を確認できました/),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "履歴ギャラリーを見る" }),
-    ).toBeTruthy();
-    expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
-  });
-
-  it("shows a retry message when login fails", async () => {
-    useEnokiConfigStateMock.mockReturnValue({
-      submitEnabled: true,
-      config: {},
-    });
-    useWalletsMock.mockReturnValue([{ id: "google-wallet" }]);
     useCurrentAccountMock.mockReturnValue(null);
     useCurrentWalletMock.mockReturnValue({
       connectionStatus: "disconnected",
@@ -231,7 +241,7 @@ describe("ParticipationAccess", () => {
 
     render(<ParticipationAccess unitId="0xunit-1" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toContain(
@@ -239,7 +249,7 @@ describe("ParticipationAccess", () => {
       );
     });
     expect(
-      screen.getByRole("button", { name: "もう一度ログイン" }),
+      screen.getByRole("button", { name: "Google zkLogin をやり直す" }),
     ).toBeTruthy();
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ConnectModal,
   useConnectWallet,
   useCurrentAccount,
   useCurrentWallet,
@@ -204,7 +205,7 @@ function ConnectedGalleryClient({
   if (!currentAccount?.address) {
     return (
       <GalleryStatusShell
-        description="先に Google でログインすると、あなたの Kakera 履歴を読み込めます。"
+        description="Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。"
         label="Wallet required"
         tone="info"
       >
@@ -218,11 +219,22 @@ function ConnectedGalleryClient({
             type="button"
           >
             {isConnecting
-              ? "ログイン中…"
+              ? "Google zkLogin 接続中…"
               : connectError
-                ? "もう一度ログイン"
-                : "Google でログイン"}
+                ? "Google zkLogin をやり直す"
+                : "Google zkLogin"}
           </button>
+          <ConnectModal
+            trigger={
+              <button
+                className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
+                type="button"
+              >
+                Sui wallet
+              </button>
+            }
+            walletFilter={(wallet) => !isGoogleWallet(wallet)}
+          />
         </div>
         {connectError ? (
           <p
