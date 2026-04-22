@@ -8,6 +8,7 @@ import type {
 } from "@one-portrait/shared";
 import type { MosaicPlacement } from "./assignment";
 import type { SuiNetwork } from "./env";
+import type { SeedingDigestStatus } from "./seeding-reconciliation";
 
 export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
   readonly masterId: string | null;
@@ -34,10 +35,20 @@ export type FinalizeTransactionResult = {
 
 export type GeneratorSuiReadClient = Pick<SuiJsonRpcClient, "getObject">;
 
+export type GeneratorSuiTransactionBlockClient = Pick<
+  SuiJsonRpcClient,
+  "getTransactionBlock"
+>;
+
 export type GeneratorSuiWriteClient = Pick<
   SuiJsonRpcClient,
   "signAndExecuteTransaction" | "waitForTransaction"
 >;
+
+export type SubmitPhotoTransactionResult = {
+  readonly digest: string;
+  readonly senderAddress: string;
+};
 
 const placementInputBcs = bcs.struct("PlacementInput", {
   blob_id: bcs.vector(bcs.u8()),
@@ -147,6 +158,78 @@ export function createFinalizeTransactionExecutor(input: {
   };
 }
 
+export function createSubmitPhotoTransactionExecutor(input: {
+  readonly client: GeneratorSuiWriteClient;
+  readonly packageId: string;
+  readonly privateKey: string;
+}): (args: {
+  readonly blobId: string;
+  readonly unitId: string;
+}) => Promise<SubmitPhotoTransactionResult> {
+  const signer = Ed25519Keypair.fromSecretKey(input.privateKey);
+
+  return async (args) => {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${input.packageId}::accessors::submit_photo`,
+      arguments: [
+        tx.object(args.unitId),
+        tx.pure.vector(
+          "u8",
+          Array.from(new TextEncoder().encode(args.blobId)),
+        ),
+        tx.object.clock(),
+      ],
+    });
+
+    const execution = await input.client.signAndExecuteTransaction({
+      signer,
+      transaction: tx,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    const confirmed = await input.client.waitForTransaction({
+      digest: execution.digest,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    if (readTransactionBlockStatus(confirmed) !== "success") {
+      throw new Error(
+        confirmed.effects?.status.error ?? "Submit photo transaction failed.",
+      );
+    }
+
+    return {
+      digest: execution.digest,
+      senderAddress: signer.toSuiAddress(),
+    };
+  };
+}
+
+export function createSeedingDigestStatusChecker(
+  client: GeneratorSuiTransactionBlockClient,
+): (txDigest: string) => Promise<SeedingDigestStatus> {
+  return async (txDigest: string) => {
+    try {
+      const transactionBlock = await client.getTransactionBlock({
+        digest: txDigest,
+        options: {
+          showEffects: true,
+        },
+      });
+
+      return readTransactionBlockStatus(transactionBlock);
+    } catch {
+      return "unknown";
+    }
+  };
+}
+
 type MoveStructLike = {
   readonly dataType: "moveObject";
   readonly fields: Record<string, unknown>;
@@ -166,6 +249,31 @@ function extractMoveObjectFields(content: unknown): Record<string, unknown> {
   }
 
   throw new Error("Expected moveObject fields in getObject response.");
+}
+
+export function readTransactionBlockStatus(
+  transactionBlock:
+    | {
+        readonly effects?: {
+          readonly status?: {
+            readonly status?: string;
+          };
+        } | null;
+      }
+    | null
+    | undefined,
+): SeedingDigestStatus {
+  const status = transactionBlock?.effects?.status?.status;
+
+  if (status === "success") {
+    return "success";
+  }
+
+  if (status === "failure") {
+    return "failed";
+  }
+
+  return "unknown";
 }
 
 function readSubmissions(value: unknown): readonly GeneratorSubmissionRef[] {

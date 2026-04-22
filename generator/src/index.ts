@@ -51,11 +51,21 @@ export {
   createSuiClient,
   createSeedingSnapshotLoader,
   createUnitSnapshotLoader,
+  createSeedingDigestStatusChecker,
+  createSubmitPhotoTransactionExecutor,
+  readTransactionBlockStatus,
   type FinalizeTransactionResult,
   type GeneratorUnitSnapshotLoader,
   type GeneratorSeedingSnapshot,
   type GeneratorSeedingSnapshotLoader,
+  type SubmitPhotoTransactionResult,
 } from "./sui";
+export {
+  createProgressAwareSubmissionHelper,
+  validateFinalSubmissionPostcondition,
+  type ProgressAwareSubmissionResult,
+  type SubmitPhotoTransactionExecutor,
+} from "./seeding-submit";
 export {
   type SeedingPreflightResult,
   validateSeedingPreflight,
