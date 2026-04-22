@@ -90,7 +90,8 @@ flowchart LR
         └─ Kakera (Soulbound)       blob_id / submission_no / unit_id
 
 [ Walrus ]      ファン投稿 980枚 (epochs=5, MVPでは長期保証なし) + 完成モザイク 1枚 (epochs=100)
-[ Cloudflare ]  Finalize Worker ─▶ Mosaic Generator Container (on-demand)
+[ Cloudflare ]  Finalize Worker ─▶ External Mosaic Generator
+[ manji PC ]    Node/TypeScript generator + Cloudflare Tunnel
 ```
 
 詳細なコンポーネント図とシーケンス図は [`docs/tech.md` §1](docs/tech.md) を参照。
@@ -121,7 +122,7 @@ flowchart LR
 | Sui SDK | `@mysten/sui` (PTB / イベント購読) |
 | Storage | Walrus (Publisher / Aggregator HTTP API) |
 | Smart Contract | Sui Move — 単一パッケージ `one_portrait` |
-| Backend | Cloudflare Worker + on-demand Container (sharp / libvips) |
+| Backend | Cloudflare Worker + external Node/TypeScript generator on `manji` PC (`sharp` / `libvips`) |
 | Runtime | Node.js 20+ / pnpm workspace |
 
 ---
@@ -132,7 +133,7 @@ flowchart LR
 one_portrait/
 ├── apps/web/        Next.js App Router の土台
 ├── contracts/       Move package `one_portrait`
-├── generator/       モザイク生成コンテナの入口
+├── generator/       `manji` PC 上で動かす finalize generator
 ├── shared/          Web / Generator 共通の型と定数
 ├── docs/            仕様書
 └── scripts/         開発補助スクリプト
@@ -194,3 +195,4 @@ sui move test --list --test
 - 📘 [`docs/spec.md`](docs/spec.md) — プロダクト・体験仕様（ユーザー層 / 機能要件 / フロー / Sui・Walrus 活用意義）
 - 🛠 [`docs/tech.md`](docs/tech.md) — 技術仕様（アーキテクチャ / シーケンス図 / Move / Frontend / Backend / 整合性 / セキュリティ）
 - ✅ [`docs/demo-smoke.md`](docs/demo-smoke.md) — デモ前に実送信主線を 1 回確認する runbook
+- 🚦 [`docs/finalize-generator-runbook.md`](docs/finalize-generator-runbook.md) — generator 起動、Cloudflare Tunnel、復旧手順
