@@ -20,6 +20,8 @@ export type {
   SuiTransactionReadClient,
 } from "./client";
 export { createSuiClient, getSuiClient, resolveFullnodeUrl } from "./client";
+export type { AdminUnitSnapshot } from "./admin-unit";
+export { getAdminUnitSnapshot } from "./admin-unit";
 export type {
   MosaicReadyEvent,
   RawSuiEventLike,
