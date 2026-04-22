@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { installDefaultMocks, STUB_MASTER_ID } from "./fixtures/mock-network";
+import {
+  STUB_MASTER_ID,
+  STUB_UNIT_ID,
+} from "../../src/lib/e2e/stub-data";
+import { installDefaultMocks } from "./fixtures/mock-network";
 
 test.describe("gallery states", () => {
   test("shows the empty gallery state", async ({ page }) => {
@@ -52,6 +56,33 @@ test.describe("gallery states", () => {
       page.getByAltText(/Demo Athlete One completed mosaic/i),
     ).toBeVisible();
     await expect(page.getByText(/Placed at 12, 8/i)).toBeVisible();
+  });
+
+  test("navigates from a completed card to the finalized unit page", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page, { galleryEntryMode: "completed" });
+
+    await page.goto("/gallery");
+
+    const unitLink = page.getByRole("link", {
+      name: /unit ページで位置を見る/i,
+    });
+
+    await expect(unitLink).toHaveAttribute(
+      "href",
+      `/units/${STUB_UNIT_ID}?athleteName=Demo+Athlete+One&op_e2e_unit_progress=finalized`,
+    );
+
+    await unitLink.click();
+
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/units/${STUB_UNIT_ID}\\?athleteName=Demo\\+Athlete\\+One&op_e2e_unit_progress=finalized`,
+      ),
+    );
+    await expect(page.getByTestId("reveal-image")).toBeVisible();
+    await expect(page.getByTestId("placement-highlight")).toBeVisible();
   });
 
   test("renders an entry unavailable gallery card when hydration fails", async ({
