@@ -10,6 +10,7 @@
  * - Sui JSON-RPC (fullnode.testnet.sui.io) — dispatched by `method`.
  * - `/api/enoki/submit-photo/sponsor` / `/execute` — configurable success or
  *   recovery failure.
+ * - `/api/finalize` — observation stub for the later finalize bridge.
  * - Walrus Publisher `PUT /v1/blobs` — return stub `blobId`.
  */
 
@@ -50,6 +51,9 @@ export type MockState = {
   sponsorRequests: number;
   executeRequests: number;
   publisherRequests: number;
+  eventQueries: number;
+  finalizeRequests: number;
+  lastFinalizeUnitId: string | null;
 };
 
 type MockHttpResponse = {
@@ -93,6 +97,9 @@ export async function installDefaultMocks(
     sponsorRequests: 0,
     executeRequests: 0,
     publisherRequests: 0,
+    eventQueries: 0,
+    finalizeRequests: 0,
+    lastFinalizeUnitId: null,
   };
   const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
@@ -169,6 +176,18 @@ export async function installDefaultMocks(
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ digest: STUB_DIGEST }),
+    });
+  });
+
+  await page.route("**/api/finalize", async (route) => {
+    state.finalizeRequests += 1;
+    state.lastFinalizeUnitId = extractFinalizeUnitId(
+      safeParseJson(route.request().postData() ?? ""),
+    );
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
     });
   });
 
@@ -314,6 +333,7 @@ async function buildResponse(
     case "sui_getTransactionBlock":
       return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
+      state.eventQueries += 1;
       return envelope({ data: [], hasNextPage: false, nextCursor: null });
     case "suix_getOwnedObjects": {
       const ownedObjects = handleOwnedObjects(params, state, options);
@@ -614,6 +634,14 @@ function isMockHttpResponse(
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractFinalizeUnitId(value: unknown): string | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  return typeof value.unitId === "string" ? value.unitId : null;
 }
 
 function safeParseJson(raw: string): unknown {

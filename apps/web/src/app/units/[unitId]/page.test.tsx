@@ -366,6 +366,36 @@ describe("UnitPage", () => {
     expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
   });
 
+  it("applies the active unit bootstrap only in stub E2E mode", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-active" }),
+      searchParams: Promise.resolve({
+        athleteName: "Demo Athlete One",
+        op_e2e_unit_progress: "active",
+      }),
+    });
+    render(ui);
+
+    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        new RegExp(
+          `${unitTileCount - 1}\\s*/\\s*${unitTileCount}`,
+        ),
+      ),
+    ).toBeTruthy();
+  });
+
   it("ignores the degraded unit seam outside stub E2E mode", async () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",

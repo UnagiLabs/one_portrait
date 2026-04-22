@@ -44,16 +44,14 @@ export default async function UnitPage(
   const { unitId } = await props.params;
   const searchParams = await props.searchParams;
   const demoMode = isDemoModeEnabled(process.env);
-  const e2eDegradedProgress = shouldUseE2EDegradedUnitProgress(
+  const e2eBootstrapProgress = resolveE2EUnitProgress(
     searchParams.op_e2e_unit_progress,
   );
 
   const packageId = safePackageId();
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
-    : e2eDegradedProgress
-      ? degradedProgress()
-      : await safeGetUnitProgress(unitId);
+    : e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId));
   const athlete = progress.athletePublicId
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;
@@ -238,10 +236,29 @@ function degradedProgress(): ResolvedProgress {
   };
 }
 
-function shouldUseE2EDegradedUnitProgress(
+function resolveE2EUnitProgress(
   rawOverride: string | undefined,
-): boolean {
-  return (
-    process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1" && rawOverride === "missing"
-  );
+): ResolvedProgress | null {
+  if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET !== "1" || !rawOverride) {
+    return null;
+  }
+
+  if (rawOverride === "missing") {
+    return degradedProgress();
+  }
+
+  if (rawOverride === "active") {
+    return activeProgress();
+  }
+
+  return null;
+}
+
+function activeProgress(): ResolvedProgress {
+  return {
+    submittedCount: FALLBACK_MAX_SLOTS - 1,
+    maxSlots: FALLBACK_MAX_SLOTS,
+    athletePublicId: "1",
+    masterId: null,
+  };
 }
