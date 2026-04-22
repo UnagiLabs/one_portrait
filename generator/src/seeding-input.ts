@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 export type SeedingInputEntry = {
@@ -108,9 +108,7 @@ function normalizeManifestEntry(
   const filePath = path.resolve(manifestDir, rawFilePath);
 
   return {
-    imageKey:
-      entry.imageKey ??
-      fallbackImageKey(filePath, manifestDir),
+    imageKey: entry.imageKey ?? fallbackImageKey(filePath, manifestDir),
     filePath,
   };
 }

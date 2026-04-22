@@ -62,16 +62,18 @@ describe("seeding input normalization", () => {
         "utf8",
       );
 
-      await expect(loadSeedingInputFromManifest(manifestPath)).resolves.toEqual([
-        {
-          imageKey: "a.png",
-          filePath: join(dir, "a.png"),
-        },
-        {
-          imageKey: "b.webp",
-          filePath: join(dir, "b.webp"),
-        },
-      ]);
+      await expect(loadSeedingInputFromManifest(manifestPath)).resolves.toEqual(
+        [
+          {
+            imageKey: "a.png",
+            filePath: join(dir, "a.png"),
+          },
+          {
+            imageKey: "b.webp",
+            filePath: join(dir, "b.webp"),
+          },
+        ],
+      );
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

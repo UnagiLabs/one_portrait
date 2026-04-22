@@ -175,10 +175,7 @@ export function createSubmitPhotoTransactionExecutor(input: {
       target: `${input.packageId}::accessors::submit_photo`,
       arguments: [
         tx.object(args.unitId),
-        tx.pure.vector(
-          "u8",
-          Array.from(new TextEncoder().encode(args.blobId)),
-        ),
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(args.blobId))),
         tx.object.clock(),
       ],
     });

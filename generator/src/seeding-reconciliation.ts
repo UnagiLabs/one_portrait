@@ -1,9 +1,9 @@
-import type { GeneratorSeedingSnapshot } from "./sui";
 import type {
   SeedingLedger,
   SeedingLedgerRow,
   SeedingLedgerRowStatus,
 } from "./seeding-ledger";
+import type { GeneratorSeedingSnapshot } from "./sui";
 
 export type SeedingDigestStatus = "success" | "failed" | "unknown";
 
@@ -47,7 +47,8 @@ export async function reconcileSeedingLedger(input: {
       continue;
     }
 
-    const submission = pairKey === null ? undefined : submissionByPair.get(pairKey);
+    const submission =
+      pairKey === null ? undefined : submissionByPair.get(pairKey);
 
     if (submission !== undefined) {
       rows.push({
@@ -108,11 +109,14 @@ export async function reconcileSeedingLedger(input: {
   };
 }
 
-function buildSubmissionIndex(snapshot: GeneratorSeedingSnapshot): Map<string, {
-  readonly submissionNo: number;
-  readonly submitter: string;
-  readonly walrusBlobId: string;
-}> {
+function buildSubmissionIndex(snapshot: GeneratorSeedingSnapshot): Map<
+  string,
+  {
+    readonly submissionNo: number;
+    readonly submitter: string;
+    readonly walrusBlobId: string;
+  }
+> {
   const index = new Map<
     string,
     {

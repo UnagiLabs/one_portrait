@@ -3,25 +3,29 @@ import { readFile } from "node:fs/promises";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 
 import type { SeedingInputEntry } from "./seeding-input";
-import type { SeedingLedger, SeedingLedgerRow, SeedingLedgerRowStatus } from "./seeding-ledger";
+import type {
+  SeedingLedger,
+  SeedingLedgerRow,
+  SeedingLedgerRowStatus,
+} from "./seeding-ledger";
+import { validateSeedingPreflight } from "./seeding-preflight";
 import {
   reconcileSeedingLedger,
   type SeedingDigestStatusChecker,
   type SeedingReconciliationSummary,
 } from "./seeding-reconciliation";
-import { validateSeedingPreflight } from "./seeding-preflight";
-import type {
-  GeneratorSeedingSnapshot,
-  GeneratorSeedingSnapshotLoader,
-} from "./sui";
+import type { ProgressAwareSubmissionResult } from "./seeding-submit";
+import { validateFinalSubmissionPostcondition } from "./seeding-submit";
 import type {
   SeedingPreprocessedImage,
   SeedingUploadCandidate,
   SeedingWalrusUploadResult,
 } from "./seeding-upload";
 import { validateUniqueSeedingBlobIds } from "./seeding-upload";
-import type { ProgressAwareSubmissionResult } from "./seeding-submit";
-import { validateFinalSubmissionPostcondition } from "./seeding-submit";
+import type {
+  GeneratorSeedingSnapshot,
+  GeneratorSeedingSnapshotLoader,
+} from "./sui";
 
 export type SeedingSenderConfigEntry = {
   readonly label?: string;
@@ -73,7 +77,10 @@ export type SeedingDemoSubmissionRunnerDeps = {
       readonly unitId: string;
     },
   ) => Promise<ProgressAwareSubmissionResult>;
-  readonly writeLedger: (filePath: string, ledger: SeedingLedger) => Promise<void>;
+  readonly writeLedger: (
+    filePath: string,
+    ledger: SeedingLedger,
+  ) => Promise<void>;
 };
 
 export type SeedingDemoSubmissionRunSummary = {
@@ -100,7 +107,9 @@ export type SeedingDemoSubmissionRunResult = {
 };
 
 export type SeedingDemoSubmissionRunner = {
-  run(options: SeedingDemoSubmissionCliArgs): Promise<SeedingDemoSubmissionRunResult>;
+  run(
+    options: SeedingDemoSubmissionCliArgs,
+  ): Promise<SeedingDemoSubmissionRunResult>;
 };
 
 export function createSeedingDemoSubmissionRunner(
@@ -191,11 +200,7 @@ export function createSeedingDemoSubmissionRunner(
       await deps.writeLedger(options.ledger, workingLedger);
 
       const uploadCandidates: SeedingUploadCandidate[] = workingRows
-        .filter(
-          (row) =>
-            row.blobId !== null &&
-            row.status !== "failed",
-        )
+        .filter((row) => row.blobId !== null && row.status !== "failed")
         .map((row) => ({
           imageKey: row.imageKey,
           blobId: row.blobId as string,
@@ -212,7 +217,8 @@ export function createSeedingDemoSubmissionRunner(
         submitPhotoForSender: deps.submitPhotoForSender,
         unitId: options.unitId,
         uploadCandidates,
-        writeLedger: async () => deps.writeLedger(options.ledger, workingLedger),
+        writeLedger: async () =>
+          deps.writeLedger(options.ledger, workingLedger),
       });
 
       if (
@@ -273,7 +279,9 @@ export function deriveSeedingSenders(
   const senders: SeedingSender[] = [];
 
   for (const entry of entries) {
-    const address = Ed25519Keypair.fromSecretKey(entry.privateKey).toSuiAddress();
+    const address = Ed25519Keypair.fromSecretKey(
+      entry.privateKey,
+    ).toSuiAddress();
 
     if (seenAddresses.has(address)) {
       throw new Error(
@@ -492,9 +500,7 @@ function readSenderConfigEntries(value: unknown): readonly unknown[] {
   throw new Error("Sender config JSON did not include any sender entries.");
 }
 
-function normalizeSenderConfigEntry(
-  value: unknown,
-): SeedingSenderConfigEntry {
+function normalizeSenderConfigEntry(value: unknown): SeedingSenderConfigEntry {
   if (typeof value === "string") {
     return {
       privateKey: decodePrivateKey(value),
@@ -508,7 +514,9 @@ function normalizeSenderConfigEntry(
   }
 
   if (typeof value !== "object" || value === null) {
-    throw new Error("Sender config entries must be strings, arrays, or objects.");
+    throw new Error(
+      "Sender config entries must be strings, arrays, or objects.",
+    );
   }
 
   const record = value as Record<string, unknown>;

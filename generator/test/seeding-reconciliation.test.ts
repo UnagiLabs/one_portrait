@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type GeneratorSeedingSnapshot,
   reconcileSeedingLedger,
   type SeedingLedger,
   type SeedingLedgerRow,
-  type GeneratorSeedingSnapshot,
 } from "../src";
 
 describe("reconcileSeedingLedger", () => {
@@ -18,7 +18,9 @@ describe("reconcileSeedingLedger", () => {
         status: "uploaded",
       }),
     ]);
-    const checkDigestStatus = vi.fn(async (_txDigest: string) => "unknown" as const);
+    const checkDigestStatus = vi.fn(
+      async (_txDigest: string) => "unknown" as const,
+    );
 
     const result = await reconcileSeedingLedger({
       ledger,
@@ -63,7 +65,9 @@ describe("reconcileSeedingLedger", () => {
         status: "uploaded",
       }),
     ]);
-    const checkDigestStatus = vi.fn(async (_txDigest: string) => "success" as const);
+    const checkDigestStatus = vi.fn(
+      async (_txDigest: string) => "success" as const,
+    );
 
     const result = await reconcileSeedingLedger({
       ledger,
@@ -100,7 +104,9 @@ describe("reconcileSeedingLedger", () => {
         status: "uploaded",
       }),
     ]);
-    const checkDigestStatus = vi.fn(async (_txDigest: string) => "failed" as const);
+    const checkDigestStatus = vi.fn(
+      async (_txDigest: string) => "failed" as const,
+    );
 
     const result = await reconcileSeedingLedger({
       ledger,
@@ -137,7 +143,9 @@ describe("reconcileSeedingLedger", () => {
         status: "uploaded",
       }),
     ]);
-    const checkDigestStatus = vi.fn(async (_txDigest: string) => "unknown" as const);
+    const checkDigestStatus = vi.fn(
+      async (_txDigest: string) => "unknown" as const,
+    );
 
     const result = await reconcileSeedingLedger({
       ledger,
@@ -250,13 +258,16 @@ function snapshot(
     targetWalrusBlobId: overrides.targetWalrusBlobId ?? "target-blob",
     unitId: overrides.unitId ?? "0xunit-1",
     submissions: overrides.submissions ?? [],
-    submittedCount: overrides.submittedCount ?? (overrides.submissions?.length ?? 0),
+    submittedCount:
+      overrides.submittedCount ?? overrides.submissions?.length ?? 0,
     maxSlots: overrides.maxSlots ?? 5,
     status: overrides.status ?? "pending",
     masterId: overrides.masterId ?? null,
     submitterAddresses:
       overrides.submitterAddresses ??
-      Array.from(new Set((overrides.submissions ?? []).map((entry) => entry.submitter))),
+      Array.from(
+        new Set((overrides.submissions ?? []).map((entry) => entry.submitter)),
+      ),
   };
 }
 

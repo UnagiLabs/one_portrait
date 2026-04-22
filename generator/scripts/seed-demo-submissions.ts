@@ -2,12 +2,12 @@ import path from "node:path";
 
 import {
   createProgressAwareSubmissionHelper,
-  createSeedingDigestStatusChecker,
   createSeedingDemoSubmissionRunner,
+  createSeedingDigestStatusChecker,
   createSeedingSnapshotLoader,
   createSeedingWalrusUploadClient,
-  createSuiClient,
   createSubmitPhotoTransactionExecutor,
+  createSuiClient,
   deriveSeedingSenders,
   loadSeedingInputFromDirectory,
   loadSeedingInputFromManifest,
@@ -91,9 +91,7 @@ async function buildSubmitPhotoForSender(input: {
   readonly readSeedingSnapshot: ReturnType<typeof createSeedingSnapshotLoader>;
   readonly senders: ReturnType<typeof deriveSeedingSenders>;
   readonly suiClient: ReturnType<typeof createSuiClient>;
-}): Promise<
-  SeedingDemoSubmissionRunnerDeps["submitPhotoForSender"]
-> {
+}): Promise<SeedingDemoSubmissionRunnerDeps["submitPhotoForSender"]> {
   const submitters = new Map(
     input.senders.map((sender) => [
       sender.address,

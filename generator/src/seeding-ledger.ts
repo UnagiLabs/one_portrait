@@ -36,7 +36,9 @@ export function createEmptySeedingLedger(): SeedingLedger {
   };
 }
 
-export async function readSeedingLedger(filePath: string): Promise<SeedingLedger> {
+export async function readSeedingLedger(
+  filePath: string,
+): Promise<SeedingLedger> {
   try {
     const raw = await readFile(filePath, "utf8");
     return parseSeedingLedger(raw);
@@ -90,19 +92,21 @@ function parseSeedingLedgerRow(value: unknown): SeedingLedgerRow {
     imageKey: readStringField(record.imageKey, "imageKey"),
     senderAddress: readStringField(record.senderAddress, "senderAddress"),
     blobId: readNullableStringField(record.blobId, "blobId"),
-    aggregatorUrl: readNullableStringField(record.aggregatorUrl, "aggregatorUrl"),
-    txDigest: readNullableStringField(record.txDigest, "txDigest"),
-    submissionNo: readNullableNumberField(
-      record.submissionNo,
-      "submissionNo",
+    aggregatorUrl: readNullableStringField(
+      record.aggregatorUrl,
+      "aggregatorUrl",
     ),
+    txDigest: readNullableStringField(record.txDigest, "txDigest"),
+    submissionNo: readNullableNumberField(record.submissionNo, "submissionNo"),
     status: readStatusField(record.status),
     preprocessLog: readNullablePreprocessLog(record.preprocessLog),
     observedSubmittedCount: readNullableNumberField(
       record.observedSubmittedCount,
       "observedSubmittedCount",
     ),
-    observedUnitStatus: readNullableObservedUnitStatus(record.observedUnitStatus),
+    observedUnitStatus: readNullableObservedUnitStatus(
+      record.observedUnitStatus,
+    ),
     failureReason: readNullableStringField(
       record.failureReason,
       "failureReason",
@@ -130,10 +134,7 @@ function readNullableStringField(value: unknown, label: string): string | null {
   throw new Error(`${label} must be a string or null.`);
 }
 
-function readNullableNumberField(
-  value: unknown,
-  label: string,
-): number | null {
+function readNullableNumberField(value: unknown, label: string): number | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -170,10 +171,14 @@ function readNullableObservedUnitStatus(
     return value;
   }
 
-  throw new Error("observedUnitStatus must be pending, filled, finalized, or null.");
+  throw new Error(
+    "observedUnitStatus must be pending, filled, finalized, or null.",
+  );
 }
 
-function readNullablePreprocessLog(value: unknown): SeedingPreprocessLog | null {
+function readNullablePreprocessLog(
+  value: unknown,
+): SeedingPreprocessLog | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -187,14 +192,16 @@ function readNullablePreprocessLog(value: unknown): SeedingPreprocessLog | null 
   return {
     imageKey: readStringField(record.imageKey, "preprocessLog.imageKey"),
     filePath: readStringField(record.filePath, "preprocessLog.filePath"),
-    sourceByteSize: readNullableNumberField(
-      record.sourceByteSize,
-      "preprocessLog.sourceByteSize",
-    ) ?? 0,
-    outputByteSize: readNullableNumberField(
-      record.outputByteSize,
-      "preprocessLog.outputByteSize",
-    ) ?? 0,
+    sourceByteSize:
+      readNullableNumberField(
+        record.sourceByteSize,
+        "preprocessLog.sourceByteSize",
+      ) ?? 0,
+    outputByteSize:
+      readNullableNumberField(
+        record.outputByteSize,
+        "preprocessLog.outputByteSize",
+      ) ?? 0,
     originalWidth: readNullableNumberField(
       record.originalWidth,
       "preprocessLog.originalWidth",

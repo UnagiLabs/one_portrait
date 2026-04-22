@@ -160,7 +160,9 @@ describe("validateUniqueSeedingBlobIds", () => {
   });
 });
 
-async function createImage(format: "jpeg" | "png" | "webp"): Promise<Uint8Array> {
+async function createImage(
+  format: "jpeg" | "png" | "webp",
+): Promise<Uint8Array> {
   const buffer = await sharp({
     create: {
       width: 2,

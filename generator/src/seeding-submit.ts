@@ -4,12 +4,10 @@ import type {
   SubmitPhotoTransactionResult,
 } from "./sui";
 
-export type SubmitPhotoTransactionExecutor = (
-  args: {
-    readonly blobId: string;
-    readonly unitId: string;
-  },
-) => Promise<SubmitPhotoTransactionResult>;
+export type SubmitPhotoTransactionExecutor = (args: {
+  readonly blobId: string;
+  readonly unitId: string;
+}) => Promise<SubmitPhotoTransactionResult>;
 
 export type ProgressAwareSubmissionResult = SubmitPhotoTransactionResult & {
   readonly snapshot: GeneratorSeedingSnapshot;
@@ -32,7 +30,11 @@ export function createProgressAwareSubmissionHelper(input: {
     return {
       ...submitted,
       snapshot,
-      submissionNo: findSubmissionNo(snapshot, submitted.senderAddress, args.blobId),
+      submissionNo: findSubmissionNo(
+        snapshot,
+        submitted.senderAddress,
+        args.blobId,
+      ),
       submittedCount: snapshot.submittedCount,
       status: snapshot.status,
     };

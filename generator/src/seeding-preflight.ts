@@ -14,7 +14,9 @@ export function validateSeedingPreflight(
   senderPool: readonly string[],
 ): SeedingPreflightResult {
   if (snapshot.status !== "pending") {
-    throw new Error("Seeding preflight requires the unit status to be pending.");
+    throw new Error(
+      "Seeding preflight requires the unit status to be pending.",
+    );
   }
 
   if (targetCount >= snapshot.maxSlots) {
@@ -53,7 +55,9 @@ function ensureUniqueSenderPool(senderPool: readonly string[]): void {
 
   for (const senderAddress of senderPool) {
     if (seen.has(senderAddress)) {
-      throw new Error(`Sender pool contains duplicate address: ${senderAddress}`);
+      throw new Error(
+        `Sender pool contains duplicate address: ${senderAddress}`,
+      );
     }
 
     seen.add(senderAddress);

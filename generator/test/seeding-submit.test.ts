@@ -212,9 +212,7 @@ describe("seeding submit helpers", () => {
     ];
 
     for (const invalidCase of invalidCases) {
-      expect(() =>
-        validateFinalSubmissionPostcondition(invalidCase),
-      ).toThrow();
+      expect(() => validateFinalSubmissionPostcondition(invalidCase)).toThrow();
     }
   });
 });
@@ -227,13 +225,16 @@ function snapshot(
     targetWalrusBlobId: overrides.targetWalrusBlobId ?? "target-blob",
     unitId: overrides.unitId ?? "0xunit-1",
     submissions: overrides.submissions ?? [],
-    submittedCount: overrides.submittedCount ?? (overrides.submissions?.length ?? 0),
+    submittedCount:
+      overrides.submittedCount ?? overrides.submissions?.length ?? 0,
     maxSlots: overrides.maxSlots ?? 5,
     status: overrides.status ?? "pending",
     masterId: overrides.masterId ?? null,
     submitterAddresses:
       overrides.submitterAddresses ??
-      Array.from(new Set((overrides.submissions ?? []).map((entry) => entry.submitter))),
+      Array.from(
+        new Set((overrides.submissions ?? []).map((entry) => entry.submitter)),
+      ),
   };
 }
 

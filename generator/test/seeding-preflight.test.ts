@@ -6,11 +6,10 @@ import { validateSeedingPreflight } from "../src";
 describe("validateSeedingPreflight", () => {
   it("rejects units that are not pending", () => {
     expect(() =>
-      validateSeedingPreflight(
-        snapshot({ status: "filled" }),
-        3,
-        ["0xsender-1", "0xsender-2"],
-      ),
+      validateSeedingPreflight(snapshot({ status: "filled" }), 3, [
+        "0xsender-1",
+        "0xsender-2",
+      ]),
     ).toThrow(/pending/);
   });
 
@@ -22,21 +21,16 @@ describe("validateSeedingPreflight", () => {
 
   it("rejects targetCount values below the current submittedCount", () => {
     expect(() =>
-      validateSeedingPreflight(
-        snapshot({ submittedCount: 3 }),
-        2,
-        ["0xsender-1", "0xsender-2"],
-      ),
+      validateSeedingPreflight(snapshot({ submittedCount: 3 }), 2, [
+        "0xsender-1",
+        "0xsender-2",
+      ]),
     ).toThrow(/submittedCount/);
   });
 
   it("rejects duplicate sender addresses in the pool", () => {
     expect(() =>
-      validateSeedingPreflight(
-        snapshot(),
-        3,
-        ["0xsender-1", "0xsender-1"],
-      ),
+      validateSeedingPreflight(snapshot(), 3, ["0xsender-1", "0xsender-1"]),
     ).toThrow(/duplicate/i);
   });
 
@@ -66,11 +60,7 @@ describe("validateSeedingPreflight", () => {
     expect(result).toEqual({
       targetCount: 4,
       remainingCount: 2,
-      availableSenderAddresses: [
-        "0xsender-1",
-        "0xsender-2",
-        "0xsender-3",
-      ],
+      availableSenderAddresses: ["0xsender-1", "0xsender-2", "0xsender-3"],
       currentSubmittedCount: 2,
       maxSlots: 5,
     });
