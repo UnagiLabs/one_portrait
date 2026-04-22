@@ -15,6 +15,11 @@ import Link from "next/link";
 
 import { getAthleteByPublicId } from "../../../lib/catalog";
 import { getDemoUnitProgress, isDemoModeEnabled } from "../../../lib/demo";
+import {
+  STUB_ATHLETE_ID,
+  STUB_MASTER_ID,
+  STUB_UNIT_ID,
+} from "../../../lib/e2e/stub-data";
 import { loadPublicEnv } from "../../../lib/env";
 import { getUnitProgress } from "../../../lib/sui";
 
@@ -45,6 +50,7 @@ export default async function UnitPage(
   const searchParams = await props.searchParams;
   const demoMode = isDemoModeEnabled(process.env);
   const e2eBootstrapProgress = resolveE2EUnitProgress(
+    unitId,
     searchParams.op_e2e_unit_progress,
   );
 
@@ -237,6 +243,7 @@ function degradedProgress(): ResolvedProgress {
 }
 
 function resolveE2EUnitProgress(
+  unitId: string,
   rawOverride: string | undefined,
 ): ResolvedProgress | null {
   if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET !== "1" || !rawOverride) {
@@ -251,6 +258,10 @@ function resolveE2EUnitProgress(
     return activeProgress();
   }
 
+  if (rawOverride === "finalized" && unitId === STUB_UNIT_ID) {
+    return finalizedProgress();
+  }
+
   return null;
 }
 
@@ -260,5 +271,14 @@ function activeProgress(): ResolvedProgress {
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: "1",
     masterId: null,
+  };
+}
+
+function finalizedProgress(): ResolvedProgress {
+  return {
+    submittedCount: FALLBACK_MAX_SLOTS,
+    maxSlots: FALLBACK_MAX_SLOTS,
+    athletePublicId: STUB_ATHLETE_ID,
+    masterId: STUB_MASTER_ID,
   };
 }
