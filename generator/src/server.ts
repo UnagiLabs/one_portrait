@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { isValidSuiObjectId } from "@mysten/sui/utils";
 
-import { loadGeneratorRuntimeEnv } from "./env";
+import { generatorRuntimeEnvKeys, loadGeneratorRuntimeEnv } from "./env";
 import {
   createFinalizeRunnerFromEndpoints,
   type FinalizeRunResult,
@@ -27,6 +27,15 @@ export async function handleRequest(
   response: http.ServerResponse,
 ): Promise<void> {
   if (request.method === "GET" && request.url === "/health") {
+    const readiness = getDispatchReadiness(process.env);
+    if (!readiness.ready) {
+      writeJson(response, 503, {
+        error: "server_misconfigured",
+        message: `Missing required generator env variable(s): ${readiness.missing.join(", ")}.`,
+      });
+      return;
+    }
+
     response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
     response.end("ok");
     return;
@@ -140,19 +149,20 @@ function validateDispatchAuthorization(request: http.IncomingMessage): {
   readonly status: 401 | 500;
   readonly payload: { readonly error: string; readonly message: string };
 } | null {
-  const configuredSecret = normalizeHeaderValue(
-    process.env.OP_FINALIZE_DISPATCH_SECRET,
-  );
-  if (configuredSecret === null) {
+  const readiness = getDispatchReadiness(process.env);
+  if (!readiness.ready) {
     return {
       status: 500,
       payload: {
         error: "server_misconfigured",
-        message: "Generator dispatch secret is not configured.",
+        message: `Missing required generator env variable(s): ${readiness.missing.join(", ")}.`,
       },
     };
   }
 
+  const configuredSecret = normalizeHeaderValue(
+    process.env.OP_FINALIZE_DISPATCH_SECRET,
+  );
   const providedSecret = normalizeHeaderValue(
     request.headers[DISPATCH_SECRET_HEADER],
   );
@@ -175,6 +185,28 @@ function normalizeHeaderValue(
   const candidate = Array.isArray(value) ? value[0] : value;
   const normalized = typeof candidate === "string" ? candidate.trim() : "";
   return normalized.length > 0 ? normalized : null;
+}
+
+function getDispatchReadiness(
+  source: NodeJS.ProcessEnv,
+):
+  | { readonly ready: true }
+  | { readonly ready: false; readonly missing: readonly string[] } {
+  const missing = [
+    ...generatorRuntimeEnvKeys,
+    "OP_FINALIZE_DISPATCH_SECRET",
+  ].filter((key) => normalizeHeaderValue(source[key]) === null);
+
+  if (missing.length > 0) {
+    return {
+      ready: false,
+      missing,
+    };
+  }
+
+  return {
+    ready: true,
+  };
 }
 
 function isMainModule() {

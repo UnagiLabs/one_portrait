@@ -87,6 +87,9 @@ corepack pnpm --filter web run generator
 curl http://127.0.0.1:8080/health
 ```
 
+この health は readiness check です。
+必要な env が欠けると `503` を返します。
+
 5. Tunnel を起動します。
 
 ```bash
@@ -129,6 +132,7 @@ curl https://<hostname>/health
 
 | 症状 | まず見る場所 |
 | :--- | :--- |
+| `/health` が `503` を返す | generator 側の `SUI_NETWORK`、`PACKAGE_ID`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`WALRUS_*`、`OP_FINALIZE_DISPATCH_SECRET` |
 | `/health` は local で通るが外部で通らない | `cloudflared tunnel run` のログ、DNS、`config.yml` |
 | `/dispatch` が `401` を返す | Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch` が `500` を返す | generator 側の `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`PACKAGE_ID`、`SUI_NETWORK` |

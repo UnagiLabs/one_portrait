@@ -3,6 +3,14 @@ import type http from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../src/env", () => ({
+  generatorRuntimeEnvKeys: [
+    "SUI_NETWORK",
+    "PACKAGE_ID",
+    "ADMIN_CAP_ID",
+    "ADMIN_SUI_PRIVATE_KEY",
+    "WALRUS_PUBLISHER",
+    "WALRUS_AGGREGATOR",
+  ],
   loadGeneratorRuntimeEnv: vi.fn(() => ({
     adminCapId: "0xadmincap",
     adminPrivateKey: "suiprivkey",
@@ -36,13 +44,41 @@ const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
 afterEach(() => {
-  delete process.env.OP_FINALIZE_DISPATCH_SECRET;
+  for (const key of [
+    "ADMIN_CAP_ID",
+    "ADMIN_SUI_PRIVATE_KEY",
+    "OP_FINALIZE_DISPATCH_SECRET",
+    "PACKAGE_ID",
+    "SUI_NETWORK",
+    "WALRUS_AGGREGATOR",
+    "WALRUS_PUBLISHER",
+  ]) {
+    delete process.env[key];
+  }
   runMock.mockClear();
 });
 
 describe("generator server", () => {
+  it("returns 503 on /health when dispatch readiness is incomplete", async () => {
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/health`);
+
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({
+        error: "server_misconfigured",
+        message:
+          "Missing required generator env variable(s): SUI_NETWORK, PACKAGE_ID, ADMIN_CAP_ID, ADMIN_SUI_PRIVATE_KEY, WALRUS_PUBLISHER, WALRUS_AGGREGATOR, OP_FINALIZE_DISPATCH_SECRET.",
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
   it("returns 401 for /dispatch when the shared secret is missing", async () => {
-    process.env.OP_FINALIZE_DISPATCH_SECRET = "shared-secret";
+    setReadyGeneratorEnv();
 
     const server = createGeneratorServer();
     const baseUrl = await listen(server);
@@ -68,7 +104,7 @@ describe("generator server", () => {
   });
 
   it("accepts /dispatch when the shared secret matches", async () => {
-    process.env.OP_FINALIZE_DISPATCH_SECRET = "shared-secret";
+    setReadyGeneratorEnv();
 
     const server = createGeneratorServer();
     const baseUrl = await listen(server);
@@ -94,6 +130,16 @@ describe("generator server", () => {
     }
   });
 });
+
+function setReadyGeneratorEnv(): void {
+  process.env.SUI_NETWORK = "testnet";
+  process.env.PACKAGE_ID = "0xpkg";
+  process.env.ADMIN_CAP_ID = "0xadmincap";
+  process.env.ADMIN_SUI_PRIVATE_KEY = "suiprivkey";
+  process.env.WALRUS_PUBLISHER = "https://publisher.example";
+  process.env.WALRUS_AGGREGATOR = "https://aggregator.example";
+  process.env.OP_FINALIZE_DISPATCH_SECRET = "shared-secret";
+}
 
 async function listen(server: http.Server): Promise<string> {
   await new Promise<void>((resolve, reject) => {
