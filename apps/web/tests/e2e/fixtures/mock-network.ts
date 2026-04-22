@@ -10,6 +10,7 @@
  * - Sui JSON-RPC (fullnode.testnet.sui.io) — dispatched by `method`.
  * - `/api/enoki/submit-photo/sponsor` / `/execute` — configurable success or
  *   recovery failure.
+ * - `/api/finalize` — observation stub for the later finalize bridge.
  * - Walrus Publisher `PUT /v1/blobs` — return stub `blobId`.
  */
 
@@ -24,13 +25,18 @@ import {
 export const STUB_UNIT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000ab1e5";
 export const STUB_ATHLETE_ID = "1";
+export const STUB_MASTER_ID =
+  "0x00000000000000000000000000000000000000000000000000000000000ab1e6";
 export const STUB_REGISTRY_TABLE_ID =
   "0x0000000000000000000000000000000000000000000000000000000000001ab1e";
+export const STUB_PLACEMENTS_TABLE_ID =
+  "0x0000000000000000000000000000000000000000000000000000000000002ab1e";
 export const STUB_PACKAGE_ID =
   "0x0000000000000000000000000000000000000000000000000000000000000001";
 export const STUB_REGISTRY_OBJECT_ID =
   "0x0000000000000000000000000000000000000000000000000000000000000002";
 export const STUB_BLOB_ID = "STUB_BLOB_ID_XYZ";
+export const STUB_MOSAIC_BLOB_ID = "STUB_MOSAIC_BLOB_ID_XYZ";
 export const STUB_DIGEST = "4q49qZdCaTzeU2BP4mfQesc2dbt3h32Qn2rLHHwrBJne";
 export const STUB_KAKERA_OBJECT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000ka123";
@@ -41,14 +47,40 @@ export const KAKERA_TYPE = `${STUB_PACKAGE_ID}::kakera::Kakera`;
 
 export type MockState = {
   submitExecuted: boolean;
+  ownedObjectsCalls: number;
+  sponsorRequests: number;
+  executeRequests: number;
+  publisherRequests: number;
+  eventQueries: number;
+  finalizeRequests: number;
+  lastFinalizeUnitId: string | null;
+};
+
+type MockHttpResponse = {
+  readonly __mockHttpStatus: number;
+  readonly __mockHttpBody: unknown;
 };
 
 export type InstallMockOptions = {
   readonly autoConnectWallet?: boolean;
   readonly executeApiMode?: "success" | "recovering_http_error";
+  /**
+   * Deterministic gallery switch used by the E2E suite:
+   * - `empty` keeps the original no-Kakera path
+   * - `completed` returns one hydrated completed entry
+   * - `hydration_error` returns one Kakera but makes the Unit lookup fail
+   */
+  readonly galleryEntryMode?: "empty" | "completed" | "hydration_error";
+  /**
+   * Deterministic original-image switch for completed cards.
+   * Only the original blob request fails; the mosaic request still resolves.
+   */
+  readonly originalImageMode?: "success" | "original_blob_not_found";
+  readonly ownedObjectsFailuresBeforeSuccess?: number;
   readonly transactionExecutionStatus?: "success" | "failed" | "unknown";
   readonly transactionBlockDelayMs?: number;
   readonly kakeraVisibleAfterExecute?: boolean;
+  readonly waitingRoomEventMode?: "idle" | "active";
 };
 
 /**
@@ -60,13 +92,27 @@ export async function installDefaultMocks(
   page: Page,
   options: InstallMockOptions = {},
 ): Promise<MockState> {
-  const state: MockState = { submitExecuted: false };
+  const state: MockState = {
+    submitExecuted: false,
+    ownedObjectsCalls: 0,
+    sponsorRequests: 0,
+    executeRequests: 0,
+    publisherRequests: 0,
+    eventQueries: 0,
+    finalizeRequests: 0,
+    lastFinalizeUnitId: null,
+  };
   const autoConnectWallet = options.autoConnectWallet ?? true;
   const executeApiMode = options.executeApiMode ?? "success";
+  const galleryEntryMode = options.galleryEntryMode ?? "empty";
+  const originalImageMode = options.originalImageMode ?? "success";
+  const ownedObjectsFailuresBeforeSuccess =
+    options.ownedObjectsFailuresBeforeSuccess ?? 0;
   const transactionExecutionStatus =
     options.transactionExecutionStatus ?? "success";
   const transactionBlockDelayMs = options.transactionBlockDelayMs ?? 0;
   const kakeraVisibleAfterExecute = options.kakeraVisibleAfterExecute ?? true;
+  const waitingRoomEventMode = options.waitingRoomEventMode ?? "idle";
 
   if (autoConnectWallet) {
     await page.addInitScript(
@@ -92,13 +138,17 @@ export async function installDefaultMocks(
 
   await page.route(/fullnode\.[a-z]+\.sui\.io/, (route) =>
     handleSuiRpc(route, state, {
+      ownedObjectsFailuresBeforeSuccess,
+      galleryEntryMode,
       transactionExecutionStatus,
       transactionBlockDelayMs,
       kakeraVisibleAfterExecute,
+      waitingRoomEventMode,
     }),
   );
 
   await page.route("**/api/enoki/submit-photo/sponsor", async (route) => {
+    state.sponsorRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -111,6 +161,7 @@ export async function installDefaultMocks(
   });
 
   await page.route("**/api/enoki/submit-photo/execute", async (route) => {
+    state.executeRequests += 1;
     state.submitExecuted = true;
     if (executeApiMode === "recovering_http_error") {
       await route.fulfill({
@@ -131,7 +182,20 @@ export async function installDefaultMocks(
     });
   });
 
+  await page.route("**/api/finalize", async (route) => {
+    state.finalizeRequests += 1;
+    state.lastFinalizeUnitId = extractFinalizeUnitId(
+      safeParseJson(route.request().postData() ?? ""),
+    );
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+
   await page.route("**/publisher.e2e.stub/**", async (route) => {
+    state.publisherRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -146,6 +210,22 @@ export async function installDefaultMocks(
   });
 
   await page.route("**/aggregator.e2e.stub/**", async (route) => {
+    const url = route.request().url();
+    if (
+      originalImageMode === "original_blob_not_found" &&
+      url.includes(`/v1/blobs/${STUB_BLOB_ID}`)
+    ) {
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "blob_not_found",
+          message: "mock original image unavailable",
+        }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/octet-stream",
@@ -162,9 +242,12 @@ async function handleSuiRpc(
   options: Required<
     Pick<
       InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
     >
   >,
 ): Promise<void> {
@@ -175,6 +258,15 @@ async function handleSuiRpc(
     const responses = await Promise.all(
       payload.map((single) => buildResponse(single, state, options)),
     );
+    const httpResponse = responses.find(isMockHttpResponse);
+    if (httpResponse) {
+      await route.fulfill({
+        status: httpResponse.__mockHttpStatus,
+        contentType: "application/json",
+        body: JSON.stringify(httpResponse.__mockHttpBody),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -184,10 +276,37 @@ async function handleSuiRpc(
   }
 
   await route.fulfill({
-    status: 200,
     contentType: "application/json",
-    body: JSON.stringify(await buildResponse(payload, state, options)),
+    ...(await buildRouteResponse(payload, state, options)),
   });
+}
+
+async function buildRouteResponse(
+  payload: unknown,
+  state: MockState,
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
+      | "transactionExecutionStatus"
+      | "transactionBlockDelayMs"
+      | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
+    >
+  >,
+): Promise<Record<string, unknown> | MockHttpResponse> {
+  const response = await buildResponse(payload, state, options);
+  if (isMockHttpResponse(response)) {
+    return {
+      status: response.__mockHttpStatus,
+      body: JSON.stringify(response.__mockHttpBody),
+    };
+  }
+  return {
+    status: 200,
+    body: JSON.stringify(response),
+  };
 }
 
 async function buildResponse(
@@ -196,12 +315,15 @@ async function buildResponse(
   options: Required<
     Pick<
       InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
       | "transactionExecutionStatus"
       | "transactionBlockDelayMs"
       | "kakeraVisibleAfterExecute"
+      | "waitingRoomEventMode"
     >
   >,
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, unknown> | MockHttpResponse> {
   const id = isObject(call) ? call.id : null;
   const method =
     isObject(call) && typeof call.method === "string" ? call.method : "";
@@ -212,15 +334,25 @@ async function buildResponse(
 
   switch (method) {
     case "sui_getObject":
-      return envelope(handleGetObject(params));
+      return envelope(handleGetObject(params, options.galleryEntryMode));
     case "suix_getDynamicFieldObject":
-      return envelope(handleDynamicField(params));
+      return envelope(handleDynamicField(params, options.galleryEntryMode));
     case "sui_getTransactionBlock":
       return envelope(await handleGetTransactionBlock(state, options));
     case "suix_queryEvents":
-      return envelope({ data: [], hasNextPage: false, nextCursor: null });
-    case "suix_getOwnedObjects":
-      return envelope(handleOwnedObjects(params, state, options));
+      state.eventQueries += 1;
+      return envelope(
+        options.waitingRoomEventMode === "active"
+          ? buildWaitingRoomEventPage(state.eventQueries)
+          : { data: [], hasNextPage: false, nextCursor: null },
+      );
+    case "suix_getOwnedObjects": {
+      const ownedObjects = handleOwnedObjects(params, state, options);
+      if (isMockHttpResponse(ownedObjects)) {
+        return ownedObjects;
+      }
+      return envelope(ownedObjects);
+    }
     case "sui_getLatestCheckpointSequenceNumber":
       return envelope("1");
     case "sui_dryRunTransactionBlock":
@@ -271,7 +403,10 @@ async function handleGetTransactionBlock(
   };
 }
 
-function handleGetObject(params: readonly unknown[]): unknown {
+function handleGetObject(
+  params: readonly unknown[],
+  galleryEntryMode: Required<InstallMockOptions>["galleryEntryMode"],
+): unknown {
   const id = typeof params[0] === "string" ? params[0] : "";
   if (id === STUB_REGISTRY_OBJECT_ID) {
     return {
@@ -299,6 +434,10 @@ function handleGetObject(params: readonly unknown[]): unknown {
   }
 
   if (id === STUB_UNIT_ID) {
+    if (galleryEntryMode === "hydration_error") {
+      return { data: null };
+    }
+
     return {
       data: {
         objectId: STUB_UNIT_ID,
@@ -310,11 +449,54 @@ function handleGetObject(params: readonly unknown[]): unknown {
           type: `${STUB_PACKAGE_ID}::unit::Unit`,
           hasPublicTransfer: false,
           fields: {
-            status: 0,
+            id: { id: STUB_UNIT_ID },
+            status: galleryEntryMode === "completed" ? 2 : 0,
+            target_walrus_blob: [],
             submissions: [],
             max_slots: String(unitTileCount),
-            athlete_id: STUB_ATHLETE_ID,
-            master_id: { fields: { vec: [] } },
+            athlete_id: Number(STUB_ATHLETE_ID),
+            submitters: {
+              type: "0x2::table::Table<address, bool>",
+              fields: {
+                id: { id: "0xsubmitters" },
+                size: "1",
+              },
+            },
+            master_id:
+              galleryEntryMode === "completed"
+                ? { fields: { vec: [STUB_MASTER_ID] } }
+                : { fields: { vec: [] } },
+          },
+        },
+      },
+    };
+  }
+
+  if (id === STUB_MASTER_ID && galleryEntryMode === "completed") {
+    return {
+      data: {
+        objectId: STUB_MASTER_ID,
+        version: "1",
+        digest: "master-digest",
+        type: `${STUB_PACKAGE_ID}::master_portrait::MasterPortrait`,
+        content: {
+          dataType: "moveObject",
+          type: `${STUB_PACKAGE_ID}::master_portrait::MasterPortrait`,
+          hasPublicTransfer: true,
+          fields: {
+            id: { id: STUB_MASTER_ID },
+            unit_id: STUB_UNIT_ID,
+            athlete_id: Number(STUB_ATHLETE_ID),
+            mosaic_walrus_blob_id: Array.from(
+              new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),
+            ),
+            placements: {
+              type: `0x2::table::Table<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
+              fields: {
+                id: { id: STUB_PLACEMENTS_TABLE_ID },
+                size: "1",
+              },
+            },
           },
         },
       },
@@ -324,28 +506,67 @@ function handleGetObject(params: readonly unknown[]): unknown {
   return { data: null };
 }
 
-function handleDynamicField(params: readonly unknown[]): unknown {
+function handleDynamicField(
+  params: readonly unknown[],
+  galleryEntryMode: Required<InstallMockOptions>["galleryEntryMode"],
+): unknown {
   const parentId = typeof params[0] === "string" ? params[0] : "";
-  if (parentId !== STUB_REGISTRY_TABLE_ID) {
+  if (parentId === STUB_REGISTRY_TABLE_ID) {
+    return {
+      data: {
+        objectId:
+          "0x00000000000000000000000000000000000000000000000000000000000df001",
+        version: "1",
+        digest: "df-digest",
+        type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+        content: {
+          dataType: "moveObject",
+          type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+          hasPublicTransfer: false,
+          fields: {
+            id: {
+              id: "0x00000000000000000000000000000000000000000000000000000000000df002",
+            },
+            name: { type: "u16", value: Number(STUB_ATHLETE_ID) },
+            value: STUB_UNIT_ID,
+          },
+        },
+      },
+    };
+  }
+
+  if (
+    galleryEntryMode !== "completed" ||
+    parentId !== STUB_PLACEMENTS_TABLE_ID
+  ) {
     return { data: null };
   }
+
   return {
     data: {
       objectId:
-        "0x00000000000000000000000000000000000000000000000000000000000df001",
+        "0x00000000000000000000000000000000000000000000000000000000000df101",
       version: "1",
-      digest: "df-digest",
-      type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+      digest: "placement-digest",
+      type: `0x2::dynamic_field::Field<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
       content: {
         dataType: "moveObject",
-        type: `0x2::dynamic_field::Field<u16, 0x2::object::ID>`,
+        type: `0x2::dynamic_field::Field<vector<u8>, ${STUB_PACKAGE_ID}::master_portrait::Placement>`,
         hasPublicTransfer: false,
         fields: {
           id: {
-            id: "0x00000000000000000000000000000000000000000000000000000000000df002",
+            id: "0x00000000000000000000000000000000000000000000000000000000000df102",
           },
-          name: { type: "u16", value: Number(STUB_ATHLETE_ID) },
-          value: STUB_UNIT_ID,
+          name: Array.from(new TextEncoder().encode(STUB_BLOB_ID)),
+          value: {
+            type: `${STUB_PACKAGE_ID}::master_portrait::Placement`,
+            fields: {
+              x: "12",
+              y: "8",
+              submitter: E2E_STUB_ACCOUNT_ADDRESS,
+              submission_no: String(STUB_SUBMISSION_NO),
+            },
+          },
         },
       },
     },
@@ -355,14 +576,35 @@ function handleDynamicField(params: readonly unknown[]): unknown {
 function handleOwnedObjects(
   params: readonly unknown[],
   state: MockState,
-  options: Required<Pick<InstallMockOptions, "kakeraVisibleAfterExecute">>,
-): unknown {
+  options: Required<
+    Pick<
+      InstallMockOptions,
+      | "ownedObjectsFailuresBeforeSuccess"
+      | "galleryEntryMode"
+      | "kakeraVisibleAfterExecute"
+    >
+  >,
+): Record<string, unknown> | MockHttpResponse {
   const owner = typeof params[0] === "string" ? params[0] : "";
-  if (
-    owner !== E2E_STUB_ACCOUNT_ADDRESS ||
-    !state.submitExecuted ||
-    !options.kakeraVisibleAfterExecute
-  ) {
+  if (owner === E2E_STUB_ACCOUNT_ADDRESS) {
+    state.ownedObjectsCalls += 1;
+    if (state.ownedObjectsCalls <= options.ownedObjectsFailuresBeforeSuccess) {
+      return {
+        __mockHttpStatus: 503,
+        __mockHttpBody: {
+          code: "owned_objects_unavailable",
+          message: "mock owned objects unavailable",
+        },
+      };
+    }
+  }
+
+  const shouldExposeKakera =
+    owner === E2E_STUB_ACCOUNT_ADDRESS &&
+    (options.galleryEntryMode !== "empty" ||
+      (state.submitExecuted && options.kakeraVisibleAfterExecute));
+
+  if (!shouldExposeKakera) {
     return { data: [], hasNextPage: false, nextCursor: null };
   }
 
@@ -397,8 +639,22 @@ function handleOwnedObjects(
   };
 }
 
+function isMockHttpResponse(
+  value: Record<string, unknown> | MockHttpResponse,
+): value is MockHttpResponse {
+  return "__mockHttpStatus" in value && "__mockHttpBody" in value;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractFinalizeUnitId(value: unknown): string | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  return typeof value.unitId === "string" ? value.unitId : null;
 }
 
 function safeParseJson(raw: string): unknown {
@@ -407,4 +663,104 @@ function safeParseJson(raw: string): unknown {
   } catch {
     return null;
   }
+}
+
+function buildWaitingRoomEventPage(
+  queryIndex: number,
+): Record<string, unknown> {
+  if (queryIndex === 1) {
+    return {
+      data: [
+        makeSubmittedEvent({
+          submittedCount: unitTileCount,
+          eventSeq: "1",
+        }),
+      ],
+      hasNextPage: true,
+      nextCursor: { txDigest: STUB_DIGEST, eventSeq: "1" },
+    };
+  }
+
+  if (queryIndex === 2) {
+    return {
+      data: [
+        makeUnitFilledEvent({ eventSeq: "2" }),
+        makeMosaicReadyEvent({ eventSeq: "3" }),
+        makeUnitFilledEvent({ eventSeq: "4" }),
+      ],
+      hasNextPage: false,
+      nextCursor: null,
+    };
+  }
+
+  return { data: [], hasNextPage: false, nextCursor: null };
+}
+
+function makeSubmittedEvent(opts: {
+  readonly submittedCount: number;
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      submitter: E2E_STUB_ACCOUNT_ADDRESS,
+      walrus_blob_id: Array.from(new TextEncoder().encode(STUB_BLOB_ID)),
+      submission_no: STUB_SUBMISSION_NO,
+      submitted_count: opts.submittedCount,
+      max_slots: unitTileCount,
+    },
+    type: `${STUB_PACKAGE_ID}::events::SubmittedEvent`,
+  });
+}
+
+function makeUnitFilledEvent(opts: {
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      filled_count: unitTileCount,
+      max_slots: unitTileCount,
+    },
+    type: `${STUB_PACKAGE_ID}::events::UnitFilledEvent`,
+  });
+}
+
+function makeMosaicReadyEvent(opts: {
+  readonly eventSeq: string;
+}): Record<string, unknown> {
+  return makeEvent({
+    eventSeq: opts.eventSeq,
+    parsedJson: {
+      unit_id: STUB_UNIT_ID,
+      athlete_id: STUB_ATHLETE_ID,
+      master_id: STUB_MASTER_ID,
+      mosaic_walrus_blob_id: Array.from(
+        new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),
+      ),
+    },
+    type: `${STUB_PACKAGE_ID}::events::MosaicReadyEvent`,
+  });
+}
+
+function makeEvent(opts: {
+  readonly eventSeq: string;
+  readonly parsedJson: Record<string, unknown>;
+  readonly type: string;
+}): Record<string, unknown> {
+  return {
+    id: { txDigest: STUB_DIGEST, eventSeq: opts.eventSeq },
+    packageId: STUB_PACKAGE_ID,
+    transactionModule: "events",
+    sender: E2E_STUB_ACCOUNT_ADDRESS,
+    type: opts.type,
+    parsedJson: opts.parsedJson,
+    bcs: "",
+    bcsEncoding: "base64",
+    timestampMs: "0",
+  };
 }
