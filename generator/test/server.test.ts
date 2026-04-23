@@ -168,6 +168,7 @@ describe("generator server", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
+          displayMaxSlots: 2000,
           maxSlots: 2000,
           registryObjectId: VALID_REGISTRY_ID,
         }),
@@ -182,9 +183,44 @@ describe("generator server", () => {
       expect(createUnitMock).toHaveBeenCalledWith({
         athleteId: 12,
         blobId: "target-blob-12",
+        displayMaxSlots: 2000,
         maxSlots: 2000,
         registryObjectId: VALID_REGISTRY_ID,
       });
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("returns 400 for /admin/create-unit when displayMaxSlots is smaller than maxSlots", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/create-unit`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          athleteId: 12,
+          blobId: "target-blob-12",
+          displayMaxSlots: 4,
+          maxSlots: 5,
+          registryObjectId: VALID_REGISTRY_ID,
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "invalid_args",
+        message:
+          "Payload requires displayMaxSlots greater than or equal to maxSlots.",
+      });
+      expect(createUnitMock).not.toHaveBeenCalled();
     } finally {
       await close(server);
     }

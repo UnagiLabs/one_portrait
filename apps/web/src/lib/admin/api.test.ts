@@ -5,6 +5,7 @@ import {
   ADMIN_MUTATION_HEADER_VALUE,
   AdminApiError,
   assertAdminMutationRequest,
+  parseCreateUnitInput,
 } from "./api";
 
 describe("assertAdminMutationRequest", () => {
@@ -43,6 +44,34 @@ describe("assertAdminMutationRequest", () => {
           method: "POST",
         }),
       ),
+    ).toThrowError(AdminApiError);
+  });
+});
+
+describe("parseCreateUnitInput", () => {
+  it("defaults displayMaxSlots to maxSlots when the field is omitted", () => {
+    expect(
+      parseCreateUnitInput({
+        athleteId: 12,
+        blobId: "target-blob-12",
+        maxSlots: 2000,
+      }),
+    ).toEqual({
+      athleteId: 12,
+      blobId: "target-blob-12",
+      displayMaxSlots: 2000,
+      maxSlots: 2000,
+    });
+  });
+
+  it("rejects displayMaxSlots values smaller than maxSlots", () => {
+    expect(() =>
+      parseCreateUnitInput({
+        athleteId: 12,
+        blobId: "target-blob-12",
+        displayMaxSlots: 1999,
+        maxSlots: 2000,
+      }),
     ).toThrowError(AdminApiError);
   });
 });

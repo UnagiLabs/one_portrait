@@ -12,18 +12,20 @@ const STATUS_PENDING: u8 = 0;
 const STATUS_FILLED: u8 = 1;
 const STATUS_FINALIZED: u8 = 2;
 const EINVALID_MAX_SLOTS: u64 = 1;
-const ENEXT_UNIT_ATHLETE_MISMATCH: u64 = 2;
-const EUNIT_NOT_PENDING: u64 = 3;
-const EALREADY_SUBMITTED: u64 = 4;
-const EUNIT_NOT_FILLED: u64 = 5;
-const EMASTER_ALREADY_SET: u64 = 6;
-const EDUPLICATE_BLOB_ID: u64 = 7;
-const EINVALID_PLACEMENTS: u64 = 8;
+const EINVALID_DISPLAY_MAX_SLOTS: u64 = 2;
+const ENEXT_UNIT_ATHLETE_MISMATCH: u64 = 3;
+const EUNIT_NOT_PENDING: u64 = 4;
+const EALREADY_SUBMITTED: u64 = 5;
+const EUNIT_NOT_FILLED: u64 = 6;
+const EMASTER_ALREADY_SET: u64 = 7;
+const EDUPLICATE_BLOB_ID: u64 = 8;
+const EINVALID_PLACEMENTS: u64 = 9;
 
 public struct Unit has key {
     id: UID,
     athlete_id: u16,
     target_walrus_blob: vector<u8>,
+    display_max_slots: u64,
     max_slots: u64,
     status: u8,
     master_id: Option<ID>,
@@ -44,14 +46,17 @@ public(package) fun create_unit(
     athlete_id: u16,
     target_walrus_blob: vector<u8>,
     max_slots: u64,
+    display_max_slots: u64,
     ctx: &mut TxContext,
 ): ID {
     assert!(max_slots > 0, EINVALID_MAX_SLOTS);
+    assert!(display_max_slots >= max_slots, EINVALID_DISPLAY_MAX_SLOTS);
 
     let unit = Unit {
         id: object::new(ctx),
         athlete_id,
         target_walrus_blob,
+        display_max_slots,
         max_slots,
         status: STATUS_PENDING,
         master_id: option::none(),
@@ -142,6 +147,11 @@ public fun athlete_id_for_testing(unit: &Unit): u16 {
 #[test_only]
 public fun max_slots_for_testing(unit: &Unit): u64 {
     unit.max_slots
+}
+
+#[test_only]
+public fun display_max_slots_for_testing(unit: &Unit): u64 {
+    unit.display_max_slots
 }
 
 #[test_only]

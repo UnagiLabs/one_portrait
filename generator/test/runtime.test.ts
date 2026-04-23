@@ -182,6 +182,7 @@ describe("createDefaultFinalizeRunner", () => {
 function snapshot() {
   return {
     athleteId: 1,
+    displayMaxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [

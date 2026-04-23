@@ -149,6 +149,7 @@ fun create_unit_sets_initial_state_and_current_registry_entry() {
         athlete_id,
         target_blob,
         max_slots,
+        max_slots,
         scenario.ctx(),
     );
 
@@ -162,6 +163,7 @@ fun create_unit_sets_initial_state_and_current_registry_entry() {
 
     assert_eq!(object::id(&unit), unit_id);
     assert_eq!(unit::athlete_id_for_testing(&unit), athlete_id);
+    assert_eq!(unit::display_max_slots_for_testing(&unit), max_slots);
     assert_eq!(unit::max_slots_for_testing(&unit), max_slots);
     assert!(unit::is_pending_for_testing(&unit));
     assert!(!unit::has_master_for_testing(&unit));
@@ -170,6 +172,69 @@ fun create_unit_sets_initial_state_and_current_registry_entry() {
     assert_eq!(accessors::current_unit_id(&registry, athlete_id).destroy_some(), unit_id);
 
     test_scenario::return_shared(unit);
+    test_scenario::return_shared(registry);
+    scenario.end();
+}
+
+#[test]
+fun create_demo_unit_keeps_distinct_display_max_slots() {
+    let publisher = @0xA11CE;
+    let athlete_id = 8;
+    let max_slots = 5;
+    let display_max_slots = 2000;
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = admin_api::create_unit(
+        &admin_cap,
+        &mut registry,
+        athlete_id,
+        b"target-blob",
+        max_slots,
+        display_max_slots,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(publisher);
+
+    let unit = scenario.take_shared_by_id<Unit>(unit_id);
+    assert_eq!(unit::max_slots_for_testing(&unit), max_slots);
+    assert_eq!(unit::display_max_slots_for_testing(&unit), display_max_slots);
+    test_scenario::return_shared(unit);
+
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = unit::EINVALID_DISPLAY_MAX_SLOTS)]
+fun create_unit_rejects_display_max_slots_smaller_than_max_slots() {
+    let publisher = @0xA11CE;
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let _unit_id = admin_api::create_unit(
+        &admin_cap,
+        &mut registry,
+        12,
+        b"target-blob",
+        5,
+        4,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
     test_scenario::return_shared(registry);
     scenario.end();
 }
@@ -192,6 +257,7 @@ fun rotate_current_unit_switches_registry_pointer_without_auto_rotating() {
         athlete_id,
         b"target-1",
         500,
+        500,
         scenario.ctx(),
     );
 
@@ -207,6 +273,7 @@ fun rotate_current_unit_switches_registry_pointer_without_auto_rotating() {
         &mut registry,
         athlete_id,
         b"target-2",
+        500,
         500,
         scenario.ctx(),
     );

@@ -10,6 +10,7 @@ public fun create_unit(
     athlete_id: u16,
     target_walrus_blob: vector<u8>,
     max_slots: u64,
+    display_max_slots: u64,
     ctx: &mut TxContext,
 ): ID {
     unit::create_unit(
@@ -18,6 +19,7 @@ public fun create_unit(
         athlete_id,
         target_walrus_blob,
         max_slots,
+        display_max_slots,
         ctx,
     )
 }

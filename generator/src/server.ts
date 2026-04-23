@@ -312,15 +312,22 @@ function parseDispatchInput(input: unknown): { readonly unitId: string } {
 function parseCreateUnitInput(input: unknown): {
   readonly athleteId: number;
   readonly blobId: string;
+  readonly displayMaxSlots: number;
   readonly maxSlots: number;
   readonly registryObjectId: string;
 } {
   const record = parseJsonRecord(input);
+  const maxSlots = parsePositiveInteger(record.maxSlots, "maxSlots");
+  const displayMaxSlots = parseDisplayMaxSlots(
+    record.displayMaxSlots,
+    maxSlots,
+  );
 
   return {
     athleteId: parseAthleteId(record.athleteId),
     blobId: parseNonEmptyString(record.blobId, "blobId"),
-    maxSlots: parsePositiveInteger(record.maxSlots, "maxSlots"),
+    displayMaxSlots,
+    maxSlots,
     registryObjectId: parseObjectId(
       record.registryObjectId,
       "registryObjectId",
@@ -406,6 +413,24 @@ function parsePositiveInteger(value: unknown, fieldName: string): number {
   }
 
   return parsed;
+}
+
+function parseDisplayMaxSlots(
+  value: unknown,
+  maxSlots: number,
+): number {
+  if (value === undefined) {
+    return maxSlots;
+  }
+
+  const displayMaxSlots = parsePositiveInteger(value, "displayMaxSlots");
+  if (displayMaxSlots < maxSlots) {
+    throw new InvalidPayloadError(
+      "Payload requires displayMaxSlots greater than or equal to maxSlots.",
+    );
+  }
+
+  return displayMaxSlots;
 }
 
 function parseNonEmptyString(value: unknown, fieldName: string): string {

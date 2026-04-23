@@ -16,6 +16,7 @@ export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
 };
 
 export type GeneratorSeedingSnapshot = GeneratorFinalizeSnapshot & {
+  readonly displayMaxSlots: number;
   readonly maxSlots: number;
   readonly submittedCount: number;
   readonly submitterAddresses: readonly string[];
@@ -91,6 +92,7 @@ export function createUnitSnapshotLoader(
     return {
       unitId,
       athleteId: snapshot.athleteId,
+      displayMaxSlots: snapshot.displayMaxSlots,
       targetWalrusBlobId: snapshot.targetWalrusBlobId,
       submissions: snapshot.submissions,
       status: snapshot.status,
@@ -181,6 +183,7 @@ export function createCreateUnitTransactionExecutor(input: {
 }): (args: {
   readonly athleteId: number;
   readonly blobId: string;
+  readonly displayMaxSlots: number;
   readonly maxSlots: number;
   readonly registryObjectId: string;
 }) => Promise<CreateUnitTransactionResult> {
@@ -197,6 +200,7 @@ export function createCreateUnitTransactionExecutor(input: {
         tx.pure(bcs.u16().serialize(args.athleteId)),
         tx.pure.vector("u8", Array.from(new TextEncoder().encode(args.blobId))),
         tx.pure(bcs.u64().serialize(args.maxSlots)),
+        tx.pure(bcs.u64().serialize(args.displayMaxSlots)),
       ],
     });
 
@@ -528,6 +532,10 @@ async function readUnitSnapshot(
   return {
     unitId,
     athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
+    displayMaxSlots: readIntegerField(
+      fields.display_max_slots,
+      "display_max_slots",
+    ),
     targetWalrusBlobId: readVectorU8AsString(
       fields.target_walrus_blob,
       "target_walrus_blob",

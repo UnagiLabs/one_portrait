@@ -23,6 +23,7 @@ export class AdminApiError extends Error {
 export type CreateUnitRouteInput = {
   readonly athleteId: number;
   readonly blobId: string;
+  readonly displayMaxSlots: number;
   readonly maxSlots: number;
 };
 
@@ -40,12 +41,16 @@ export type UpsertAthleteMetadataRouteInput = {
 
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
-  assertExactKeys(record, ["athleteId", "blobId", "maxSlots"]);
+  assertAllowedKeys(record, ["athleteId", "blobId", "displayMaxSlots", "maxSlots"]);
+
+  const maxSlots = parseMaxSlots(record.maxSlots);
+  const displayMaxSlots = parseDisplayMaxSlots(record.displayMaxSlots, maxSlots);
 
   return {
     athleteId: parseAthleteId(record.athleteId),
     blobId: parseBlobId(record.blobId),
-    maxSlots: parseMaxSlots(record.maxSlots),
+    displayMaxSlots,
+    maxSlots,
   };
 }
 
@@ -122,10 +127,27 @@ function asRecord(value: unknown): Record<string, unknown> {
   );
 }
 
+function assertAllowedKeys(
+  input: Record<string, unknown>,
+  allowed: readonly string[],
+): void {
+  const keys = Object.keys(input).sort();
+  const normalizedAllowed = [...allowed].sort();
+  if (keys.some((key) => !normalizedAllowed.includes(key))) {
+    throw new AdminApiError(
+      400,
+      "invalid_args",
+      `\`${allowed.join("`, `")}\` だけを送ってください。`,
+    );
+  }
+}
+
 function assertExactKeys(
   input: Record<string, unknown>,
   expected: readonly string[],
 ): void {
+  assertAllowedKeys(input, expected);
+
   const keys = Object.keys(input).sort();
   const normalizedExpected = [...expected].sort();
   if (
@@ -200,6 +222,23 @@ function parseMaxSlots(value: unknown): number {
   }
 
   return maxSlots;
+}
+
+function parseDisplayMaxSlots(value: unknown, maxSlots: number): number {
+  if (value === undefined) {
+    return maxSlots;
+  }
+
+  const displayMaxSlots = parseMaxSlots(value);
+  if (displayMaxSlots < maxSlots) {
+    throw new AdminApiError(
+      400,
+      "invalid_args",
+      "`displayMaxSlots` は `maxSlots` 以上の整数で送ってください。",
+    );
+  }
+
+  return displayMaxSlots;
 }
 
 function parseObjectId(value: unknown, fieldName: string): string {

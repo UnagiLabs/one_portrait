@@ -73,6 +73,7 @@ describe("prepareFinalizeInput", () => {
 function snapshot(): GeneratorUnitSnapshot {
   return {
     athleteId: 1,
+    displayMaxSlots: 2,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [

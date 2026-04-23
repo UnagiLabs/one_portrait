@@ -35,6 +35,7 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
         athlete_id,
         b"target-blob",
         2,
+        2,
         scenario.ctx(),
     );
 
@@ -171,6 +172,7 @@ fun finalize_rejects_pending_unit() {
         16,
         b"target-blob",
         2,
+        2,
         scenario.ctx(),
     );
 
@@ -213,6 +215,7 @@ fun finalize_rejects_double_finalize() {
         &mut registry,
         17,
         b"target-blob",
+        2,
         2,
         scenario.ctx(),
     );
@@ -303,6 +306,7 @@ fun finalize_rejects_mismatched_placements() {
         &mut registry,
         19,
         b"target-blob",
+        2,
         2,
         scenario.ctx(),
     );

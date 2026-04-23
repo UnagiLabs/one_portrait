@@ -21,6 +21,7 @@ export async function POST(request: Request): Promise<Response> {
       {
         athleteId: input.athleteId,
         blobId: input.blobId,
+        displayMaxSlots: input.displayMaxSlots,
         maxSlots: input.maxSlots,
         registryObjectId,
       },

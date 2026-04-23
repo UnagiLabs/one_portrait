@@ -124,6 +124,7 @@ describe("POST /api/admin/create-unit", () => {
     await expect(request.json()).resolves.toEqual({
       athleteId: 12,
       blobId: "target-blob-12",
+      displayMaxSlots: 2000,
       maxSlots: 2000,
       registryObjectId: VALID_REGISTRY_ID,
     });
@@ -131,6 +132,29 @@ describe("POST /api/admin/create-unit", () => {
       digest: "0xdigest",
       status: "created",
       unitId: VALID_UNIT_ID,
+    });
+  });
+
+  it("returns 400 when displayMaxSlots is smaller than maxSlots", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/admin/create-unit", {
+        body: JSON.stringify({
+          athleteId: 12,
+          blobId: "target-blob-12",
+          displayMaxSlots: 1999,
+          maxSlots: 2000,
+        }),
+        headers: {
+          "x-one-portrait-admin-request": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_args",
+      message: expect.stringContaining("displayMaxSlots"),
     });
   });
 });

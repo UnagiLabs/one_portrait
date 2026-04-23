@@ -2,6 +2,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createCreateUnitTransactionExecutor,
   createSeedingSnapshotLoader,
   createUpsertAthleteMetadataTransactionExecutor,
 } from "../src";
@@ -32,6 +33,7 @@ describe("createSeedingSnapshotLoader", () => {
               type: "0x2::table::Table<address, bool>",
               fields: { id: { id: "0xsubmitters" }, size: "2" },
             },
+            display_max_slots: "5",
             max_slots: "5",
           }),
         };
@@ -55,12 +57,68 @@ describe("createSeedingSnapshotLoader", () => {
           submissionNo: 2,
         }),
       ],
+      displayMaxSlots: 5,
       submittedCount: 2,
       maxSlots: 5,
       status: "pending",
       masterId: null,
       submitterAddresses: ["0xsubmitter-a", "0xsubmitter-b"],
     });
+  });
+});
+
+describe("createCreateUnitTransactionExecutor", () => {
+  it("submits maxSlots and displayMaxSlots to admin_api::create_unit", async () => {
+    const signer = Ed25519Keypair.generate();
+    const signAndExecuteTransaction = vi.fn(async () => ({
+      digest: "0xcreate",
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+      objectChanges: [
+        {
+          type: "created",
+          objectType: "0xpackage::unit::Unit",
+          objectId: CREATED_UNIT_ID,
+        },
+      ],
+    }));
+    const waitForTransaction = vi.fn(async () => ({
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+      objectChanges: [],
+    }));
+
+    const createUnit = createCreateUnitTransactionExecutor({
+      adminCapId:
+        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      client: {
+        signAndExecuteTransaction,
+        waitForTransaction,
+      } as unknown as GeneratorSuiWriteClient,
+      packageId: "0xpackage",
+      privateKey: signer.getSecretKey(),
+    });
+
+    await expect(
+      createUnit({
+        athleteId: 12,
+        blobId: "target-blob-12",
+        displayMaxSlots: 2000,
+        maxSlots: 5,
+        registryObjectId:
+          "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      }),
+    ).resolves.toEqual({
+      digest: "0xcreate",
+      unitId: CREATED_UNIT_ID,
+    });
+    expect(signAndExecuteTransaction).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -119,6 +177,8 @@ describe("createUpsertAthleteMetadataTransactionExecutor", () => {
 });
 
 const UNIT_ID = "0xunit-1";
+const CREATED_UNIT_ID =
+  "0x9999999990abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
 function unitData(fields: Record<string, unknown>) {
   return {
@@ -134,6 +194,7 @@ function unitData(fields: Record<string, unknown>) {
         id: { id: UNIT_ID },
         athlete_id: 1,
         target_walrus_blob: Array.from(new TextEncoder().encode("target-blob")),
+        display_max_slots: "4",
         max_slots: "4",
         status: 0,
         master_id: { fields: { vec: [] } },

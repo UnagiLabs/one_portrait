@@ -36,6 +36,7 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
         athlete_id,
         target_blob,
         max_slots,
+        max_slots,
         scenario.ctx(),
     );
 
@@ -144,6 +145,7 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
         athlete_id,
         b"target-blob",
         500,
+        500,
         scenario.ctx(),
     );
 
@@ -196,6 +198,7 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
         &mut registry,
         athlete_id,
         b"target-blob",
+        max_slots,
         max_slots,
         scenario.ctx(),
     );
@@ -287,6 +290,7 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
         athlete_id,
         b"target-blob",
         2,
+        2,
         scenario.ctx(),
     );
 
@@ -339,6 +343,7 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
         &mut registry,
         18,
         b"target-blob",
+        3,
         3,
         scenario.ctx(),
     );
