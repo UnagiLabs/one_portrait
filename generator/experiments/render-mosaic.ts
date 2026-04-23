@@ -5,9 +5,8 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { unitTileGrid } from "@one-portrait/shared";
-
-import { generateMosaic } from "../src";
 import type { TargetAnalysis } from "../src";
+import { generateMosaic } from "../src";
 
 const execFile = promisify(execFileCallback);
 
@@ -64,7 +63,8 @@ async function main() {
   const targetImage = await readFile(path.resolve(options.target));
   const analysisPath = options.autoAnalyze
     ? path.resolve(
-        options.analysisJson ?? replaceExtension(path.resolve(options.out), ".analysis.json"),
+        options.analysisJson ??
+          replaceExtension(path.resolve(options.out), ".analysis.json"),
       )
     : options.analysisJson
       ? path.resolve(options.analysisJson)
@@ -86,7 +86,9 @@ async function main() {
   const targetAnalysis = analysisPath
     ? (JSON.parse(await readFile(analysisPath, "utf8")) as TargetAnalysis)
     : undefined;
-  const tilePaths = await listTileFiles(options.tilesDirs.map((dir) => path.resolve(dir)));
+  const tilePaths = await listTileFiles(
+    options.tilesDirs.map((dir) => path.resolve(dir)),
+  );
   const orderedTilePaths =
     options.tileShuffleSeed === undefined
       ? tilePaths
@@ -213,7 +215,10 @@ function parseArgs(args: string[]) {
         index += 1;
         break;
       case "--background-priority":
-        options.backgroundPriority = parseUnitFloat(next, "--background-priority");
+        options.backgroundPriority = parseUnitFloat(
+          next,
+          "--background-priority",
+        );
         index += 1;
         break;
       case "--analysis-json":
@@ -292,7 +297,9 @@ function resolveDefaultPythonBin() {
     path.resolve("generator/.venv/bin/python3"),
   ];
 
-  return localCandidates.find((candidate) => existsSync(candidate)) ?? "python3";
+  return (
+    localCandidates.find((candidate) => existsSync(candidate)) ?? "python3"
+  );
 }
 
 async function runTargetAnalysis(input: {

@@ -437,13 +437,17 @@ function computeImportance(input: {
   const subjectCoverage = input.analysis?.subjectCoverage ?? input.alpha;
   const faceAnalysis = input.analysis?.faceWeight ?? faceMask;
   const eyeAnalysis = input.analysis?.eyeWeight ?? eyeBand;
-  const featureAnalysis = input.analysis?.featureWeight ?? Math.max(eyeBand, faceMask * 0.82);
-  const alphaBias = input.backgroundPriority + subjectCoverage * input.subjectPriority;
+  const featureAnalysis =
+    input.analysis?.featureWeight ?? Math.max(eyeBand, faceMask * 0.82);
+  const alphaBias =
+    input.backgroundPriority + subjectCoverage * input.subjectPriority;
   const centerWeight = input.analysis ? 0.08 : 0.22;
   const contrastWeight = input.analysis ? 0.1 : 0.12;
   const eyeWeight = input.analysis ? 0.16 : 0.12;
   const featureWeight = input.analysis ? 0.22 : 0;
-  const faceWeight = input.analysis ? input.facePriority + 0.12 : input.facePriority;
+  const faceWeight = input.analysis
+    ? input.facePriority + 0.12
+    : input.facePriority;
   const torsoWeight = input.analysis ? 0.04 : 0.08;
 
   return clamp(

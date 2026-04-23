@@ -49,7 +49,9 @@ async function main() {
   await mkdir(datasetDir, { recursive: true });
 
   const existingFiles = await listDatasetFiles();
-  const existingIds = new Set(existingFiles.map((filePath) => path.parse(filePath).name));
+  const existingIds = new Set(
+    existingFiles.map((filePath) => path.parse(filePath).name),
+  );
   const candidates = new Map<
     string,
     {
@@ -73,7 +75,9 @@ async function main() {
       apiUrl.searchParams.set("page", String(page));
       apiUrl.searchParams.set("license_type", "commercial");
 
-      const response = await fetchJsonWithRetry<OpenverseResponse>(apiUrl.toString());
+      const response = await fetchJsonWithRetry<OpenverseResponse>(
+        apiUrl.toString(),
+      );
 
       for (const result of response.results) {
         const id = `openverse-${result.id}`;
@@ -89,7 +93,8 @@ async function main() {
           source: result.source,
           sourcePage: result.foreign_landing_url,
           downloadUrl: result.url,
-          license: `${result.license}${result.license_version ? ` ${result.license_version}` : ""}`.trim(),
+          license:
+            `${result.license}${result.license_version ? ` ${result.license_version}` : ""}`.trim(),
         });
       }
 
@@ -122,7 +127,10 @@ async function main() {
         .webp({ quality: outputQuality })
         .toBuffer();
 
-      await writeFile(path.join(datasetDir, `${candidate.id}.webp`), normalized);
+      await writeFile(
+        path.join(datasetDir, `${candidate.id}.webp`),
+        normalized,
+      );
       existingIds.add(candidate.id);
     } catch {
       return;
@@ -130,7 +138,9 @@ async function main() {
   });
 
   const manifestEntries: DatasetEntry[] = [];
-  const metadataById = new Map(queue.map((candidate) => [candidate.id, candidate]));
+  const metadataById = new Map(
+    queue.map((candidate) => [candidate.id, candidate]),
+  );
   const localFiles = (await listDatasetFiles()).slice(0, targetCount);
 
   for (const filePath of localFiles) {
@@ -151,7 +161,10 @@ async function main() {
     });
   }
 
-  const totalBytes = manifestEntries.reduce((sum, entry) => sum + entry.sizeBytes, 0);
+  const totalBytes = manifestEntries.reduce(
+    (sum, entry) => sum + entry.sizeBytes,
+    0,
+  );
 
   await writeFile(
     manifestPath,
@@ -172,7 +185,9 @@ async function main() {
     ),
   );
 
-  console.log(`Stored ${manifestEntries.length} portrait-heavy free tiles in ${datasetDir}`);
+  console.log(
+    `Stored ${manifestEntries.length} portrait-heavy free tiles in ${datasetDir}`,
+  );
   console.log(`Approx dataset size: ${formatBytes(totalBytes)}`);
   console.log(`Manifest: ${manifestPath}`);
 }
