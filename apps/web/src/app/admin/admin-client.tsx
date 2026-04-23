@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 
 import type { AdminHealthSummary } from "../../lib/admin/health";
 import { preprocessPhoto } from "../../lib/image/preprocess";
-import { type AdminUnitSnapshot } from "../../lib/sui";
+import type { AdminUnitSnapshot } from "../../lib/sui";
 import { putTargetBlobToWalrus } from "../../lib/walrus/put-target";
 
 export type AdminAthleteEntry = {
@@ -96,7 +96,8 @@ export function AdminClient({
         env: {
           NEXT_PUBLIC_WALRUS_AGGREGATOR:
             process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR,
-          NEXT_PUBLIC_WALRUS_PUBLISHER: process.env.NEXT_PUBLIC_WALRUS_PUBLISHER,
+          NEXT_PUBLIC_WALRUS_PUBLISHER:
+            process.env.NEXT_PUBLIC_WALRUS_PUBLISHER,
         },
       });
 
@@ -222,24 +223,29 @@ export function AdminClient({
           <h2 className="text-sm uppercase tracking-[0.25em] text-emerald-200/80">
             Last action
           </h2>
-          <p className="text-xl font-semibold text-white">{lastAction.summary}</p>
-          <p className="text-sm leading-6 text-stone-200">{lastAction.detail}</p>
+          <p className="text-xl font-semibold text-white">
+            {lastAction.summary}
+          </p>
+          <p className="text-sm leading-6 text-stone-200">
+            {lastAction.detail}
+          </p>
         </section>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">
-              Create next unit
-            </h2>
+            <h2 className="font-serif text-2xl text-white">Create next unit</h2>
             <p className="text-sm leading-6 text-stone-300">
               Upload the target portrait, confirm the blob id, and create a new
               unit for the selected athlete.
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={(event) => void handleCreateUnit(event)}>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => void handleCreateUnit(event)}
+          >
             <label className="grid gap-2 text-sm text-stone-200">
               Athlete
               <select
@@ -318,14 +324,19 @@ export function AdminClient({
 
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">Rotate current unit</h2>
+            <h2 className="font-serif text-2xl text-white">
+              Rotate current unit
+            </h2>
             <p className="text-sm leading-6 text-stone-300">
               Switch the active unit for the selected athlete. The last created
               unit id is copied here automatically.
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={(event) => void handleRotateUnit(event)}>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => void handleRotateUnit(event)}
+          >
             <label className="grid gap-2 text-sm text-stone-200">
               Athlete
               <select
@@ -363,7 +374,9 @@ export function AdminClient({
               }
               type="submit"
             >
-              {pendingAction === "rotate" ? "Rotating..." : "Rotate current unit"}
+              {pendingAction === "rotate"
+                ? "Rotating..."
+                : "Rotate current unit"}
             </button>
           </form>
         </section>
@@ -371,7 +384,9 @@ export function AdminClient({
 
       <section className="grid gap-4">
         <div className="grid gap-1">
-          <h2 className="font-serif text-2xl text-white">Current unit status</h2>
+          <h2 className="font-serif text-2xl text-white">
+            Current unit status
+          </h2>
           <p className="text-sm leading-6 text-stone-300">
             Check the live unit state for each athlete and retry finalize when a
             filled unit stalls.
@@ -464,7 +479,10 @@ function AdminAthleteCard({
               value={`${currentUnit.submittedCount} / ${currentUnit.maxSlots}`}
             />
             <InfoRow label="Status" value={currentUnit.status} />
-            <InfoRow label="Target blob" value={currentUnit.targetWalrusBlobId} />
+            <InfoRow
+              label="Target blob"
+              value={currentUnit.targetWalrusBlobId}
+            />
           </dl>
           <button
             className="rounded-full border border-emerald-200/30 bg-emerald-300/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -496,6 +514,7 @@ async function postJson(
     body: JSON.stringify(payload),
     headers: {
       "content-type": "application/json",
+      "x-one-portrait-admin-request": "same-origin",
     },
     method: "POST",
   });

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  AdminEnvError,
-  loadAdminAuthEnv,
-  loadAdminRelayEnv,
-} from "./env";
+import { AdminEnvError, loadAdminAuthEnv, loadAdminRelayEnv } from "./env";
 
 describe("loadAdminAuthEnv", () => {
   it("returns normalized basic auth credentials", () => {

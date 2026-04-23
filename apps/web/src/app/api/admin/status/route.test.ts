@@ -21,10 +21,9 @@ vi.mock("../../../../lib/env", () => ({
 }));
 
 vi.mock("../../../../lib/sui", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../../../lib/sui")>(
-      "../../../../lib/sui",
-    );
+  const actual = await vi.importActual<typeof import("../../../../lib/sui")>(
+    "../../../../lib/sui",
+  );
 
   return {
     ...actual,

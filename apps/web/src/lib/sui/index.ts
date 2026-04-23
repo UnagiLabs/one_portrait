@@ -14,14 +14,14 @@
  *     documenting the boundary at the import site.
  */
 
+export type { AdminUnitSnapshot } from "./admin-unit";
+export { getAdminUnitSnapshot } from "./admin-unit";
 export type {
   SuiReadClient,
   SuiSubscriptionClient,
   SuiTransactionReadClient,
 } from "./client";
 export { createSuiClient, getSuiClient, resolveFullnodeUrl } from "./client";
-export type { AdminUnitSnapshot } from "./admin-unit";
-export { getAdminUnitSnapshot } from "./admin-unit";
 export type {
   MosaicReadyEvent,
   RawSuiEventLike,

@@ -34,9 +34,7 @@ export async function getAdminUnitSnapshot(
   const fields = extractMoveObjectFields(data.content);
 
   return {
-    athletePublicId: String(
-      parseIntegerField(fields.athlete_id, "athlete_id"),
-    ),
+    athletePublicId: String(parseIntegerField(fields.athlete_id, "athlete_id")),
     masterId: extractOptionalId(fields.master_id),
     maxSlots: parseIntegerField(fields.max_slots, "max_slots"),
     status: normalizeUnitStatus(fields.status),

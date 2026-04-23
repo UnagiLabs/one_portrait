@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-
-import type { SuiReadClient } from "./client";
 import { getAdminUnitSnapshot, UnitNotFoundError } from "./admin-unit";
+import type { SuiReadClient } from "./client";
 
 const UNIT_ID = "0xunit-1";
 
@@ -82,7 +81,9 @@ describe("getAdminUnitSnapshot", () => {
       }),
     );
 
-    await expect(getAdminUnitSnapshot(UNIT_ID, { client: filledClient })).resolves.toMatchObject({
+    await expect(
+      getAdminUnitSnapshot(UNIT_ID, { client: filledClient }),
+    ).resolves.toMatchObject({
       status: "filled",
     });
     await expect(

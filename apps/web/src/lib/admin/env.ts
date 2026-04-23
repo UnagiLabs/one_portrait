@@ -43,10 +43,7 @@ export function loadAdminRelayEnv(source: EnvSource): AdminRelayEnv {
   };
 }
 
-function readRequiredValue(
-  value: string | undefined,
-  key: string,
-): string {
+function readRequiredValue(value: string | undefined, key: string): string {
   const normalized = typeof value === "string" ? value.trim() : "";
   if (normalized.length === 0) {
     throw new AdminEnvError(`Missing required admin env variable: ${key}`);

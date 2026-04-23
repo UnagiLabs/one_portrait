@@ -9,7 +9,10 @@ import {
 
 describe("ADMIN_MIDDLEWARE_MATCHER", () => {
   it("protects only admin pages and admin api routes", () => {
-    expect(ADMIN_MIDDLEWARE_MATCHER).toEqual(["/admin/:path*", "/api/admin/:path*"]);
+    expect(ADMIN_MIDDLEWARE_MATCHER).toEqual([
+      "/admin/:path*",
+      "/api/admin/:path*",
+    ]);
   });
 });
 

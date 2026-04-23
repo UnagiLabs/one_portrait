@@ -15,10 +15,9 @@ vi.mock("../../../../lib/finalize/dispatch", () => ({
 }));
 
 vi.mock("../../../../lib/sui", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../../../lib/sui")>(
-      "../../../../lib/sui",
-    );
+  const actual = await vi.importActual<typeof import("../../../../lib/sui")>(
+    "../../../../lib/sui",
+  );
 
   return {
     ...actual,
@@ -34,12 +33,24 @@ describe("POST /api/admin/finalize", () => {
       new Request("http://localhost/api/admin/finalize", {
         method: "POST",
         body: JSON.stringify({ nope: true }),
+        headers: {
+          "x-one-portrait-admin-request": "same-origin",
+        },
       }),
     );
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       code: "invalid_args",
+    });
+  });
+
+  it("returns 403 when the same-origin admin header is missing", async () => {
+    const response = await POST(validRequest({ withAdminHeader: false }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "forbidden",
     });
   });
 
@@ -104,9 +115,15 @@ describe("POST /api/admin/finalize", () => {
   });
 });
 
-function validRequest(): Request {
+function validRequest(options: { withAdminHeader?: boolean } = {}): Request {
   return new Request("http://localhost/api/admin/finalize", {
     body: JSON.stringify({ unitId: VALID_UNIT_ID }),
+    headers:
+      options.withAdminHeader === false
+        ? undefined
+        : {
+            "x-one-portrait-admin-request": "same-origin",
+          },
     method: "POST",
   });
 }

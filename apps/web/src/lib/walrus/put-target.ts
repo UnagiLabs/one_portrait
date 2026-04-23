@@ -10,8 +10,8 @@ const WALRUS_MAX_ATTEMPTS = 3;
 const WALRUS_BASE_BACKOFF_MS = 200;
 const WALRUS_REQUEST_TIMEOUT_MS = 30_000;
 
-export { WalrusPutError };
 export type { WalrusEnv, WalrusPutDeps, WalrusPutResult };
+export { WalrusPutError };
 
 export async function putTargetBlobToWalrus(
   photo: PreprocessedPhoto,

@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import {
-  ADMIN_MIDDLEWARE_MATCHER,
   buildAdminMisconfiguredResponse,
   buildUnauthorizedAdminResponse,
   isAuthorizedAdminRequest,
@@ -25,5 +24,5 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ADMIN_MIDDLEWARE_MATCHER,
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

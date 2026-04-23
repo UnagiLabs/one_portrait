@@ -84,7 +84,7 @@ describe("generator server", () => {
       await expect(response.json()).resolves.toEqual({
         error: "server_misconfigured",
         message:
-          "Missing required generator env variable(s): SUI_NETWORK, PACKAGE_ID, ADMIN_CAP_ID, ADMIN_SUI_PRIVATE_KEY, WALRUS_PUBLISHER, WALRUS_AGGREGATOR, OP_FINALIZE_DISPATCH_SECRET.",
+          "Missing required generator env variable(s): SUI_NETWORK, PACKAGE_ID, ADMIN_CAP_ID, ADMIN_SUI_PRIVATE_KEY, WALRUS_PUBLISHER, WALRUS_AGGREGATOR.",
       });
     } finally {
       await close(server);

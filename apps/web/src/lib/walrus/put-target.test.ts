@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PreprocessedPhoto } from "../image/preprocess";
-import { putTargetBlobToWalrus, WalrusPutError } from "./put-target";
+import { putTargetBlobToWalrus, type WalrusPutError } from "./put-target";
 
 const PUBLISHER = "https://publisher.example.com";
 const AGGREGATOR = "https://aggregator.example.com";

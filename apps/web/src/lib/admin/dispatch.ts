@@ -1,5 +1,6 @@
 import { DISPATCH_SECRET_HEADER } from "../finalize/dispatch";
 
+import { ADMIN_MUTATION_HEADER, ADMIN_MUTATION_HEADER_VALUE } from "./api";
 import { loadAdminRelayEnv } from "./env";
 
 export async function relayAdminPost(
@@ -12,6 +13,7 @@ export async function relayAdminPost(
       method: "POST",
       headers: {
         "content-type": "application/json",
+        [ADMIN_MUTATION_HEADER]: ADMIN_MUTATION_HEADER_VALUE,
         [DISPATCH_SECRET_HEADER]: relay.sharedSecret,
       },
       body: JSON.stringify(payload),
@@ -21,7 +23,8 @@ export async function relayAdminPost(
   return new Response(await response.text(), {
     headers: {
       "content-type":
-        response.headers.get("content-type") ?? "application/json; charset=utf-8",
+        response.headers.get("content-type") ??
+        "application/json; charset=utf-8",
     },
     status: response.status,
   });

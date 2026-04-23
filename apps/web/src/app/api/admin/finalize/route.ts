@@ -1,4 +1,9 @@
 import {
+  AdminApiError,
+  assertAdminMutationRequest,
+  jsonAdminError,
+} from "../../../../lib/admin/api";
+import {
   FinalizeApiError,
   jsonError,
   parseFinalizeInput,
@@ -8,6 +13,7 @@ import { getFinalizeUnitSnapshot } from "../../../../lib/sui";
 
 export async function POST(request: Request): Promise<Response> {
   try {
+    assertAdminMutationRequest(request);
     const input = parseFinalizeInput(await request.json());
     const snapshot = await getFinalizeUnitSnapshot(input.unitId);
 
@@ -41,6 +47,10 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 function toResponse(error: unknown): Response {
+  if (error instanceof AdminApiError) {
+    return jsonAdminError(error);
+  }
+
   if (error instanceof FinalizeApiError) {
     return jsonError(error);
   }

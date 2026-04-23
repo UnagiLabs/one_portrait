@@ -34,6 +34,9 @@ describe("POST /api/admin/create-unit", () => {
     const response = await POST(
       new Request("http://localhost/api/admin/create-unit", {
         body: JSON.stringify({ nope: true }),
+        headers: {
+          "x-one-portrait-admin-request": "same-origin",
+        },
         method: "POST",
       }),
     );
@@ -41,6 +44,24 @@ describe("POST /api/admin/create-unit", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       code: "invalid_args",
+    });
+  });
+
+  it("returns 403 when the same-origin admin header is missing", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/admin/create-unit", {
+        body: JSON.stringify({
+          athleteId: 12,
+          blobId: "target-blob-12",
+          maxSlots: 980,
+        }),
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "forbidden",
     });
   });
 
@@ -76,6 +97,9 @@ describe("POST /api/admin/create-unit", () => {
           blobId: "target-blob-12",
           maxSlots: 980,
         }),
+        headers: {
+          "x-one-portrait-admin-request": "same-origin",
+        },
         method: "POST",
       }),
     );

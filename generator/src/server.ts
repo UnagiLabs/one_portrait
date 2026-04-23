@@ -29,7 +29,7 @@ export async function handleRequest(
   response: http.ServerResponse,
 ): Promise<void> {
   if (request.method === "GET" && request.url === "/health") {
-    const readiness = getDispatchReadiness(process.env);
+    const readiness = getGeneratorReadiness(process.env);
     if (!readiness.ready) {
       writeJson(response, 503, {
         error: "server_misconfigured",
@@ -243,7 +243,10 @@ function parseCreateUnitInput(input: unknown): {
     athleteId: parseAthleteId(record.athleteId),
     blobId: parseNonEmptyString(record.blobId, "blobId"),
     maxSlots: parsePositiveInteger(record.maxSlots, "maxSlots"),
-    registryObjectId: parseObjectId(record.registryObjectId, "registryObjectId"),
+    registryObjectId: parseObjectId(
+      record.registryObjectId,
+      "registryObjectId",
+    ),
   };
 }
 
@@ -256,7 +259,10 @@ function parseRotateUnitInput(input: unknown): {
 
   return {
     athleteId: parseAthleteId(record.athleteId),
-    registryObjectId: parseObjectId(record.registryObjectId, "registryObjectId"),
+    registryObjectId: parseObjectId(
+      record.registryObjectId,
+      "registryObjectId",
+    ),
     unitId: parseObjectId(record.unitId, "unitId"),
   };
 }
@@ -344,7 +350,7 @@ function validateDispatchAuthorization(request: http.IncomingMessage): {
   readonly status: 401 | 500;
   readonly payload: { readonly error: string; readonly message: string };
 } | null {
-  const readiness = getDispatchReadiness(process.env);
+  const readiness = getDispatchAuthorizationReadiness(process.env);
   if (!readiness.ready) {
     return {
       status: 500,
@@ -382,7 +388,28 @@ function normalizeHeaderValue(
   return normalized.length > 0 ? normalized : null;
 }
 
-function getDispatchReadiness(
+function getGeneratorReadiness(
+  source: NodeJS.ProcessEnv,
+):
+  | { readonly ready: true }
+  | { readonly ready: false; readonly missing: readonly string[] } {
+  const missing = [...generatorRuntimeEnvKeys].filter(
+    (key) => normalizeHeaderValue(source[key]) === null,
+  );
+
+  if (missing.length > 0) {
+    return {
+      ready: false,
+      missing,
+    };
+  }
+
+  return {
+    ready: true,
+  };
+}
+
+function getDispatchAuthorizationReadiness(
   source: NodeJS.ProcessEnv,
 ):
   | { readonly ready: true }

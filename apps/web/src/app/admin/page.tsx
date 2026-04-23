@@ -1,18 +1,15 @@
 import Link from "next/link";
 
-import { getAdminHealth, type AdminHealthSummary } from "../../lib/admin/health";
+import { getAdminHealth } from "../../lib/admin/health";
 import { getAthleteCatalog } from "../../lib/catalog";
 import { loadPublicEnv } from "../../lib/env";
 import {
+  type AdminUnitSnapshot,
   getAdminUnitSnapshot,
   getCurrentUnitIdForAthlete,
-  type AdminUnitSnapshot,
 } from "../../lib/sui";
 
-import {
-  AdminClient,
-  type AdminAthleteEntry,
-} from "./admin-client";
+import { type AdminAthleteEntry, AdminClient } from "./admin-client";
 
 export const dynamic = "force-dynamic";
 

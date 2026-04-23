@@ -4,11 +4,7 @@ import { loadAdminRelayEnv } from "./env";
 
 export type AdminHealthStatus = {
   readonly httpStatus: number | null;
-  readonly status:
-    | "misconfigured"
-    | "ok"
-    | "unauthorized"
-    | "unreachable";
+  readonly status: "misconfigured" | "ok" | "unauthorized" | "unreachable";
 };
 
 export type AdminHealthSummary = {
@@ -94,9 +90,7 @@ async function fetchDispatchAuthorization(
   }
 }
 
-function mapDispatchStatus(
-  httpStatus: number,
-): AdminHealthStatus["status"] {
+function mapDispatchStatus(httpStatus: number): AdminHealthStatus["status"] {
   if (httpStatus === 200) {
     return "ok";
   }

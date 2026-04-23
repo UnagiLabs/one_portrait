@@ -190,10 +190,7 @@ export function createCreateUnitTransactionExecutor(input: {
         tx.object(input.adminCapId),
         tx.object(args.registryObjectId),
         tx.pure(bcs.u16().serialize(args.athleteId)),
-        tx.pure.vector(
-          "u8",
-          Array.from(new TextEncoder().encode(args.blobId)),
-        ),
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(args.blobId))),
         tx.pure(bcs.u64().serialize(args.maxSlots)),
       ],
     });

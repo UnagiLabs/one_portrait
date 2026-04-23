@@ -1,6 +1,12 @@
 import { isValidSuiObjectId } from "@mysten/sui/utils";
 
-export type AdminApiErrorCode = "admin_unavailable" | "invalid_args";
+export type AdminApiErrorCode =
+  | "admin_unavailable"
+  | "forbidden"
+  | "invalid_args";
+
+export const ADMIN_MUTATION_HEADER = "x-one-portrait-admin-request";
+export const ADMIN_MUTATION_HEADER_VALUE = "same-origin";
 
 export class AdminApiError extends Error {
   readonly code: AdminApiErrorCode;
@@ -44,6 +50,25 @@ export function parseRotateUnitInput(input: unknown): RotateUnitRouteInput {
     athleteId: parseAthleteId(record.athleteId),
     unitId: parseObjectId(record.unitId, "unitId"),
   };
+}
+
+export function assertAdminMutationRequest(request: Request): void {
+  const requestMarker = request.headers.get(ADMIN_MUTATION_HEADER);
+  if (requestMarker !== ADMIN_MUTATION_HEADER_VALUE) {
+    throw new AdminApiError(
+      403,
+      "forbidden",
+      "Cross-site admin request is blocked.",
+    );
+  }
+
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new AdminApiError(
+      403,
+      "forbidden",
+      "Cross-site admin request is blocked.",
+    );
+  }
 }
 
 export function jsonAdminError(error: AdminApiError): Response {
@@ -99,11 +124,7 @@ function parseAthleteId(value: unknown): number {
         ? Number(value)
         : NaN;
 
-  if (
-    !Number.isInteger(athleteId) ||
-    athleteId < 0 ||
-    athleteId > 65_535
-  ) {
+  if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
     throw new AdminApiError(
       400,
       "invalid_args",

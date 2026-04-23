@@ -1,6 +1,7 @@
 import {
-  adminUnavailable,
   AdminApiError,
+  adminUnavailable,
+  assertAdminMutationRequest,
   jsonAdminError,
   parseCreateUnitInput,
 } from "../../../../lib/admin/api";
@@ -9,6 +10,7 @@ import { loadPublicEnv } from "../../../../lib/env";
 
 export async function POST(request: Request): Promise<Response> {
   try {
+    assertAdminMutationRequest(request);
     const input = parseCreateUnitInput(await request.json());
     const { registryObjectId } = loadPublicEnv(process.env);
 
