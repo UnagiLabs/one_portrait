@@ -800,19 +800,22 @@ function buildCreateUnitPayload(input: {
 }
 
 function formatAdminProgress(
-  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+  unit: AdminAthleteEntry["currentUnit"] &
+    NonNullable<AdminAthleteEntry["currentUnit"]>,
 ): string {
   return `${getDisplayedSubmittedCount(unit)} / ${unit.displayMaxSlots}`;
 }
 
 function getDisplayedSubmittedCount(
-  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+  unit: AdminAthleteEntry["currentUnit"] &
+    NonNullable<AdminAthleteEntry["currentUnit"]>,
 ): number {
   return unit.displayMaxSlots - unit.maxSlots + unit.submittedCount;
 }
 
 function getRemainingSlotsCount(
-  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+  unit: AdminAthleteEntry["currentUnit"] &
+    NonNullable<AdminAthleteEntry["currentUnit"]>,
 ): number {
   return Math.max(0, unit.maxSlots - unit.submittedCount);
 }

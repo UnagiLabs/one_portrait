@@ -179,17 +179,19 @@ describe("createDefaultFinalizeRunner", () => {
   });
 
   it("uses demo manifest tiles for image generation but finalizes only actual submissions", async () => {
-    const generateFinalizeMosaic = vi.fn(async (prepared: PreparedFinalizeInput) => ({
-      image: new Uint8Array([7, 8, 9]),
-      placements: prepared.submissions.map((submission, index) => ({
-        walrusBlobId: submission.walrusBlobId,
-        submissionNo: submission.submissionNo,
-        submitter: submission.submitter,
-        targetColor: submission.averageColor,
-        x: index,
-        y: 0,
-      })),
-    }));
+    const generateFinalizeMosaic = vi.fn(
+      async (prepared: PreparedFinalizeInput) => ({
+        image: new Uint8Array([7, 8, 9]),
+        placements: prepared.submissions.map((submission, index) => ({
+          walrusBlobId: submission.walrusBlobId,
+          submissionNo: submission.submissionNo,
+          submitter: submission.submitter,
+          targetColor: submission.averageColor,
+          x: index,
+          y: 0,
+        })),
+      }),
+    );
     const putBlob = vi.fn(async () => ({
       blobId: "mosaic-blob",
       aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
@@ -230,7 +232,9 @@ describe("createDefaultFinalizeRunner", () => {
       placementCount: 1,
     });
     expect(generateFinalizeMosaic).toHaveBeenCalledTimes(1);
-    expect(generateFinalizeMosaic.mock.calls[0]?.[0].submissions).toHaveLength(2);
+    expect(generateFinalizeMosaic.mock.calls[0]?.[0].submissions).toHaveLength(
+      2,
+    );
     expect(finalizeTransaction).toHaveBeenCalledWith({
       unitId: "0xunit-1",
       mosaicBlobId: "mosaic-blob",

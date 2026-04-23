@@ -53,7 +53,9 @@ export default async function HomePage(
     : await loadChainEntries();
 
   const firstActive = entries.find(
-    (entry): entry is HomeEntry & {
+    (
+      entry,
+    ): entry is HomeEntry & {
       readonly progress: { readonly kind: "active" } & HomeEntry["progress"];
     } => entry.progress.kind === "active",
   );
@@ -68,9 +70,7 @@ export default async function HomePage(
               <span>ONE Samurai · 2026.04.29 · Ariake Arena</span>
             </div>
             <h1 className="op-hero-title">
-              <span className="line">
-                {unitTileCount.toLocaleString()}
-              </span>
+              <span className="line">{unitTileCount.toLocaleString()}</span>
               <span className="line">
                 <span className="accent">fans,</span>
               </span>
@@ -114,10 +114,7 @@ export default async function HomePage(
         </div>
       </section>
 
-      <section
-        className="relative grid gap-10 p-8 md:p-14 lg:p-16"
-        id="arena"
-      >
+      <section className="relative grid gap-10 p-8 md:p-14 lg:p-16" id="arena">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--rule)] pb-5">
           <div className="grid gap-4">
             <div className="op-eyebrow">
@@ -204,7 +201,9 @@ function HeroFoot({
     <div className="flex flex-wrap items-end justify-between gap-4 font-mono-op text-[11px] tracking-[0.08em] text-[var(--ink-dim)]">
       <div>
         <div className="mb-2">
-          {firstActive ? `Live unit — ${firstActive.displayName}` : "Live registry"}
+          {firstActive
+            ? `Live unit — ${firstActive.displayName}`
+            : "Live registry"}
         </div>
         <div
           className="font-display text-[56px] leading-none text-[var(--ink)]"
@@ -213,7 +212,9 @@ function HeroFoot({
           {firstActive && firstActive.progress.kind === "active" ? (
             <>
               <em className="not-italic text-[var(--ember)]">
-                {getDisplayedSubmittedCount(firstActive.progress).toLocaleString()}
+                {getDisplayedSubmittedCount(
+                  firstActive.progress,
+                ).toLocaleString()}
               </em>
               <span className="text-[var(--ink-faint)]"> / </span>
               {firstActive.progress.displayMaxSlots.toLocaleString()}
@@ -479,7 +480,8 @@ function ProgressLabel({
   if (progress.kind === "active") {
     const pct =
       progress.displayMaxSlots > 0
-        ? (getDisplayedSubmittedCount(progress) / progress.displayMaxSlots) * 100
+        ? (getDisplayedSubmittedCount(progress) / progress.displayMaxSlots) *
+          100
         : 0;
     return (
       <>
@@ -496,10 +498,7 @@ function ProgressLabel({
           <div>{Math.round(pct)}%</div>
         </div>
         <div className="op-progress-bar">
-          <div
-            className="op-progress-bar-fill"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
       </>
     );

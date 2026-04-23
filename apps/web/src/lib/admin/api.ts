@@ -41,10 +41,18 @@ export type UpsertAthleteMetadataRouteInput = {
 
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
-  assertAllowedKeys(record, ["athleteId", "blobId", "displayMaxSlots", "maxSlots"]);
+  assertAllowedKeys(record, [
+    "athleteId",
+    "blobId",
+    "displayMaxSlots",
+    "maxSlots",
+  ]);
 
   const maxSlots = parseMaxSlots(record.maxSlots);
-  const displayMaxSlots = parseDisplayMaxSlots(record.displayMaxSlots, maxSlots);
+  const displayMaxSlots = parseDisplayMaxSlots(
+    record.displayMaxSlots,
+    maxSlots,
+  );
 
   return {
     athleteId: parseAthleteId(record.athleteId),

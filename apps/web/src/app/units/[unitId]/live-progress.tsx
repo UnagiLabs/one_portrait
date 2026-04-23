@@ -27,11 +27,11 @@ import type {
   SubmittedEvent,
   UnitFilledEvent,
 } from "../../../lib/sui";
+import { useUnitEvents } from "../../../lib/sui/react";
 import {
   getDisplayedSubmittedCount,
   getRemainingSlotsCount,
 } from "../../../lib/sui/types";
-import { useUnitEvents } from "../../../lib/sui/react";
 
 export type LiveProgressProps = {
   readonly displayMaxSlots?: number;
@@ -106,14 +106,13 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
       >
         <span className="num">{displayedSubmittedCount.toLocaleString()}</span>
         <span className="slash">/</span>
-        <span className="total">{effectiveDisplayMaxSlots.toLocaleString()}</span>
+        <span className="total">
+          {effectiveDisplayMaxSlots.toLocaleString()}
+        </span>
       </p>
       <div className="grid gap-2">
         <div className="op-progress-bar">
-          <div
-            className="op-progress-bar-fill"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
         <div className="flex flex-wrap items-baseline justify-between gap-3 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
           <span className="text-[var(--ember)]">

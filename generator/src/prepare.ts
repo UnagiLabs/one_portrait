@@ -1,9 +1,9 @@
+import { readFile } from "node:fs/promises";
 import type {
   GeneratorSubmissionRef,
   GeneratorUnitSnapshot,
   MosaicRgb,
 } from "@one-portrait/shared";
-import { readFile } from "node:fs/promises";
 
 import {
   loadSeedingInputFromManifest,
@@ -70,7 +70,11 @@ export async function prepareFinalizeInput(
       (submission) => submission.walrusBlobId,
     ),
     submissions: isDemoUnit(snapshot)
-      ? await loadDemoPreparedSubmissions(snapshot, deps, preparedActualSubmissions)
+      ? await loadDemoPreparedSubmissions(
+          snapshot,
+          deps,
+          preparedActualSubmissions,
+        )
       : preparedActualSubmissions,
     targetImageBytes,
     targetWalrusBlobId: snapshot.targetWalrusBlobId,
@@ -109,7 +113,8 @@ async function loadDemoPreparedSubmissions(
     );
   }
 
-  const loadEntries = deps.loadDemoManifestEntries ?? loadSeedingInputFromManifest;
+  const loadEntries =
+    deps.loadDemoManifestEntries ?? loadSeedingInputFromManifest;
   const readDemoFile = deps.readDemoFile ?? readFile;
   const requiredMockCount = snapshot.displayMaxSlots - actualSubmissions.length;
 

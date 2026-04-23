@@ -155,7 +155,9 @@ export default async function UnitPage(
                   aggregatorBase={aggregatorBase}
                   displayName={displayName}
                   displayMaxSlots={progress.displayMaxSlots}
-                  eventSubscriptionEnabled={startupEnabled && packageId !== null}
+                  eventSubscriptionEnabled={
+                    startupEnabled && packageId !== null
+                  }
                   initialMasterId={progress.masterId}
                   initialSubmittedCount={progress.submittedCount}
                   maxSlots={progress.maxSlots}

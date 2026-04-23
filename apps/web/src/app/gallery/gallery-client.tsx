@@ -384,14 +384,12 @@ function GalleryStatusShell({
   const toneClasses =
     tone === "warning"
       ? {
-          shell:
-            "border-[rgba(255,193,99,0.25)] bg-[rgba(255,193,99,0.06)]",
+          shell: "border-[rgba(255,193,99,0.25)] bg-[rgba(255,193,99,0.06)]",
           label: "text-[var(--ember)]",
         }
       : tone === "empty"
         ? {
-            shell:
-              "border-[rgba(20,184,138,0.25)] bg-[rgba(20,184,138,0.06)]",
+            shell: "border-[rgba(20,184,138,0.25)] bg-[rgba(20,184,138,0.06)]",
             label: "text-[var(--ok)]",
           }
         : {

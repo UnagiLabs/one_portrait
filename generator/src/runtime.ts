@@ -108,7 +108,10 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         placements,
       });
       const mosaic = await deps.putMosaic(mosaicBytes);
-      const finalizePlacements = selectPlacementsForFinalize(prepared, placements);
+      const finalizePlacements = selectPlacementsForFinalize(
+        prepared,
+        placements,
+      );
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,
@@ -213,7 +216,9 @@ function selectPlacementsForFinalize(
 ): MosaicPlacement[] {
   const allowedBlobIds = new Set(prepared.finalizeWalrusBlobIds);
 
-  return placements.filter((placement) => allowedBlobIds.has(placement.walrusBlobId));
+  return placements.filter((placement) =>
+    allowedBlobIds.has(placement.walrusBlobId),
+  );
 }
 
 export type { GeneratorFinalizeSnapshot };

@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { unitTileCount } from "@one-portrait/shared";
 
 const { preprocessPhotoMock, putTargetBlobToWalrusMock } = vi.hoisted(() => ({
   preprocessPhotoMock: vi.fn(),
@@ -289,62 +289,63 @@ describe("AdminClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockImplementation(
       async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
 
-      if (url.endsWith("/api/admin/create-unit")) {
-        expect(JSON.parse(String(init?.body))).toEqual({
-          athleteId: 1,
-          blobId: "target-blob-1",
-          displayMaxSlots: 2000,
-          maxSlots: 5,
+        if (url.endsWith("/api/admin/create-unit")) {
+          expect(JSON.parse(String(init?.body))).toEqual({
+            athleteId: 1,
+            blobId: "target-blob-1",
+            displayMaxSlots: 2000,
+            maxSlots: 5,
+          });
+
+          return new Response(
+            JSON.stringify({
+              digest: "0xdemo",
+              status: "created",
+              unitId:
+                "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+
+        if (url.endsWith("/api/admin/status")) {
+          return new Response(
+            JSON.stringify({
+              athletes: [
+                {
+                  athletePublicId: "1",
+                  currentUnit: null,
+                  displayName: "Demo Athlete One",
+                  lookupState: "missing",
+                  metadataState: "ready",
+                  slug: "demo-athlete-one",
+                  thumbnailUrl: "https://example.com/1.png",
+                },
+              ],
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+
+        return new Response(JSON.stringify(HEALTH_OK), {
+          headers: { "content-type": "application/json" },
+          status: 200,
         });
-
-        return new Response(
-          JSON.stringify({
-            digest: "0xdemo",
-            status: "created",
-            unitId:
-              "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-          }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        );
-      }
-
-      if (url.endsWith("/api/admin/status")) {
-        return new Response(
-          JSON.stringify({
-            athletes: [
-              {
-                athletePublicId: "1",
-                currentUnit: null,
-                displayName: "Demo Athlete One",
-                lookupState: "missing",
-                metadataState: "ready",
-                slug: "demo-athlete-one",
-                thumbnailUrl: "https://example.com/1.png",
-              },
-            ],
-          }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        );
-      }
-
-      return new Response(JSON.stringify(HEALTH_OK), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      });
-    });
+      },
+    );
 
     render(
       <AdminClient

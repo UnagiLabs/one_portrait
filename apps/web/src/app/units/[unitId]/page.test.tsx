@@ -61,7 +61,8 @@ vi.mock("./unit-reveal-client", () => ({
         data-testid="unit-reveal-client"
         data-unit-id={props.unitId}
       >
-        {props.initialSubmittedCount} / {props.displayMaxSlots ?? props.maxSlots}
+        {props.initialSubmittedCount} /{" "}
+        {props.displayMaxSlots ?? props.maxSlots}
       </div>
     );
   },

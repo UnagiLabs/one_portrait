@@ -416,10 +416,7 @@ function parsePositiveInteger(value: unknown, fieldName: string): number {
   return parsed;
 }
 
-function parseDisplayMaxSlots(
-  value: unknown,
-  maxSlots: number,
-): number {
+function parseDisplayMaxSlots(value: unknown, maxSlots: number): number {
   if (value === undefined) {
     return maxSlots;
   }
