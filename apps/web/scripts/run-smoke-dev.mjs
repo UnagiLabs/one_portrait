@@ -23,8 +23,7 @@ export async function startSmokeDev({
     cwd,
     env: {
       ...env,
-      OP_FINALIZE_DISPATCH_URL:
-        env.OP_FINALIZE_DISPATCH_URL ?? "http://127.0.0.1:8080",
+      OP_LOCAL_GENERATOR_RUNTIME: env.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
     },
     stdio: "inherit",
   });

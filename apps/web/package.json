@@ -13,7 +13,7 @@
     "dev:smoke": "node ./scripts/run-smoke-dev.mjs",
     "build": "node ./scripts/check-build-public-env.mjs local && next build",
     "build:cf": "node ./scripts/run-cloudflare-build.mjs",
-    "start": "OP_FINALIZE_DISPATCH_URL=${OP_FINALIZE_DISPATCH_URL:-http://127.0.0.1:8080} next start",
+    "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests && node --test scripts/check-build-public-env.test.mjs",
     "test:watch": "vitest --passWithNoTests",

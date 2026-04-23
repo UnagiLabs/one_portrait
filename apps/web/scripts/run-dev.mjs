@@ -11,27 +11,42 @@ const webRoot = path.resolve(__dirname, "..");
 const lockPath = path.join(webRoot, ".next", "dev", "lock");
 const nextBin = path.join(webRoot, "node_modules", ".bin", "next");
 
-cleanupStaleNextDevLock(lockPath);
-assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
+export function startDev({
+  cwd = webRoot,
+  env = process.env,
+  nextDevBin = path.join(cwd, "node_modules", ".bin", "next"),
+  spawnImpl = spawn,
+}) {
+  return spawnImpl(nextDevBin, ["dev"], {
+    cwd,
+    env: {
+      ...env,
+      OP_LOCAL_GENERATOR_RUNTIME: env.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
+    },
+    stdio: "inherit",
+  });
+}
 
-const child = spawn(nextBin, ["dev"], {
-  cwd: webRoot,
-  env: {
-    ...process.env,
-    OP_FINALIZE_DISPATCH_URL:
-      process.env.OP_FINALIZE_DISPATCH_URL ?? "http://127.0.0.1:8080",
-  },
-  stdio: "inherit",
-});
+if (isExecutedDirectly()) {
+  cleanupStaleNextDevLock(lockPath);
+  assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
 
-child.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
+  const child = startDev({
+    cwd: webRoot,
+    env: process.env,
+    nextDevBin: nextBin,
+    spawnImpl: spawn,
+  });
 
-  process.exit(code ?? 0);
-});
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+
+    process.exit(code ?? 0);
+  });
+}
 
 function cleanupStaleNextDevLock(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -57,6 +72,20 @@ function isProcessAlive(pid) {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return error?.code === "EPERM";
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "EPERM"
+    );
   }
+}
+
+function isExecutedDirectly() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+
+  return path.resolve(entry) === __filename;
 }

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
 
 const shouldInitCloudflareDev =
   process.env.NODE_ENV !== "production" &&
-  !process.env.OP_FINALIZE_DISPATCH_URL?.trim();
+  process.env.OP_LOCAL_GENERATOR_RUNTIME?.trim() !== "1";
 
 if (shouldInitCloudflareDev) {
   initOpenNextCloudflareForDev();

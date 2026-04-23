@@ -13,6 +13,7 @@ generator/assets/demo-tiles
 generator/assets/archives
 generator/.cache
 generator/.venv
+apps/web/.cache
 
 # Env
 **/.env

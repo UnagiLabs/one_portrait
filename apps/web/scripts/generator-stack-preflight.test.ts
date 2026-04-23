@@ -14,6 +14,7 @@ describe("runGeneratorStackPreflight", () => {
 
     const result = await runGeneratorStackPreflight({
       env: {
+        OP_LOCAL_TUNNEL_MODE: "named",
         OP_FINALIZE_DISPATCH_URL: validEnv.OP_FINALIZE_DISPATCH_URL,
       },
       logger,
@@ -29,6 +30,27 @@ describe("runGeneratorStackPreflight", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("[generator-stack][preflight][missing-env]"),
     );
+  });
+
+  it("allows quick tunnel mode without named tunnel env", async () => {
+    const logger = createLogger();
+    const runCommand = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "cloudflared version 2026.4.0" });
+
+    const result = await runGeneratorStackPreflight({
+      env: {},
+      logger,
+      runCommand,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      exitCode: 0,
+      localPort: 8080,
+      tunnelMode: "quick",
+    });
+    expect(runCommand).toHaveBeenCalledWith("cloudflared", ["--version"], {});
   });
 
   it("fails fast when OP_FINALIZE_DISPATCH_URL is missing", async () => {
@@ -329,9 +351,11 @@ describe("runGeneratorStackPreflight", () => {
     expect(result).toEqual({
       ok: true,
       exitCode: 0,
+      publicBaseUrl: "https://generator.example",
       tunnelName: "one-portrait-generator",
       publicHostname: "generator.example",
       localPort: 9090,
+      tunnelMode: "named",
     });
     expect(runCommand).toHaveBeenNthCalledWith(
       2,
@@ -388,9 +412,11 @@ describe("runGeneratorStackPreflight", () => {
     expect(result).toEqual({
       ok: true,
       exitCode: 0,
+      publicBaseUrl: "https://generator.example",
       tunnelName: "one-portrait-generator",
       publicHostname: "generator.example",
       localPort: 9090,
+      tunnelMode: "named",
     });
   });
 
@@ -422,9 +448,11 @@ describe("runGeneratorStackPreflight", () => {
     expect(result).toEqual({
       ok: true,
       exitCode: 0,
+      publicBaseUrl: "https://generator.example",
       tunnelName: "one-portrait-generator",
       publicHostname: "generator.example",
       localPort: 8080,
+      tunnelMode: "named",
     });
   });
 });
