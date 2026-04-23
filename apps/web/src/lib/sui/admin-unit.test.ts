@@ -36,6 +36,7 @@ function unitData(fields: Record<string, unknown>) {
         target_walrus_blob: Array.from(
           new TextEncoder().encode("target-blob-007"),
         ),
+        display_max_slots: "2000",
         max_slots: "2000",
         status: 0,
         master_id: { fields: { vec: [] } },
@@ -63,6 +64,7 @@ describe("getAdminUnitSnapshot", () => {
 
     await expect(getAdminUnitSnapshot(UNIT_ID, { client })).resolves.toEqual({
       athletePublicId: "7",
+      displayMaxSlots: 2000,
       masterId: null,
       maxSlots: 2000,
       status: "pending",
@@ -76,6 +78,7 @@ describe("getAdminUnitSnapshot", () => {
     const filledClient = clientReturning(unitData({ status: 1 }));
     const finalizedClient = clientReturning(
       unitData({
+        display_max_slots: "2500",
         master_id: { fields: { vec: ["0xmaster"] } },
         status: 2,
       }),
@@ -89,6 +92,7 @@ describe("getAdminUnitSnapshot", () => {
     await expect(
       getAdminUnitSnapshot(UNIT_ID, { client: finalizedClient }),
     ).resolves.toMatchObject({
+      displayMaxSlots: 2500,
       masterId: "0xmaster",
       status: "finalized",
     });

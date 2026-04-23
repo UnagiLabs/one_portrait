@@ -7,6 +7,7 @@ export { UnitNotFoundError } from "./unit";
 
 export type AdminUnitSnapshot = {
   readonly athletePublicId: string;
+  readonly displayMaxSlots: number;
   readonly masterId: string | null;
   readonly maxSlots: number;
   readonly status: UnitStatus;
@@ -35,6 +36,10 @@ export async function getAdminUnitSnapshot(
 
   return {
     athletePublicId: String(parseIntegerField(fields.athlete_id, "athlete_id")),
+    displayMaxSlots: parseIntegerField(
+      fields.display_max_slots,
+      "display_max_slots",
+    ),
     masterId: extractOptionalId(fields.master_id),
     maxSlots: parseIntegerField(fields.max_slots, "max_slots"),
     status: normalizeUnitStatus(fields.status),

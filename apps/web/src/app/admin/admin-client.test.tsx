@@ -2,6 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { unitTileCount } from "@one-portrait/shared";
 
 const { preprocessPhotoMock, putTargetBlobToWalrusMock } = vi.hoisted(() => ({
   preprocessPhotoMock: vi.fn(),
@@ -44,6 +45,7 @@ describe("AdminClient", () => {
             athletePublicId: "1",
             currentUnit: {
               athletePublicId: "1",
+              displayMaxSlots: 2000,
               masterId: null,
               maxSlots: 2000,
               status: "filled",
@@ -281,5 +283,132 @@ describe("AdminClient", () => {
       expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
     });
     expect(screen.getByText(/ダイジェスト: 0xcreate/)).toBeTruthy();
+  });
+
+  it("submits demo create-unit payload with remaining and display totals", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/admin/create-unit")) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          athleteId: 1,
+          blobId: "target-blob-1",
+          displayMaxSlots: 2000,
+          maxSlots: 5,
+        });
+
+        return new Response(
+          JSON.stringify({
+            digest: "0xdemo",
+            status: "created",
+            unitId:
+              "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      if (url.endsWith("/api/admin/status")) {
+        return new Response(
+          JSON.stringify({
+            athletes: [
+              {
+                athletePublicId: "1",
+                currentUnit: null,
+                displayName: "Demo Athlete One",
+                lookupState: "missing",
+                metadataState: "ready",
+                slug: "demo-athlete-one",
+                thumbnailUrl: "https://example.com/1.png",
+              },
+            ],
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+
+    render(
+      <AdminClient
+        initialAthletes={[
+          {
+            athletePublicId: "1",
+            currentUnit: null,
+            displayName: "Demo Athlete One",
+            lookupState: "missing",
+            metadataState: "ready",
+            slug: "demo-athlete-one",
+            thumbnailUrl: "https://example.com/1.png",
+          },
+        ]}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+      target: { value: "target-blob-1" },
+    });
+    fireEvent.click(screen.getByLabelText(/demo unit として作成/));
+    fireEvent.change(screen.getByLabelText(/実際に集める残り枚数/), {
+      target: { value: "5" },
+    });
+    fireEvent.change(screen.getByLabelText(/画面に見せる総数/), {
+      target: { value: "2000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+    });
+    expect(screen.getByText(/ダイジェスト: 0xdemo/)).toBeTruthy();
+  });
+
+  it("shows demo progress totals and actual remaining count in the admin card", () => {
+    render(
+      <AdminClient
+        initialAthletes={[
+          {
+            athletePublicId: "1",
+            currentUnit: {
+              athletePublicId: "1",
+              displayMaxSlots: unitTileCount,
+              masterId: null,
+              maxSlots: 5,
+              status: "pending",
+              submittedCount: 0,
+              targetWalrusBlobId: "target-blob-1",
+              unitId: "0xunit-1",
+            },
+            displayName: "Demo Athlete One",
+            lookupState: "ready",
+            metadataState: "ready",
+            slug: "demo-athlete-one",
+            thumbnailUrl: "https://example.com/1.png",
+          },
+        ]}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    expect(screen.getByText(`1995 / ${unitTileCount}`)).toBeTruthy();
+    expect(screen.getByText("5 枚")).toBeTruthy();
   });
 });

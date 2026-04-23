@@ -17,6 +17,7 @@ describe("GET /api/admin/status", () => {
         athletePublicId: "1",
         currentUnit: {
           athletePublicId: "1",
+          displayMaxSlots: 2000,
           masterId: null,
           maxSlots: 2000,
           status: "filled",
@@ -50,6 +51,7 @@ describe("GET /api/admin/status", () => {
           athletePublicId: "1",
           currentUnit: {
             athletePublicId: "1",
+            displayMaxSlots: 2000,
             masterId: null,
             maxSlots: 2000,
             status: "filled",

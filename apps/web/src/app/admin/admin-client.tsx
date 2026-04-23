@@ -1,5 +1,6 @@
 "use client";
 
+import { unitTileCount } from "@one-portrait/shared";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 
 import type { AdminAthleteEntry } from "../../lib/admin/athletes";
@@ -44,7 +45,10 @@ export function AdminClient({
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     initialAthletes[0]?.athletePublicId ?? "",
   );
-  const [maxSlots, setMaxSlots] = useState("2000");
+  const [maxSlots, setMaxSlots] = useState(String(unitTileCount));
+  const [isDemoUnit, setIsDemoUnit] = useState(false);
+  const [remainingSlots, setRemainingSlots] = useState("5");
+  const [displayMaxSlots, setDisplayMaxSlots] = useState(String(unitTileCount));
   const [targetBlobId, setTargetBlobId] = useState("");
   const [targetPreviewUrl, setTargetPreviewUrl] = useState<string | null>(null);
   const [rotateAthleteId, setRotateAthleteId] = useState(
@@ -179,11 +183,17 @@ export function AdminClient({
     setPendingAction("create");
 
     try {
-      const payload = await postJson("/api/admin/create-unit", {
-        athleteId: Number(selectedAthleteId),
-        blobId: targetBlobId,
-        maxSlots: Number(maxSlots),
-      });
+      const payload = await postJson(
+        "/api/admin/create-unit",
+        buildCreateUnitPayload({
+          athleteId: Number(selectedAthleteId),
+          blobId: targetBlobId,
+          displayMaxSlots: Number(displayMaxSlots),
+          isDemoUnit,
+          maxSlots: Number(maxSlots),
+          remainingSlots: Number(remainingSlots),
+        }),
+      );
 
       setRotateAthleteId(selectedAthleteId);
       if (typeof payload.unitId === "string") {
@@ -454,14 +464,50 @@ export function AdminClient({
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
-              最大スロット数
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setMaxSlots(event.target.value)}
-                value={maxSlots}
-              />
+              <span className="flex items-center gap-2">
+                <input
+                  checked={isDemoUnit}
+                  className="accent-amber-300"
+                  onChange={(event) => setIsDemoUnit(event.target.checked)}
+                  type="checkbox"
+                />
+                demo unit として作成
+              </span>
             </label>
+
+            {isDemoUnit ? (
+              <>
+                <label className="grid gap-2 text-sm text-stone-200">
+                  実際に集める残り枚数
+                  <input
+                    className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                    inputMode="numeric"
+                    onChange={(event) => setRemainingSlots(event.target.value)}
+                    value={remainingSlots}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm text-stone-200">
+                  画面に見せる総数
+                  <input
+                    className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                    inputMode="numeric"
+                    onChange={(event) => setDisplayMaxSlots(event.target.value)}
+                    value={displayMaxSlots}
+                  />
+                </label>
+              </>
+            ) : (
+              <label className="grid gap-2 text-sm text-stone-200">
+                最大スロット数
+                <input
+                  className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                  inputMode="numeric"
+                  onChange={(event) => setMaxSlots(event.target.value)}
+                  value={maxSlots}
+                />
+              </label>
+            )}
 
             <button
               className="rounded-full border border-amber-200/40 bg-amber-300 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
@@ -469,7 +515,11 @@ export function AdminClient({
                 isUploading ||
                 pendingAction === "create" ||
                 selectedAthleteId.trim().length === 0 ||
-                targetBlobId.trim().length === 0
+                targetBlobId.trim().length === 0 ||
+                (isDemoUnit
+                  ? remainingSlots.trim().length === 0 ||
+                    displayMaxSlots.trim().length === 0
+                  : maxSlots.trim().length === 0)
               }
               type="submit"
             >
@@ -649,7 +699,11 @@ function AdminAthleteCard({
             <InfoRow label="ユニット ID" value={currentUnit.unitId} />
             <InfoRow
               label="進行状況"
-              value={`${currentUnit.submittedCount} / ${currentUnit.maxSlots}`}
+              value={formatAdminProgress(currentUnit)}
+            />
+            <InfoRow
+              label="実残り"
+              value={`${getRemainingSlotsCount(currentUnit)} 枚`}
             />
             <InfoRow label="ステータス" value={currentUnit.status} />
             <InfoRow label="対象 blob" value={currentUnit.targetWalrusBlobId} />
@@ -718,4 +772,47 @@ function formatActionDetail(payload: Record<string, unknown>): string {
   ].filter((value): value is string => value !== null);
 
   return parts.join(" / ");
+}
+
+function buildCreateUnitPayload(input: {
+  readonly athleteId: number;
+  readonly blobId: string;
+  readonly displayMaxSlots: number;
+  readonly isDemoUnit: boolean;
+  readonly maxSlots: number;
+  readonly remainingSlots: number;
+}) {
+  if (input.isDemoUnit) {
+    return {
+      athleteId: input.athleteId,
+      blobId: input.blobId,
+      displayMaxSlots: input.displayMaxSlots,
+      maxSlots: input.remainingSlots,
+    };
+  }
+
+  return {
+    athleteId: input.athleteId,
+    blobId: input.blobId,
+    displayMaxSlots: input.maxSlots,
+    maxSlots: input.maxSlots,
+  };
+}
+
+function formatAdminProgress(
+  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+): string {
+  return `${getDisplayedSubmittedCount(unit)} / ${unit.displayMaxSlots}`;
+}
+
+function getDisplayedSubmittedCount(
+  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+): number {
+  return unit.displayMaxSlots - unit.maxSlots + unit.submittedCount;
+}
+
+function getRemainingSlotsCount(
+  unit: AdminAthleteEntry["currentUnit"] & NonNullable<AdminAthleteEntry["currentUnit"]>,
+): number {
+  return Math.max(0, unit.maxSlots - unit.submittedCount);
 }
