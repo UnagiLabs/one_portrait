@@ -1,4 +1,5 @@
 import { FinalizeApiError } from "./api";
+import { resolveGeneratorRuntime, type GeneratorRuntimeResolution } from "../generator-runtime";
 
 export type FinalizeDispatchRequest = {
   readonly unitId: string;
@@ -21,26 +22,26 @@ export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 
 type FinalizeDispatcherDeps = {
   readonly fetchImpl?: typeof fetch;
-  readonly dispatchBaseUrl?: string | undefined;
   readonly dispatchSecret?: string | undefined;
+  readonly resolveRuntime?: () => GeneratorRuntimeResolution;
 };
 
 export function createFinalizeDispatcher(
   deps: FinalizeDispatcherDeps = {
     fetchImpl: fetch,
-    dispatchBaseUrl: process.env.OP_FINALIZE_DISPATCH_URL,
     dispatchSecret: process.env.OP_FINALIZE_DISPATCH_SECRET,
+    resolveRuntime: () => resolveGeneratorRuntime(),
   },
 ) {
   return async function dispatchFinalize(
     request: FinalizeDispatchRequest,
   ): Promise<FinalizeDispatchResult> {
-    const dispatchBaseUrl = normalizeDispatchBaseUrl(deps.dispatchBaseUrl);
-    if (dispatchBaseUrl === null) {
+    const runtime = deps.resolveRuntime?.() ?? resolveGeneratorRuntime();
+    if (runtime.status !== "ok") {
       throw new FinalizeApiError(
         503,
         "finalize_unavailable",
-        "外部 generator の URL が未設定です。`OP_FINALIZE_DISPATCH_URL` を設定してください。",
+        runtime.message,
       );
     }
 
@@ -57,7 +58,7 @@ export function createFinalizeDispatcher(
       fetchImpl: deps.fetchImpl ?? fetch,
       request,
       secret: dispatchSecret,
-      url: new URL("/dispatch", `${dispatchBaseUrl}/`).toString(),
+      url: new URL("/dispatch", `${runtime.url}/`).toString(),
     });
   };
 }
@@ -86,16 +87,6 @@ async function dispatchToGenerator(input: {
   }
 
   return (await response.json()) as FinalizeDispatchResult;
-}
-
-function normalizeDispatchBaseUrl(value: string | undefined): string | null {
-  const normalized = typeof value === "string" ? value.trim() : "";
-
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  return normalized.replace(/\/+$/, "");
 }
 
 function normalizeDispatchSecret(value: string | undefined): string | null {
