@@ -168,7 +168,7 @@ describe("generator server", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
-          maxSlots: 980,
+          maxSlots: 2000,
           registryObjectId: VALID_REGISTRY_ID,
         }),
       });
@@ -182,7 +182,7 @@ describe("generator server", () => {
       expect(createUnitMock).toHaveBeenCalledWith({
         athleteId: 12,
         blobId: "target-blob-12",
-        maxSlots: 980,
+        maxSlots: 2000,
         registryObjectId: VALID_REGISTRY_ID,
       });
     } finally {

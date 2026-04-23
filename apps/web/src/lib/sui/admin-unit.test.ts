@@ -36,7 +36,7 @@ function unitData(fields: Record<string, unknown>) {
         target_walrus_blob: Array.from(
           new TextEncoder().encode("target-blob-007"),
         ),
-        max_slots: "980",
+        max_slots: "2000",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
@@ -64,7 +64,7 @@ describe("getAdminUnitSnapshot", () => {
     await expect(getAdminUnitSnapshot(UNIT_ID, { client })).resolves.toEqual({
       athletePublicId: "7",
       masterId: null,
-      maxSlots: 980,
+      maxSlots: 2000,
       status: "pending",
       submittedCount: 1,
       targetWalrusBlobId: "target-blob-007",

@@ -44,7 +44,7 @@ export function AdminClient({
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     initialAthletes[0]?.athletePublicId ?? "",
   );
-  const [maxSlots, setMaxSlots] = useState("980");
+  const [maxSlots, setMaxSlots] = useState("2000");
   const [targetBlobId, setTargetBlobId] = useState("");
   const [targetPreviewUrl, setTargetPreviewUrl] = useState<string | null>(null);
   const [rotateAthleteId, setRotateAthleteId] = useState(

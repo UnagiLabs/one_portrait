@@ -13,7 +13,7 @@ describe("createFinalizeDispatcher", () => {
         unitId: VALID_UNIT_ID,
         mosaicBlobId: "mosaic-blob",
         digest: "0xdigest",
-        placementCount: 980,
+        placementCount: 2000,
       }),
     );
     const dispatchFinalize = createFinalizeDispatcher({
@@ -31,7 +31,7 @@ describe("createFinalizeDispatcher", () => {
       unitId: VALID_UNIT_ID,
       mosaicBlobId: "mosaic-blob",
       digest: "0xdigest",
-      placementCount: 980,
+      placementCount: 2000,
     });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);

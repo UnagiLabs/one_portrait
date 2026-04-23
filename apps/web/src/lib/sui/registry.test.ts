@@ -307,7 +307,7 @@ describe("getActiveHomeUnits", () => {
         displayName: "Demo Athlete One",
         slug: "demo-athlete-one",
         thumbnailUrl: "https://example.com/1.png",
-        maxSlots: 980,
+        maxSlots: 2000,
         submittedCount: 12,
         unitId: "0xunit-1",
       },
@@ -414,7 +414,7 @@ function dynamicMetadataField(
 }
 
 function unitObject(id: string) {
-  const submittedCount = id === "0xunit-1" ? 12 : 980;
+  const submittedCount = id === "0xunit-1" ? 12 : 2000;
   const status = id === "0xunit-1" ? 0 : 1;
   const athleteId = id === "0xunit-1" ? 1 : 2;
 
@@ -431,7 +431,7 @@ function unitObject(id: string) {
         fields: {
           athlete_id: athleteId,
           master_id: { fields: { vec: [] } },
-          max_slots: "980",
+          max_slots: "2000",
           status,
           submissions: new Array(submittedCount).fill({}),
         },

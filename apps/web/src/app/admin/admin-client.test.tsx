@@ -37,9 +37,9 @@ describe("AdminClient", () => {
             currentUnit: {
               athletePublicId: "1",
               masterId: null,
-              maxSlots: 980,
+              maxSlots: 2000,
               status: "filled",
-              submittedCount: 980,
+              submittedCount: 2000,
               targetWalrusBlobId: "target-blob-1",
               unitId: "0xunit-1",
             },
