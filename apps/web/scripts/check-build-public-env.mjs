@@ -26,7 +26,10 @@ export function loadBuildPublicEnvSource({
   const normalizedMode = normalizeMode(mode);
 
   if (normalizedMode === "cloudflare") {
-    return { ...env };
+    return {
+      ...readWranglerBuildEnvFile(cwd),
+      ...env,
+    };
   }
 
   return {
@@ -142,9 +145,9 @@ function buildMissingMessage(mode, missing) {
   return [
     "Missing required public env variable(s) for Cloudflare build:",
     missing.join(", "),
-    "Cloudflare build reads process.env only. It does not consult wrangler.jsonc or local env files.",
+    "Cloudflare build reads process.env first, then falls back to apps/web/wrangler.jsonc vars for public keys only.",
     `Required Cloudflare keys: ${requiredKeys}.`,
-    "Set them as Cloudflare Build Variables before running build:cf, preview, deploy, or upload.",
+    "Set them as Cloudflare Build Variables or define them under wrangler.jsonc vars before running build:cf, preview, deploy, or upload.",
   ].join("\n");
 }
 
@@ -205,6 +208,115 @@ function readEnvFile(filePath) {
   }
 
   return values;
+}
+
+function readWranglerBuildEnvFile(cwd) {
+  const wranglerPath = path.join(cwd, "wrangler.jsonc");
+  if (!fs.existsSync(wranglerPath)) {
+    return {};
+  }
+
+  const parsed = parseJsoncFile(wranglerPath);
+  if (!parsed || typeof parsed !== "object") {
+    return {};
+  }
+
+  const vars =
+    "vars" in parsed && parsed.vars && typeof parsed.vars === "object"
+      ? parsed.vars
+      : null;
+  if (!vars) {
+    return {};
+  }
+
+  const values = {};
+  for (const key of buildPublicEnvKeys.cloudflare) {
+    const value = vars[key];
+    if (typeof value === "string") {
+      values[key] = value;
+    }
+  }
+
+  return values;
+}
+
+function parseJsoncFile(filePath) {
+  try {
+    return JSON.parse(stripJsonComments(fs.readFileSync(filePath, "utf8")));
+  } catch (error) {
+    throw new Error(
+      `Failed to parse ${path.basename(filePath)} while resolving Cloudflare build env: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
+function stripJsonComments(value) {
+  let result = "";
+  let inString = false;
+  let quote = "";
+  let escaping = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index];
+    const next = value[index + 1];
+
+    if (inString) {
+      result += current;
+
+      if (escaping) {
+        escaping = false;
+        continue;
+      }
+
+      if (current === "\\") {
+        escaping = true;
+        continue;
+      }
+
+      if (current === quote) {
+        inString = false;
+        quote = "";
+      }
+
+      continue;
+    }
+
+    if (current === '"' || current === "'") {
+      inString = true;
+      quote = current;
+      result += current;
+      continue;
+    }
+
+    if (current === "/" && next === "/") {
+      index += 2;
+      while (index < value.length && value[index] !== "\n") {
+        index += 1;
+      }
+      if (index < value.length) {
+        result += value[index];
+      }
+      continue;
+    }
+
+    if (current === "/" && next === "*") {
+      index += 2;
+      while (
+        index < value.length &&
+        !(value[index] === "*" && value[index + 1] === "/")
+      ) {
+        index += 1;
+      }
+      index += 1;
+      continue;
+    }
+
+    result += current;
+  }
+
+  return result;
 }
 
 function stripWrappingQuotes(value) {

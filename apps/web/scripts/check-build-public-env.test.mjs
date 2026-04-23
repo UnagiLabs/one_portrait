@@ -66,7 +66,7 @@ test("local build fails when the read-only minimum keys are missing", () => {
   }, /NEXT_PUBLIC_REGISTRY_OBJECT_ID/);
 });
 
-test("cloudflare build only trusts process.env and ignores wrangler.jsonc", () => {
+test("cloudflare build falls back to wrangler.jsonc vars when process.env is missing values", () => {
   const cwd = createTempDir();
   writeFile(
     cwd,
@@ -88,20 +88,54 @@ test("cloudflare build only trusts process.env and ignores wrangler.jsonc", () =
     ),
   );
 
-  assert.throws(() => {
-    checkBuildPublicEnv({
-      cwd,
-      env: {
-        NEXT_PUBLIC_SUI_NETWORK: "testnet",
-        NEXT_PUBLIC_PACKAGE_ID: "0xexplicit",
-        NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg-explicit",
-        NEXT_PUBLIC_ENOKI_API_KEY: "enoki-explicit",
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-explicit",
-        NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+  const source = checkBuildPublicEnv({
+    cwd,
+    env: {
+      NEXT_PUBLIC_SUI_NETWORK: "testnet",
+    },
+    mode: "cloudflare",
+  });
+
+  assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, "0xfrom-wrangler");
+  assert.equal(
+    source.NEXT_PUBLIC_WALRUS_AGGREGATOR,
+    "https://aggregator.example.com",
+  );
+});
+
+test("cloudflare build prefers process.env over wrangler.jsonc vars", () => {
+  const cwd = createTempDir();
+  writeFile(
+    cwd,
+    "wrangler.jsonc",
+    JSON.stringify(
+      {
+        vars: {
+          NEXT_PUBLIC_SUI_NETWORK: "testnet",
+          NEXT_PUBLIC_PACKAGE_ID: "0xfrom-wrangler",
+          NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg-from-wrangler",
+          NEXT_PUBLIC_ENOKI_API_KEY: "enoki-from-wrangler",
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-from-wrangler",
+          NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+          NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+        },
       },
-      mode: "cloudflare",
-    });
-  }, /NEXT_PUBLIC_WALRUS_AGGREGATOR/);
+      null,
+      2,
+    ),
+  );
+
+  const source = loadBuildPublicEnvSource({
+    cwd,
+    env: {
+      NEXT_PUBLIC_PACKAGE_ID: "0xexplicit",
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-explicit",
+    },
+    mode: "cloudflare",
+  });
+
+  assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, "0xexplicit");
+  assert.equal(source.NEXT_PUBLIC_GOOGLE_CLIENT_ID, "google-explicit");
 });
 
 test("cloudflare build passes when every public build variable is present in process.env", () => {
