@@ -30,6 +30,17 @@ export async function waitForGeneratorStackHealth({
 
   while (true) {
     const remainingMs = Math.max(0, deadline - now());
+    if (remainingMs <= 0) {
+      const marker = `[generator-stack][health][${label}][timeout]`;
+      logger?.error?.(marker);
+
+      return {
+        ok: false,
+        exitCode: 1,
+        marker,
+      };
+    }
+
     const attemptTimeoutMs = Math.min(retryIntervalMs, remainingMs);
     const abortController = createAbortController();
     const attemptResult = await raceHealthAttempt({
@@ -51,18 +62,7 @@ export async function waitForGeneratorStackHealth({
       };
     }
 
-    if (now() >= deadline) {
-      const marker = `[generator-stack][health][${label}][timeout]`;
-      logger?.error?.(marker);
-
-      return {
-        ok: false,
-        exitCode: 1,
-        marker,
-      };
-    }
-
-    await sleep(retryIntervalMs);
+    await sleep(Math.min(retryIntervalMs, Math.max(0, deadline - now())));
   }
 }
 

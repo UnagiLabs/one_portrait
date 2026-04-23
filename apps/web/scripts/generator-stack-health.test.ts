@@ -214,6 +214,38 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
     expect(signals.length).toBeGreaterThan(0);
     expect(signals.every((signal) => signal.aborted)).toBe(true);
   });
+
+  it("does not report ready when the first 200 arrives at the timeout boundary", async () => {
+    const logger = createLogger();
+    const clock = createClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 503 })
+      .mockResolvedValueOnce({ status: 503 })
+      .mockResolvedValueOnce({ status: 503 })
+      .mockResolvedValueOnce({ status: 200 });
+
+    const result = await waitForGeneratorStackHealth({
+      fetchImpl,
+      label,
+      logger,
+      now: clock.now,
+      retryIntervalMs: 1000,
+      sleep: clock.sleep,
+      timeoutMs: 3000,
+      url:
+        label === "local"
+          ? "http://127.0.0.1:8080/health"
+          : "https://generator.example/health",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      exitCode: 1,
+      marker: `[generator-stack][health][${label}][timeout]`,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
 });
 
 function createClock() {
