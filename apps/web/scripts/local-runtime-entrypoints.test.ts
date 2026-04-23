@@ -18,6 +18,9 @@ describe("local runtime entrypoints", () => {
       ["dev"],
       expect.objectContaining({
         env: expect.objectContaining({
+          OP_GENERATOR_RUNTIME_STATE_PATH: expect.stringContaining(
+            ".cache/generator-runtime.json",
+          ),
           OP_LOCAL_GENERATOR_RUNTIME: "1",
         }),
       }),
@@ -40,6 +43,9 @@ describe("local runtime entrypoints", () => {
       ["dev"],
       expect.objectContaining({
         env: expect.objectContaining({
+          OP_GENERATOR_RUNTIME_STATE_PATH: expect.stringContaining(
+            ".cache/generator-runtime.json",
+          ),
           OP_LOCAL_GENERATOR_RUNTIME: "1",
         }),
       }),
@@ -66,6 +72,9 @@ describe("local runtime entrypoints", () => {
           NEXT_PUBLIC_REGISTRY_OBJECT_ID:
             "0x00000000000000000000000000000000000000000000000000000000000000d1",
           NEXT_PUBLIC_SUI_NETWORK: "testnet",
+          OP_GENERATOR_RUNTIME_STATE_PATH: expect.stringContaining(
+            ".cache/generator-runtime.json",
+          ),
           OP_LOCAL_GENERATOR_RUNTIME: "1",
         }),
       }),

@@ -390,14 +390,22 @@ async function waitForQuickTunnelUrl({ child, logger, terminalPromises }) {
 function listenForQuickTunnelUrl({ child, logger }) {
   return new Promise((resolve) => {
     let settled = false;
+    const buffers = {
+      stderr: "",
+      stdout: "",
+    };
 
-    const onData = (chunk) => {
+    const onData = (stream) => (chunk) => {
       const text = String(chunk ?? "");
       if (!text) {
         return;
       }
 
-      for (const line of text.split(/\r?\n/)) {
+      buffers[stream] += text;
+      const parts = buffers[stream].split(/\r?\n/);
+      buffers[stream] = parts.pop() ?? "";
+
+      for (const line of parts) {
         if (!line) {
           continue;
         }
@@ -412,8 +420,8 @@ function listenForQuickTunnelUrl({ child, logger }) {
       }
     };
 
-    child.stdout?.on?.("data", onData);
-    child.stderr?.on?.("data", onData);
+    child.stdout?.on?.("data", onData("stdout"));
+    child.stderr?.on?.("data", onData("stderr"));
   });
 }
 

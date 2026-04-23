@@ -11,20 +11,30 @@ const DEFAULT_STATE_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
 
 export function resolveGeneratorRuntimeStatePath({
+  env = process.env,
   appRootPath = webRoot,
 } = {}) {
-  return path.join(appRootPath, ".cache", "generator-runtime.json");
+  const explicitStatePath = normalizeStatePath(
+    env.OP_GENERATOR_RUNTIME_STATE_PATH,
+    appRootPath,
+  );
+
+  return (
+    explicitStatePath ??
+    path.join(appRootPath, ".cache", "generator-runtime.json")
+  );
 }
 
 export function readGeneratorRuntimeState({
   appRootPath = webRoot,
+  env = process.env,
   existsSync = fs.existsSync,
   isProcessAlive = defaultIsProcessAlive,
   now = Date.now(),
   readFileSync = fs.readFileSync,
   stateMaxAgeMs = DEFAULT_STATE_MAX_AGE_MS,
 } = {}) {
-  const statePath = resolveGeneratorRuntimeStatePath({ appRootPath });
+  const statePath = resolveGeneratorRuntimeStatePath({ appRootPath, env });
   if (!existsSync(statePath)) {
     return null;
   }
@@ -75,6 +85,7 @@ export function resolveScriptGeneratorRuntime({
 
   const runtimeState = readGeneratorRuntimeState({
     appRootPath,
+    env,
     existsSync,
     isProcessAlive,
     now,
@@ -122,6 +133,7 @@ export function resolveScriptGeneratorRuntime({
 
 export function writeGeneratorRuntimeState({
   appRootPath = webRoot,
+  env = process.env,
   mkdirSync = fs.mkdirSync,
   pid = process.pid,
   rmSync = fs.rmSync,
@@ -135,7 +147,7 @@ export function writeGeneratorRuntimeState({
     throw new Error("generator runtime state requires a valid mode and URL");
   }
 
-  const statePath = resolveGeneratorRuntimeStatePath({ appRootPath });
+  const statePath = resolveGeneratorRuntimeStatePath({ appRootPath, env });
   mkdirSync(path.dirname(statePath), { recursive: true });
   rmSync(statePath, { force: true });
   writeFileSync(
@@ -158,9 +170,12 @@ export function writeGeneratorRuntimeState({
 
 export function removeGeneratorRuntimeState({
   appRootPath = webRoot,
+  env = process.env,
   rmSync = fs.rmSync,
 } = {}) {
-  rmSync(resolveGeneratorRuntimeStatePath({ appRootPath }), { force: true });
+  rmSync(resolveGeneratorRuntimeStatePath({ appRootPath, env }), {
+    force: true,
+  });
 }
 
 function normalizeRuntimeState(input) {
@@ -210,6 +225,17 @@ function normalizeUrl(value) {
   } catch {
     return null;
   }
+}
+
+function normalizeStatePath(value, appRootPath) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) {
+    return null;
+  }
+
+  return path.isAbsolute(normalized)
+    ? normalized
+    : path.resolve(appRootPath, normalized);
 }
 
 function defaultIsProcessAlive(pid) {

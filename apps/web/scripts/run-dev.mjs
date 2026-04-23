@@ -22,6 +22,9 @@ export function startDev({
     env: {
       ...env,
       OP_LOCAL_GENERATOR_RUNTIME: env.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
+      OP_GENERATOR_RUNTIME_STATE_PATH:
+        env.OP_GENERATOR_RUNTIME_STATE_PATH ??
+        path.join(cwd, ".cache", "generator-runtime.json"),
     },
     stdio: "inherit",
   });

@@ -109,6 +109,37 @@ describe("resolveGeneratorRuntime", () => {
       url: "http://127.0.0.1:8080",
     });
   });
+
+  it("reads the runtime state path from an explicit env var", () => {
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-runtime-path-"),
+    );
+    const runtimeStatePath = path.join(appRootPath, "tmp", "runtime.json");
+    createdDirs.push(appRootPath);
+    fs.mkdirSync(path.dirname(runtimeStatePath), { recursive: true });
+    fs.writeFileSync(
+      runtimeStatePath,
+      JSON.stringify({
+        mode: "quick",
+        pid: process.pid,
+        updatedAt: new Date().toISOString(),
+        url: "https://env-path.example.com",
+        version: 1,
+      }),
+    );
+
+    expect(
+      resolveGeneratorRuntime({
+        env: {
+          OP_GENERATOR_RUNTIME_STATE_PATH: runtimeStatePath,
+        },
+      }),
+    ).toEqual({
+      source: "runtime_state",
+      status: "ok",
+      url: "https://env-path.example.com",
+    });
+  });
 });
 
 function createAppRootWithRuntimeState(input: {

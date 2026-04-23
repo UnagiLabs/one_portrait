@@ -1,13 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const DEFAULT_FALLBACK_URL = "http://127.0.0.1:8080";
 const DEFAULT_STATE_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const defaultAppRootPath = path.resolve(__dirname, "..", "..");
 
 type EnvSource = Readonly<Record<string, string | undefined>>;
 
@@ -75,9 +71,10 @@ export function resolveGeneratorRuntime(
     };
   }
 
-  const appRootPath = deps.appRootPath ?? defaultAppRootPath;
+  const appRootPath = deps.appRootPath ?? process.cwd();
   const runtimeState = readGeneratorRuntimeState({
     appRootPath,
+    env,
     existsSync: deps.existsSync,
     isProcessAlive: deps.isProcessAlive,
     now: deps.now,
@@ -112,13 +109,32 @@ export function resolveGeneratorRuntime(
 }
 
 export function resolveGeneratorRuntimeStatePath(
-  appRootPath = defaultAppRootPath,
+  input:
+    | string
+    | {
+        readonly appRootPath?: string;
+        readonly env?: EnvSource;
+      } = {},
 ) {
-  return path.join(appRootPath, ".cache", "generator-runtime.json");
+  if (typeof input === "string") {
+    return path.join(input, ".cache", "generator-runtime.json");
+  }
+
+  const appRootPath = input.appRootPath ?? process.cwd();
+  const explicitStatePath = normalizeStatePath(
+    (input.env ?? process.env).OP_GENERATOR_RUNTIME_STATE_PATH,
+    appRootPath,
+  );
+
+  return (
+    explicitStatePath ??
+    path.join(appRootPath, ".cache", "generator-runtime.json")
+  );
 }
 
 type ReadGeneratorRuntimeStateDeps = {
   readonly appRootPath?: string;
+  readonly env?: EnvSource;
   readonly existsSync?: typeof fs.existsSync;
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly now?: number;
@@ -134,9 +150,10 @@ export function readGeneratorRuntimeState(
   const isProcessAlive = deps.isProcessAlive ?? defaultIsProcessAlive;
   const now = deps.now ?? Date.now();
   const stateMaxAgeMs = deps.stateMaxAgeMs ?? DEFAULT_STATE_MAX_AGE_MS;
-  const statePath = resolveGeneratorRuntimeStatePath(
-    deps.appRootPath ?? defaultAppRootPath,
-  );
+  const statePath = resolveGeneratorRuntimeStatePath({
+    appRootPath: deps.appRootPath ?? process.cwd(),
+    env: deps.env ?? process.env,
+  });
 
   if (!existsSync(statePath)) {
     return null;
@@ -242,6 +259,20 @@ function normalizeUrl(value: string | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+function normalizeStatePath(
+  value: string | undefined,
+  appRootPath: string,
+): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return path.isAbsolute(normalized)
+    ? normalized
+    : path.resolve(appRootPath, normalized);
 }
 
 function defaultIsProcessAlive(pid: number): boolean {

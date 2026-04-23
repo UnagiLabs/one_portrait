@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -511,7 +514,14 @@ describe("runGeneratorStackTunnel", () => {
     const processImpl = createProcessMock();
     const generatorChild = createChildProcess("generator");
     const tunnelChild = createChildProcess("tunnel");
-    const appRootPath = process.cwd();
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-quick-tunnel-"),
+    );
+    const runtimeStatePath = path.join(
+      appRootPath,
+      ".cache",
+      "generator-runtime.json",
+    );
     const localHealth = createDeferred();
     const externalHealth = createDeferred();
 
@@ -560,36 +570,40 @@ describe("runGeneratorStackTunnel", () => {
       }),
     );
 
-    tunnelChild.stdout.emit(
-      "data",
-      "Quick Tunnel ready: https://fresh-runtime.trycloudflare.com\n",
-    );
-    await settle();
+    try {
+      tunnelChild.stdout.emit("data", "Quick Tunnel ready: https://fresh-");
+      tunnelChild.stdout.emit("data", "runtime.trycloudflare.com\n");
+      await settle();
 
-    expect(waitForHealth).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        label: "external",
-        url: "https://fresh-runtime.trycloudflare.com/health",
-      }),
-    );
+      expect(waitForHealth).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          label: "external",
+          url: "https://fresh-runtime.trycloudflare.com/health",
+        }),
+      );
+      expect(fs.existsSync(runtimeStatePath)).toBe(true);
 
-    externalHealth.resolve({
-      exitCode: 0,
-      marker: "[generator-stack][health][external][ready]",
-      ok: true,
-    });
-    await settle();
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
 
-    expect(logger.info).toHaveBeenCalledWith("[generator-stack][ready]");
+      expect(logger.info).toHaveBeenCalledWith("[generator-stack][ready]");
 
-    tunnelChild.emit("exit", 1, null);
+      tunnelChild.emit("exit", 1, null);
 
-    await expect(runPromise).resolves.toEqual({
-      exitCode: 1,
-      marker: "[generator-stack][child-exit][tunnel]",
-      ok: false,
-    });
+      await expect(runPromise).resolves.toEqual({
+        exitCode: 1,
+        marker: "[generator-stack][child-exit][tunnel]",
+        ok: false,
+      });
+      expect(fs.existsSync(runtimeStatePath)).toBe(false);
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
   });
 });
 
