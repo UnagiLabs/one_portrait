@@ -1,9 +1,17 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runGeneratorStackDispatchSmoke } from "./run-generator-stack-dispatch-smoke.mjs";
+
+const { readRemoteGeneratorRuntimeMock } = vi.hoisted(() => ({
+  readRemoteGeneratorRuntimeMock: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("./generator-runtime-remote.mjs", () => ({
+  readRemoteGeneratorRuntime: readRemoteGeneratorRuntimeMock,
+}));
 
 const VALID_ENV = {
   OP_FINALIZE_DISPATCH_SECRET: "shared-secret",
@@ -14,6 +22,11 @@ const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
 describe("runGeneratorStackDispatchSmoke", () => {
+  afterEach(() => {
+    readRemoteGeneratorRuntimeMock.mockReset();
+    readRemoteGeneratorRuntimeMock.mockResolvedValue(null);
+  });
+
   it("fails fast when the unit id argument is missing", async () => {
     const logger = createLogger();
     const fetchImpl = vi.fn();
@@ -151,6 +164,64 @@ describe("runGeneratorStackDispatchSmoke", () => {
       });
       expect(fetchImpl).toHaveBeenCalledWith(
         new URL("/dispatch", "https://runtime-state.example.com/"),
+        expect.any(Object),
+      );
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
+  });
+
+  it("prefers the remote kv runtime before the local runtime state", async () => {
+    const logger = createLogger();
+    const fetchImpl = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        status: "ignored_finalized",
+        unitId: VALID_UNIT_ID,
+      }),
+      status: 200,
+    });
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-smoke-remote-"),
+    );
+    const cacheDir = path.join(appRootPath, ".cache");
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(cacheDir, "generator-runtime.json"),
+      JSON.stringify({
+        mode: "quick",
+        pid: process.pid,
+        updatedAt: new Date().toISOString(),
+        url: "https://runtime-state.example.com",
+        version: 1,
+      }),
+    );
+    readRemoteGeneratorRuntimeMock.mockResolvedValue({
+      mode: "quick",
+      updatedAt: new Date().toISOString(),
+      url: "https://remote-kv.example.com",
+      version: 1,
+    });
+
+    try {
+      const result = await runGeneratorStackDispatchSmoke({
+        appRootPath,
+        argv: ["node", "script.mjs", VALID_UNIT_ID],
+        env: {
+          OP_FINALIZE_DISPATCH_SECRET: VALID_ENV.OP_FINALIZE_DISPATCH_SECRET,
+          OP_FINALIZE_DISPATCH_URL: "https://legacy-env.example.com",
+        },
+        fetchImpl,
+        logger,
+      });
+
+      expect(result).toEqual({
+        exitCode: 0,
+        marker: "[generator-stack][smoke][ok]",
+        ok: true,
+        resultStatus: "ignored_finalized",
+      });
+      expect(fetchImpl).toHaveBeenCalledWith(
+        new URL("/dispatch", "https://remote-kv.example.com/"),
         expect.any(Object),
       );
     } finally {

@@ -6,6 +6,7 @@ import {
   removeGeneratorRuntimeState,
   writeGeneratorRuntimeState,
 } from "./generator-runtime.mjs";
+import { writeRemoteGeneratorRuntime } from "./generator-runtime-remote.mjs";
 import { waitForGeneratorStackHealth } from "./generator-stack-health.mjs";
 import {
   resolveCloudflaredConfigPath,
@@ -30,6 +31,7 @@ export async function runGeneratorStackTunnel({
   spawnImpl = spawn,
   startLocalGenerator = startLocalGeneratorLauncher,
   waitForHealth = waitForGeneratorStackHealth,
+  writeRemoteRuntime = writeRemoteGeneratorRuntime,
 } = {}) {
   const signalState = createSignalState(processImpl);
   let generator = null;
@@ -160,6 +162,14 @@ export async function runGeneratorStackTunnel({
           : processImpl.pid,
       url: publicBaseUrl,
     });
+    if (preflightResult.tunnelMode === "quick") {
+      await writeRemoteRuntime({
+        env: mergedEnv,
+        logger,
+        mode: "quick",
+        url: publicBaseUrl,
+      });
+    }
 
     const externalHealth = await waitForHealthPhase({
       healthPromise: waitForHealth({

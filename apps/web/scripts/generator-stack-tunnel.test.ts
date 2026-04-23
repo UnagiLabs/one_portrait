@@ -3,11 +3,27 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { writeRemoteGeneratorRuntimeMock } = vi.hoisted(() => ({
+  writeRemoteGeneratorRuntimeMock: vi.fn(),
+}));
+
+vi.mock("./generator-runtime-remote.mjs", () => ({
+  writeRemoteGeneratorRuntime: writeRemoteGeneratorRuntimeMock,
+}));
 
 import { runGeneratorStackTunnel } from "./run-generator-stack-tunnel.mjs";
 
 describe("runGeneratorStackTunnel", () => {
+  beforeEach(() => {
+    writeRemoteGeneratorRuntimeMock.mockReset();
+    writeRemoteGeneratorRuntimeMock.mockResolvedValue({
+      marker: "[generator-runtime][remote-kv][written]",
+      ok: true,
+    });
+  });
+
   it("starts the generator before the tunnel, reports ready, and stops on tunnel exit", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
@@ -580,6 +596,14 @@ describe("runGeneratorStackTunnel", () => {
         expect.objectContaining({
           label: "external",
           url: "https://fresh-runtime.trycloudflare.com/health",
+        }),
+      );
+      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          env: {},
+          logger,
+          mode: "quick",
+          url: "https://fresh-runtime.trycloudflare.com",
         }),
       );
       expect(fs.existsSync(runtimeStatePath)).toBe(true);

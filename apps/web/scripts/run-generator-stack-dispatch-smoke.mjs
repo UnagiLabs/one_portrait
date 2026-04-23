@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { resolveScriptGeneratorRuntime } from "./generator-runtime.mjs";
+import { readRemoteGeneratorRuntime } from "./generator-runtime-remote.mjs";
 import { loadWebScriptEnv } from "./run-local-generator.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,12 +15,18 @@ export async function runGeneratorStackDispatchSmoke({
   env = process.env,
   fetchImpl = globalThis.fetch,
   logger = console,
+  readRemoteRuntime = readRemoteGeneratorRuntime,
 } = {}) {
   const unitId = parseUnitId(argv);
   const dispatchSecret = normalizeRequiredValue(
     env.OP_FINALIZE_DISPATCH_SECRET,
   );
-  const runtime = resolveScriptGeneratorRuntime({ appRootPath, env });
+  const runtime = await resolveSmokeGeneratorRuntime({
+    appRootPath,
+    env,
+    logger,
+    readRemoteRuntime,
+  });
   const dispatchUrl = runtime.status === "ok" ? runtime.url : null;
 
   if (!unitId || !dispatchUrl || !dispatchSecret || runtime.status !== "ok") {
@@ -112,9 +119,55 @@ function parseUnitId(argv) {
   return candidate.length > 0 ? candidate : null;
 }
 
+async function resolveSmokeGeneratorRuntime({
+  appRootPath,
+  env,
+  logger,
+  readRemoteRuntime,
+}) {
+  const overrideUrl = normalizeOptionalUrl(env.OP_GENERATOR_RUNTIME_URL_OVERRIDE);
+  if (overrideUrl !== null) {
+    return {
+      source: "override",
+      status: "ok",
+      url: overrideUrl,
+    };
+  }
+
+  const remoteRuntime = await readRemoteRuntime({
+    env,
+    logger,
+  });
+  if (remoteRuntime !== null) {
+    return {
+      source: "worker_kv",
+      status: "ok",
+      url: remoteRuntime.url,
+    };
+  }
+
+  return resolveScriptGeneratorRuntime({
+    appRootPath,
+    env,
+  });
+}
+
 function normalizeRequiredValue(value) {
   const candidate = typeof value === "string" ? value.trim() : "";
   return candidate.length > 0 ? candidate : null;
+}
+
+function normalizeOptionalUrl(value) {
+  const candidate = normalizeRequiredValue(value);
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    return new URL(candidate).toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
 }
 
 function getResultStatus(result) {
