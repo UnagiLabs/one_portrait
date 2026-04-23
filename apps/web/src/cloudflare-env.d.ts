@@ -1,5 +1,7 @@
 declare global {
-  interface CloudflareEnv {}
+  interface CloudflareEnv {
+    OP_GENERATOR_RUNTIME_KV: KVNamespace;
+  }
 }
 
 export {};

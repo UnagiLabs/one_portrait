@@ -1,5 +1,7 @@
 import {
+  type GeneratorRuntimeCloudflareEnv,
   type GeneratorRuntimeResolution,
+  resolveCloudflareGeneratorRuntime,
   resolveGeneratorRuntime,
 } from "../generator-runtime";
 import { FinalizeApiError } from "./api";
@@ -26,7 +28,13 @@ export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 type FinalizeDispatcherDeps = {
   readonly fetchImpl?: typeof fetch;
   readonly dispatchSecret?: string | undefined;
-  readonly resolveRuntime?: () => GeneratorRuntimeResolution;
+  readonly resolveRuntime?:
+    | (() => GeneratorRuntimeResolution | Promise<GeneratorRuntimeResolution>)
+    | undefined;
+};
+
+type FinalizeDispatchRuntimeDeps = {
+  readonly env?: GeneratorRuntimeCloudflareEnv;
 };
 
 export function createFinalizeDispatcher(
@@ -38,13 +46,24 @@ export function createFinalizeDispatcher(
 ) {
   return async function dispatchFinalize(
     request: FinalizeDispatchRequest,
+    runtimeDeps: FinalizeDispatchRuntimeDeps = {},
   ): Promise<FinalizeDispatchResult> {
-    const runtime = deps.resolveRuntime?.() ?? resolveGeneratorRuntime();
+    const runtime = runtimeDeps.env
+      ? await resolveCloudflareGeneratorRuntime({
+          env: runtimeDeps.env,
+        })
+      : await Promise.resolve(
+          deps.resolveRuntime?.() ?? resolveGeneratorRuntime(),
+        );
     if (runtime.status !== "ok") {
       throw new FinalizeApiError(503, "finalize_unavailable", runtime.message);
     }
 
-    const dispatchSecret = normalizeDispatchSecret(deps.dispatchSecret);
+    const dispatchSecret = normalizeDispatchSecret(
+      typeof runtimeDeps.env?.OP_FINALIZE_DISPATCH_SECRET === "string"
+        ? runtimeDeps.env.OP_FINALIZE_DISPATCH_SECRET
+        : deps.dispatchSecret,
+    );
     if (dispatchSecret === null) {
       throw new FinalizeApiError(
         503,

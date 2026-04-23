@@ -4,6 +4,13 @@
   "main": "src/worker.ts",
   "compatibility_date": "2024-12-30",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "kv_namespaces": [
+    {
+      "binding": "OP_GENERATOR_RUNTIME_KV",
+      "id": "9265a79b1e984244a9ee6afbf1d7bd59",
+      "preview_id": "3a9c9cde41ea4df588c6e1f0a3fca43f"
+    }
+  ],
   "vars": {
     "NEXT_PUBLIC_SUI_NETWORK": "testnet",
     "NEXT_PUBLIC_PACKAGE_ID": "0x3c1a92273f2ad9369f9fa18167b06f6023b2982340c768886c5f85ba4ab8f7a3",

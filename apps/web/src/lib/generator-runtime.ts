@@ -3,15 +3,22 @@ import path from "node:path";
 
 const DEFAULT_FALLBACK_URL = "http://127.0.0.1:8080";
 const DEFAULT_STATE_MAX_AGE_MS = 15 * 60 * 1000;
+const DEFAULT_REMOTE_STATE_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
 
 type EnvSource = Readonly<Record<string, string | undefined>>;
+type RuntimeEnvValue = string | GeneratorRuntimeKvNamespace | undefined;
+type RuntimeEnvSource = Readonly<Record<string, RuntimeEnvValue>>;
+
+export const GENERATOR_RUNTIME_KV_BINDING = "OP_GENERATOR_RUNTIME_KV";
+export const GENERATOR_RUNTIME_KV_KEY = "generator-runtime/current";
 
 export type GeneratorRuntimeSource =
   | "fallback"
   | "legacy_env"
   | "override"
-  | "runtime_state";
+  | "runtime_state"
+  | "worker_kv";
 
 export type GeneratorRuntimeMode = "named" | "quick";
 
@@ -21,6 +28,23 @@ export type GeneratorRuntimeState = {
   readonly updatedAt: string;
   readonly url: string;
   readonly version: number;
+};
+
+export type GeneratorRuntimeKvState = {
+  readonly mode: GeneratorRuntimeMode;
+  readonly updatedAt: string;
+  readonly url: string;
+  readonly version: number;
+};
+
+export type GeneratorRuntimeKvNamespace = {
+  get(key: string, type: "json"): Promise<Record<string, unknown> | null>;
+};
+
+export type GeneratorRuntimeCloudflareEnv = RuntimeEnvSource & {
+  readonly [GENERATOR_RUNTIME_KV_BINDING]?:
+    | GeneratorRuntimeKvNamespace
+    | undefined;
 };
 
 export type GeneratorRuntimeResolution =
@@ -142,6 +166,10 @@ type ReadGeneratorRuntimeStateDeps = {
   readonly stateMaxAgeMs?: number;
 };
 
+type ResolveCloudflareGeneratorRuntimeDeps = {
+  readonly env: GeneratorRuntimeCloudflareEnv;
+};
+
 export function readGeneratorRuntimeState(
   deps: ReadGeneratorRuntimeStateDeps = {},
 ): GeneratorRuntimeState | null {
@@ -185,9 +213,57 @@ export function readGeneratorRuntimeState(
   }
 }
 
-function resolveLegacyRuntimeUrl(env: EnvSource): LegacyRuntimeResolution {
-  const generatorBaseUrl = normalizeUrl(env.OP_GENERATOR_BASE_URL);
-  const finalizeDispatchUrl = normalizeUrl(env.OP_FINALIZE_DISPATCH_URL);
+export async function resolveCloudflareGeneratorRuntime({
+  env,
+}: ResolveCloudflareGeneratorRuntimeDeps): Promise<GeneratorRuntimeResolution> {
+  const overrideUrl = normalizeUrl(
+    readEnvString(env.OP_GENERATOR_RUNTIME_URL_OVERRIDE),
+  );
+  if (overrideUrl !== null) {
+    return {
+      source: "override",
+      status: "ok",
+      url: overrideUrl,
+    };
+  }
+
+  const kvRuntime = await readGeneratorRuntimeKvState(env);
+  if (kvRuntime !== null) {
+    return {
+      source: "worker_kv",
+      status: "ok",
+      url: kvRuntime.url,
+    };
+  }
+
+  const legacyUrl = resolveLegacyRuntimeUrl(env);
+  if (legacyUrl.status === "misconfigured") {
+    return legacyUrl;
+  }
+  if (legacyUrl.url !== null) {
+    return {
+      source: "legacy_env",
+      status: "ok",
+      url: legacyUrl.url,
+    };
+  }
+
+  return {
+    source: "fallback",
+    status: "ok",
+    url: DEFAULT_FALLBACK_URL,
+  };
+}
+
+function resolveLegacyRuntimeUrl(
+  env: RuntimeEnvSource,
+): LegacyRuntimeResolution {
+  const generatorBaseUrl = normalizeUrl(
+    readEnvString(env.OP_GENERATOR_BASE_URL),
+  );
+  const finalizeDispatchUrl = normalizeUrl(
+    readEnvString(env.OP_FINALIZE_DISPATCH_URL),
+  );
 
   if (
     generatorBaseUrl !== null &&
@@ -207,6 +283,24 @@ function resolveLegacyRuntimeUrl(env: EnvSource): LegacyRuntimeResolution {
     status: "ok",
     url: generatorBaseUrl ?? finalizeDispatchUrl,
   };
+}
+
+async function readGeneratorRuntimeKvState(
+  env: GeneratorRuntimeCloudflareEnv,
+): Promise<GeneratorRuntimeKvState | null> {
+  const kv = env[GENERATOR_RUNTIME_KV_BINDING];
+  if (!kv) {
+    return null;
+  }
+
+  try {
+    const parsed = await kv.get(GENERATOR_RUNTIME_KV_KEY, "json");
+    return normalizeRuntimeKvState(parsed, {
+      now: Date.now(),
+    });
+  } catch {
+    return null;
+  }
 }
 
 function normalizeRuntimeState(input: unknown): GeneratorRuntimeState | null {
@@ -244,6 +338,47 @@ function normalizeRuntimeState(input: unknown): GeneratorRuntimeState | null {
   };
 }
 
+function normalizeRuntimeKvState(
+  input: unknown,
+  { now }: { now: number },
+): GeneratorRuntimeKvState | null {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    return null;
+  }
+
+  const record = input as Record<string, unknown>;
+  const mode = record.mode;
+  const updatedAt = record.updatedAt;
+  const url = normalizeUrl(
+    typeof record.url === "string" ? record.url : undefined,
+  );
+  const version = record.version;
+
+  if (
+    version !== RUNTIME_STATE_VERSION ||
+    (mode !== "named" && mode !== "quick") ||
+    typeof updatedAt !== "string" ||
+    url === null
+  ) {
+    return null;
+  }
+
+  const updatedAtMs = Date.parse(updatedAt);
+  if (
+    !Number.isFinite(updatedAtMs) ||
+    now - updatedAtMs > DEFAULT_REMOTE_STATE_MAX_AGE_MS
+  ) {
+    return null;
+  }
+
+  return {
+    mode,
+    updatedAt,
+    url,
+    version,
+  };
+}
+
 function normalizeUrl(value: string | undefined): string | null {
   const normalized = typeof value === "string" ? value.trim() : "";
   if (normalized.length === 0) {
@@ -259,6 +394,10 @@ function normalizeUrl(value: string | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+function readEnvString(value: RuntimeEnvValue): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 function normalizeStatePath(

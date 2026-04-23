@@ -1,17 +1,24 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-const { dispatchFinalizeMock, getFinalizeUnitSnapshotMock } = vi.hoisted(
-  () => ({
-    dispatchFinalizeMock: vi.fn(),
-    getFinalizeUnitSnapshotMock: vi.fn(),
-  }),
-);
+const {
+  dispatchFinalizeMock,
+  getFinalizeUnitSnapshotMock,
+  getRequestCloudflareEnvMock,
+} = vi.hoisted(() => ({
+  dispatchFinalizeMock: vi.fn(),
+  getFinalizeUnitSnapshotMock: vi.fn(),
+  getRequestCloudflareEnvMock: vi.fn(),
+}));
 
 vi.mock("../../../lib/finalize/dispatch", () => ({
   dispatchFinalize: dispatchFinalizeMock,
+}));
+
+vi.mock("../../../lib/cloudflare-context", () => ({
+  getRequestCloudflareEnv: getRequestCloudflareEnvMock,
 }));
 
 vi.mock("../../../lib/sui", async () => {
@@ -29,6 +36,10 @@ vi.mock("../../../lib/sui", async () => {
 import { POST } from "./route";
 
 describe("POST /api/finalize", () => {
+  beforeEach(() => {
+    getRequestCloudflareEnvMock.mockReturnValue(null);
+  });
+
   it("returns 400 for an invalid payload", async () => {
     const response = await POST(
       new Request("http://localhost/api/finalize", {
@@ -97,9 +108,14 @@ describe("POST /api/finalize", () => {
 
     expect(response.status).toBe(200);
     expect(getFinalizeUnitSnapshotMock).toHaveBeenCalledWith(VALID_UNIT_ID);
-    expect(dispatchFinalizeMock).toHaveBeenCalledWith({
-      unitId: VALID_UNIT_ID,
-    });
+    expect(dispatchFinalizeMock).toHaveBeenCalledWith(
+      {
+        unitId: VALID_UNIT_ID,
+      },
+      {
+        env: undefined,
+      },
+    );
     await expect(response.json()).resolves.toEqual({
       status: "queued",
       unitId: VALID_UNIT_ID,

@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { AdminEnvError, loadAdminRelayEnv } from "./env";
+import {
+  AdminEnvError,
+  loadAdminRelayEnv,
+  loadCloudflareAdminRelayEnv,
+} from "./env";
 
 describe("loadAdminRelayEnv", () => {
   it("returns the generator relay config", () => {
@@ -75,5 +79,26 @@ describe("loadAdminRelayEnv", () => {
         OP_GENERATOR_BASE_URL: "https://generator.example.com",
       }),
     ).toThrow(AdminEnvError);
+  });
+});
+
+describe("loadCloudflareAdminRelayEnv", () => {
+  it("reads the generator relay config from worker kv", async () => {
+    await expect(
+      loadCloudflareAdminRelayEnv({
+        OP_FINALIZE_DISPATCH_SECRET: "request-secret",
+        OP_GENERATOR_RUNTIME_KV: {
+          get: async () => ({
+            mode: "quick",
+            updatedAt: new Date().toISOString(),
+            url: "https://worker-kv.example.com/",
+            version: 1,
+          }),
+        },
+      }),
+    ).resolves.toEqual({
+      generatorBaseUrl: "https://worker-kv.example.com",
+      sharedSecret: "request-secret",
+    });
   });
 });

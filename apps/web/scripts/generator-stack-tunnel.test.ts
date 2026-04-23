@@ -3,11 +3,35 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { deleteRemoteGeneratorRuntimeMock, writeRemoteGeneratorRuntimeMock } =
+  vi.hoisted(() => ({
+    deleteRemoteGeneratorRuntimeMock: vi.fn(),
+    writeRemoteGeneratorRuntimeMock: vi.fn(),
+  }));
+
+vi.mock("./generator-runtime-remote.mjs", () => ({
+  deleteRemoteGeneratorRuntime: deleteRemoteGeneratorRuntimeMock,
+  writeRemoteGeneratorRuntime: writeRemoteGeneratorRuntimeMock,
+}));
 
 import { runGeneratorStackTunnel } from "./run-generator-stack-tunnel.mjs";
 
 describe("runGeneratorStackTunnel", () => {
+  beforeEach(() => {
+    deleteRemoteGeneratorRuntimeMock.mockReset();
+    writeRemoteGeneratorRuntimeMock.mockReset();
+    deleteRemoteGeneratorRuntimeMock.mockResolvedValue({
+      marker: "[generator-runtime][remote-kv][deleted]",
+      ok: true,
+    });
+    writeRemoteGeneratorRuntimeMock.mockResolvedValue({
+      marker: "[generator-runtime][remote-kv][written]",
+      ok: true,
+    });
+  });
+
   it("starts the generator before the tunnel, reports ready, and stops on tunnel exit", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
@@ -274,6 +298,16 @@ describe("runGeneratorStackTunnel", () => {
       ok: true,
     });
     await settle();
+    expect(deleteRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+          OP_LOCAL_TUNNEL_CONFIG_PATH: "/tmp/custom-cloudflared.yml",
+          OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+        }),
+        logger,
+      }),
+    );
 
     expect(spawnImpl).toHaveBeenCalledWith(
       "cloudflared",
@@ -582,6 +616,14 @@ describe("runGeneratorStackTunnel", () => {
           url: "https://fresh-runtime.trycloudflare.com/health",
         }),
       );
+      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          env: {},
+          logger,
+          mode: "quick",
+          url: "https://fresh-runtime.trycloudflare.com",
+        }),
+      );
       expect(fs.existsSync(runtimeStatePath)).toBe(true);
 
       externalHealth.resolve({
@@ -600,6 +642,12 @@ describe("runGeneratorStackTunnel", () => {
         marker: "[generator-stack][child-exit][tunnel]",
         ok: false,
       });
+      expect(deleteRemoteGeneratorRuntimeMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          env: {},
+          logger,
+        }),
+      );
       expect(fs.existsSync(runtimeStatePath)).toBe(false);
     } finally {
       fs.rmSync(appRootPath, { force: true, recursive: true });
@@ -679,6 +727,112 @@ describe("runGeneratorStackTunnel", () => {
     } finally {
       fs.rmSync(appRootPath, { force: true, recursive: true });
     }
+  });
+
+  it("fails before startup when remote kv cleanup fails", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicBaseUrl: "https://generator.example",
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
+    });
+    const startLocalGenerator = vi.fn();
+    const spawnImpl = vi.fn();
+    const waitForHealth = vi.fn();
+
+    deleteRemoteGeneratorRuntimeMock.mockResolvedValueOnce({
+      marker: "[generator-runtime][remote-kv][delete-failed]",
+      ok: false,
+    });
+
+    await expect(
+      runGeneratorStackTunnel({
+        env: {
+          OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+          OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+        },
+        logger,
+        preflight,
+        processImpl,
+        spawnImpl,
+        startLocalGenerator,
+        waitForHealth,
+      }),
+    ).resolves.toEqual({
+      exitCode: 1,
+      marker: "[generator-stack][remote-kv][delete-failed]",
+      ok: false,
+    });
+
+    expect(startLocalGenerator).not.toHaveBeenCalled();
+    expect(spawnImpl).not.toHaveBeenCalled();
+    expect(waitForHealth).not.toHaveBeenCalled();
+  });
+
+  it("stops both children when quick tunnel remote kv sync fails", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const localHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      tunnelMode: "quick",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      throw new Error(`unexpected health probe for ${label}`);
+    });
+
+    writeRemoteGeneratorRuntimeMock.mockResolvedValueOnce({
+      marker: "[generator-runtime][remote-kv][write-failed]",
+      ok: false,
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {},
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    localHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][local][ready]",
+      ok: true,
+    });
+    await settle();
+    tunnelChild.stdout.emit(
+      "data",
+      "Quick Tunnel ready: https://failed-sync.trycloudflare.com\n",
+    );
+
+    await expect(runPromise).resolves.toEqual({
+      exitCode: 1,
+      marker: "[generator-stack][remote-kv][write-failed]",
+      ok: false,
+    });
+    expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 });
 

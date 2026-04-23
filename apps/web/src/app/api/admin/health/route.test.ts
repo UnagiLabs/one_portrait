@@ -1,11 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getAdminHealthMock } = vi.hoisted(() => ({
+const { getAdminHealthMock, getRequestCloudflareEnvMock } = vi.hoisted(() => ({
   getAdminHealthMock: vi.fn(),
+  getRequestCloudflareEnvMock: vi.fn(),
 }));
 
 vi.mock("../../../../lib/admin/health", () => ({
   getAdminHealth: getAdminHealthMock,
+}));
+
+vi.mock("../../../../lib/cloudflare-context", () => ({
+  getRequestCloudflareEnv: getRequestCloudflareEnvMock,
 }));
 
 import { GET } from "./route";
@@ -13,9 +18,15 @@ import { GET } from "./route";
 describe("GET /api/admin/health", () => {
   afterEach(() => {
     getAdminHealthMock.mockReset();
+    getRequestCloudflareEnvMock.mockReset();
   });
 
   it("returns readiness, dispatch probe, and runtime source data", async () => {
+    getRequestCloudflareEnvMock.mockReturnValue({
+      OP_GENERATOR_RUNTIME_KV: {
+        get: vi.fn(),
+      },
+    });
     getAdminHealthMock.mockResolvedValue({
       currentUrl: "https://generator.example.com",
       dispatchAuthorization: {
@@ -32,6 +43,13 @@ describe("GET /api/admin/health", () => {
 
     const response = await GET();
 
+    expect(getAdminHealthMock).toHaveBeenCalledWith({
+      env: {
+        OP_GENERATOR_RUNTIME_KV: {
+          get: expect.any(Function),
+        },
+      },
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       currentUrl: "https://generator.example.com",
@@ -49,6 +67,7 @@ describe("GET /api/admin/health", () => {
   });
 
   it("surfaces a misconfigured runtime payload", async () => {
+    getRequestCloudflareEnvMock.mockReturnValue(null);
     getAdminHealthMock.mockResolvedValue({
       currentUrl: null,
       dispatchAuthorization: {
@@ -65,6 +84,9 @@ describe("GET /api/admin/health", () => {
 
     const response = await GET();
 
+    expect(getAdminHealthMock).toHaveBeenCalledWith({
+      env: undefined,
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       dispatchAuthorization: {

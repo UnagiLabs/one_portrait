@@ -3,8 +3,8 @@
 ## 目的
 
 この runbook は、`manji` PC 上で finalize generator スタックを運用するための手順です。
-`generator:tunnel` で local generator と Cloudflare Tunnel を 1 コマンドで起動し、`/health` の local / external 確認まで自動で行います。
-起動した URL は `apps/web/.cache/generator-runtime.json` に保存し、`/admin`、`/api/finalize`、`generator:smoke`、preview Worker が同じ値を見ます。
+`generator:tunnel` で generator コンテナと Cloudflare Tunnel を 1 コマンドで起動し、`/health` の local / external 確認まで自動で行います。
+起動した URL は `apps/web/.cache/generator-runtime.json` に保存しつつ、Quick Tunnel のときは Cloudflare KV にも登録します。`/api/finalize`、`/api/admin/*`、admin health、`generator:smoke` は共有先として Cloudflare KV を優先し、同一マシン上の補助 fallback として local runtime state を残します。
 Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-smoke.md`) で扱います。
 
 `/admin` があっても、ここでの役割は health / dispatch の observability に限ります。
@@ -14,8 +14,8 @@ Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-s
 
 | 場所 | 役割 |
 | :--- | :--- |
-| Cloudflare Worker | `UnitFilledEvent` を受けた `/api/finalize` から runtime resolver 経由で external generator を呼ぶ |
-| `manji` PC 上の `generator:tunnel` | local generator を起動し、Cloudflare Tunnel を張り、local / external health を自動確認する |
+| Cloudflare Worker | `UnitFilledEvent` を受けた `/api/finalize` から Worker KV 優先の runtime resolver 経由で external generator を呼ぶ |
+| `manji` PC 上の `generator:tunnel` | generator コンテナを build/run し、Cloudflare Tunnel を張り、Quick Tunnel のときは current URL を Worker KV に登録する |
 | Cloudflare Tunnel | `http://localhost:<port>` を外部公開する |
 
 ## 起動に必要な値
@@ -94,6 +94,7 @@ corepack pnpm --filter web run generator:tunnel
 - 外部 URL の自動検出または named tunnel URL の確定
 - `https://<hostname>/health` または `https://<random>.trycloudflare.com/health` の自動確認
 - `apps/web/.cache/generator-runtime.json` の更新
+- Quick Tunnel URL の Cloudflare KV 登録
 
 local / external の `/health` は、どちらも 200 になるまで自動で再試行します。
 ready になると `[generator-stack][ready]` が出ます。
@@ -153,12 +154,12 @@ finalize 本体は実行しません。
 | `/dispatch` が `401` を返す | Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch-auth-probe` が `401` を返す | web / Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch` が `500` を返す | generator 側の `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`PACKAGE_ID`、`SUI_NETWORK` |
-| Worker から finalize が進まない | `apps/web/.cache/generator-runtime.json`、`OP_GENERATOR_RUNTIME_URL_OVERRIDE`、legacy URL 設定、generator ログ |
+| Worker から finalize が進まない | Cloudflare KV の current URL、`OP_GENERATOR_RUNTIME_URL_OVERRIDE`、legacy URL 設定、generator ログ |
 
 ## デモ当日の最低チェック
 
 1. `generator:tunnel` が起動済みで、local / external health が `ok`
-2. `/admin` の current URL と source が想定どおり
+2. `/admin` の current URL と source が想定どおりで、Quick Tunnel 時は `worker_kv` を見ている
 3. Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` が一致
 4. 必要なら `generator:smoke` を already-running stack で 1 回通す
 5. `/api/finalize` の proof は `docs/demo-smoke.md` で別途確認する

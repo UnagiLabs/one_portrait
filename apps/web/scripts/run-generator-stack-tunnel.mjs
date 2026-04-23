@@ -6,6 +6,10 @@ import {
   removeGeneratorRuntimeState,
   writeGeneratorRuntimeState,
 } from "./generator-runtime.mjs";
+import {
+  deleteRemoteGeneratorRuntime,
+  writeRemoteGeneratorRuntime,
+} from "./generator-runtime-remote.mjs";
 import { waitForGeneratorStackHealth } from "./generator-stack-health.mjs";
 import {
   resolveCloudflaredConfigPath,
@@ -30,11 +34,14 @@ export async function runGeneratorStackTunnel({
   spawnImpl = spawn,
   startLocalGenerator = startLocalGeneratorLauncher,
   waitForHealth = waitForGeneratorStackHealth,
+  deleteRemoteRuntime = deleteRemoteGeneratorRuntime,
+  writeRemoteRuntime = writeRemoteGeneratorRuntime,
 } = {}) {
   const signalState = createSignalState(processImpl);
   let generator = null;
   let tunnel = null;
   let tunnelChild = null;
+  let remoteRuntimeInitialized = false;
   const mergedEnv = loadWebScriptEnv({ env });
   const cloudflaredConfigPath = resolveCloudflaredConfigPath(mergedEnv);
 
@@ -45,6 +52,18 @@ export async function runGeneratorStackTunnel({
     if (!preflightResult.ok) {
       return preflightResult;
     }
+    const deleteBeforeStartResult = await deleteRemoteRuntime({
+      env: mergedEnv,
+      logger,
+    });
+    if (!deleteBeforeStartResult.ok) {
+      return {
+        exitCode: 1,
+        marker: "[generator-stack][remote-kv][delete-failed]",
+        ok: false,
+      };
+    }
+    remoteRuntimeInitialized = true;
 
     if (signalState.value !== null) {
       return stopForSignal({
@@ -160,6 +179,23 @@ export async function runGeneratorStackTunnel({
           : processImpl.pid,
       url: publicBaseUrl,
     });
+    if (preflightResult.tunnelMode === "quick") {
+      const writeRemoteRuntimeResult = await writeRemoteRuntime({
+        env: mergedEnv,
+        logger,
+        mode: "quick",
+        url: publicBaseUrl,
+      });
+      if (!writeRemoteRuntimeResult.ok) {
+        await stopTrackedChild(generator);
+        await stopTrackedChild(tunnel);
+        return {
+          exitCode: 1,
+          marker: "[generator-stack][remote-kv][write-failed]",
+          ok: false,
+        };
+      }
+    }
 
     const externalHealth = await waitForHealthPhase({
       healthPromise: waitForHealth({
@@ -226,6 +262,12 @@ export async function runGeneratorStackTunnel({
       tunnel,
     });
   } finally {
+    if (remoteRuntimeInitialized) {
+      await deleteRemoteRuntime({
+        env: mergedEnv,
+        logger,
+      });
+    }
     signalState.cleanup();
     removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
   }

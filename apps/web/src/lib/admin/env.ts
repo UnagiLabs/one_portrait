@@ -13,7 +13,9 @@ export type AdminRelayEnv = {
 };
 
 import {
+  type GeneratorRuntimeCloudflareEnv,
   type GeneratorRuntimeResolution,
+  resolveCloudflareGeneratorRuntime,
   resolveGeneratorRuntime,
 } from "../generator-runtime";
 
@@ -41,6 +43,28 @@ export function loadAdminRelayEnv(
     generatorBaseUrl: runtime.url,
     sharedSecret: readRequiredValue(
       source.OP_FINALIZE_DISPATCH_SECRET,
+      "OP_FINALIZE_DISPATCH_SECRET",
+    ),
+  };
+}
+
+export async function loadCloudflareAdminRelayEnv(
+  source: GeneratorRuntimeCloudflareEnv,
+): Promise<AdminRelayEnv> {
+  const runtime = await resolveCloudflareGeneratorRuntime({
+    env: source,
+  });
+
+  if (runtime.status !== "ok") {
+    throw new AdminEnvError(runtime.message);
+  }
+
+  return {
+    generatorBaseUrl: runtime.url,
+    sharedSecret: readRequiredValue(
+      typeof source.OP_FINALIZE_DISPATCH_SECRET === "string"
+        ? source.OP_FINALIZE_DISPATCH_SECRET
+        : undefined,
       "OP_FINALIZE_DISPATCH_SECRET",
     ),
   };
