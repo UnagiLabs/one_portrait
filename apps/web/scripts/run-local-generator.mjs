@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,8 @@ const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(webRoot, "..", "..");
 const generatorRoot = path.join(repoRoot, "generator");
-const generatorTsxBin = path.join(generatorRoot, "node_modules", ".bin", "tsx");
+const generatorDockerfilePath = path.join(generatorRoot, "Dockerfile");
+const generatorImageTag = "one-portrait-generator:local";
 
 export function loadWebScriptEnv({ env = process.env } = {}) {
   return {
@@ -29,23 +30,30 @@ function resolveLocalGeneratorPort(env) {
 export function startLocalGenerator({
   env = process.env,
   spawnImpl = spawn,
-  generatorBin = generatorTsxBin,
-  cwd = generatorRoot,
+  cwd = repoRoot,
+  imageTag = generatorImageTag,
+  runDockerBuild = defaultRunDockerBuild,
 } = {}) {
   const mergedEnv = loadWebScriptEnv({ env });
+  const localPort = resolveLocalGeneratorPort(mergedEnv);
 
-  const child = spawnImpl(generatorBin, ["./src/server.ts"], {
+  runDockerBuild({
+    contextPath: cwd,
+    dockerfilePath: generatorDockerfilePath,
+    imageTag,
+  });
+
+  const child = spawnImpl("docker", buildDockerRunArgs({
+    containerName: `one-portrait-generator-${localPort}`,
+    imageTag,
+    runtimeEnv: buildGeneratorContainerEnv(mergedEnv),
+    localPort,
+  }), {
     cwd,
     env: {
+      ...process.env,
       ...env,
       ...mergedEnv,
-      PORT: resolveLocalGeneratorPort(mergedEnv),
-      SUI_NETWORK: mergedEnv.SUI_NETWORK ?? mergedEnv.NEXT_PUBLIC_SUI_NETWORK,
-      PACKAGE_ID: mergedEnv.PACKAGE_ID ?? mergedEnv.NEXT_PUBLIC_PACKAGE_ID,
-      WALRUS_PUBLISHER:
-        mergedEnv.WALRUS_PUBLISHER ?? mergedEnv.NEXT_PUBLIC_WALRUS_PUBLISHER,
-      WALRUS_AGGREGATOR:
-        mergedEnv.WALRUS_AGGREGATOR ?? mergedEnv.NEXT_PUBLIC_WALRUS_AGGREGATOR,
     },
     stdio: "inherit",
   });
@@ -132,6 +140,57 @@ function normalizePortEnvValue(value) {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function buildDockerRunArgs({ containerName, imageTag, localPort, runtimeEnv }) {
+  return [
+    "run",
+    "--rm",
+    "--name",
+    containerName,
+    "--publish",
+    `127.0.0.1:${localPort}:8080`,
+    ...buildDockerEnvArgs(runtimeEnv),
+    imageTag,
+  ];
+}
+
+function buildDockerEnvArgs(runtimeEnv) {
+  return Object.entries(runtimeEnv).flatMap(([key, value]) =>
+    typeof value === "string" && value.length > 0 ? ["--env", `${key}=${value}`] : [],
+  );
+}
+
+function buildGeneratorContainerEnv(mergedEnv) {
+  return {
+    ADMIN_CAP_ID: mergedEnv.ADMIN_CAP_ID,
+    ADMIN_SUI_PRIVATE_KEY: mergedEnv.ADMIN_SUI_PRIVATE_KEY,
+    OP_FINALIZE_DISPATCH_SECRET: mergedEnv.OP_FINALIZE_DISPATCH_SECRET,
+    PACKAGE_ID: mergedEnv.PACKAGE_ID ?? mergedEnv.NEXT_PUBLIC_PACKAGE_ID,
+    PORT: "8080",
+    SUI_NETWORK: mergedEnv.SUI_NETWORK ?? mergedEnv.NEXT_PUBLIC_SUI_NETWORK,
+    WALRUS_AGGREGATOR:
+      mergedEnv.WALRUS_AGGREGATOR ?? mergedEnv.NEXT_PUBLIC_WALRUS_AGGREGATOR,
+    WALRUS_PUBLISHER:
+      mergedEnv.WALRUS_PUBLISHER ?? mergedEnv.NEXT_PUBLIC_WALRUS_PUBLISHER,
+  };
+}
+
+function defaultRunDockerBuild({ contextPath, dockerfilePath, imageTag }) {
+  const result = spawnSync(
+    "docker",
+    ["build", "--file", dockerfilePath, "--tag", imageTag, contextPath],
+    {
+      cwd: contextPath,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      `docker build failed with exit code ${result.status ?? 1}`,
+    );
+  }
 }
 
 function isExecutedDirectly() {

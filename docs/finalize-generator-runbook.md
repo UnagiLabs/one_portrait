@@ -3,7 +3,7 @@
 ## 目的
 
 この runbook は、`manji` PC 上で finalize generator スタックを運用するための手順です。
-`generator:tunnel` で local generator と Cloudflare Tunnel を 1 コマンドで起動し、`/health` の local / external 確認まで自動で行います。
+`generator:tunnel` で generator コンテナと Cloudflare Tunnel を 1 コマンドで起動し、`/health` の local / external 確認まで自動で行います。
 起動した URL は `apps/web/.cache/generator-runtime.json` に保存しつつ、Quick Tunnel のときは Cloudflare KV にも登録します。`/api/finalize`、`/api/admin/*`、admin health、`generator:smoke` は共有先として Cloudflare KV を優先し、同一マシン上の補助 fallback として local runtime state を残します。
 Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-smoke.md`) で扱います。
 
@@ -15,7 +15,7 @@ Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-s
 | 場所 | 役割 |
 | :--- | :--- |
 | Cloudflare Worker | `UnitFilledEvent` を受けた `/api/finalize` から Worker KV 優先の runtime resolver 経由で external generator を呼ぶ |
-| `manji` PC 上の `generator:tunnel` | local generator を起動し、Cloudflare Tunnel を張り、Quick Tunnel のときは current URL を Worker KV に登録する |
+| `manji` PC 上の `generator:tunnel` | generator コンテナを build/run し、Cloudflare Tunnel を張り、Quick Tunnel のときは current URL を Worker KV に登録する |
 | Cloudflare Tunnel | `http://localhost:<port>` を外部公開する |
 
 ## 起動に必要な値
