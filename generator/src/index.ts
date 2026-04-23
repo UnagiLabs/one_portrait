@@ -29,6 +29,8 @@ export type {
   GenerateMosaicInput,
   MosaicGrid,
   MosaicTileInput,
+  TargetAnalysis,
+  TargetAnalysisCell,
 } from "./mosaic";
 export { generateFinalizeMosaic, generateMosaic } from "./mosaic";
 export {

@@ -29,7 +29,7 @@
    ├─ MasterPortrait (運営保有, 将来選手移管): placements Table<blob_id, Placement>
    └─ Kakera (Soulbound, ファン保有): blob_id, submission_no, unit_id
 
-[Walrus] ファン投稿980枚 + 完成モザイク1枚
+[Walrus] ファン投稿2000枚 + 完成モザイク1枚
 [Cloudflare] Finalize Worker ──▶ External Mosaic Generator
                                (manji PC + Cloudflare Tunnel)
 ```
@@ -54,7 +54,7 @@ sequenceDiagram
     Sui-->>Browser: emit SubmittedEvent (count/max)
 ```
 
-#### 1.3.2 980枚到達〜リビール
+#### 1.3.2 2000枚到達〜リビール
 ```mermaid
 sequenceDiagram
     autonumber
@@ -64,13 +64,13 @@ sequenceDiagram
     participant Gen as Generator Container
     participant Walrus
 
-    Note over Sui: 980枚目着弾 → status=Filled / UnitFilledEvent
+    Note over Sui: 2000枚目着弾 → status=Filled / UnitFilledEvent
     Sui-->>Clients: UnitFilledEvent
     Clients->>Worker: POST /api/finalize { unitId }
     Worker->>Sui: status==Filled && master_id.is_none()?
     Worker->>Gen: dispatch (on-demand)
     Gen->>Sui: Unit.submissions / target_walrus_blob 取得
-    Gen->>Walrus: GET 980枚 (並列)
+    Gen->>Walrus: GET 2000枚 (並列)
     Gen->>Gen: 平均色再算出 / 決定的 greedy配置 / sharp合成
     Gen->>Walrus: PUT mosaic (epochs=100)
     Gen->>Sui: finalize(mosaic_blob, placements)<br/>→ MasterPortrait発行
@@ -118,7 +118,7 @@ one_portrait/
 ## 4. スマートコントラクト (Move)
 
 ### 4.1 パッケージ `one_portrait`
-単一パッケージ／複数モジュール。ユニットサイズは `max_slots` でパラメータ化し、本番・デモともに **980 固定**（デモは Mock データを事前投入）。
+単一パッケージ／複数モジュール。ユニットサイズは `max_slots` でパラメータ化し、本番・デモともに **2000 固定**（デモは Mock データを事前投入）。
 
 ### 4.2 モジュールと責務
 
@@ -162,7 +162,7 @@ one_portrait/
   - `submission_no`
 
 ### 4.4 状態遷移
-`Pending (0..979) → Filled (980到達) → Finalized (Masterミント済)`
+`Pending (0..1999) → Filled (2000到達) → Finalized (Masterミント済)`
 
 ### 4.5 権限
 - `create_unit` / `rotate_current_unit`: `AdminCap` 保有者のみ。次 unit は自動生成せず、運営が `Registry` を更新する。
@@ -222,7 +222,7 @@ one_portrait/
 
 - **Finalize Worker:** `/api/finalize` で冪等チェック → `OP_FINALIZE_DISPATCH_URL` の `/dispatch` を呼ぶ。
 - **Admin UI Relay:** `/admin` は同一オリジン前提のデモ管理画面として公開し、web の `/api/admin/*` は入力検証と same-origin ガードだけを行って `OP_GENERATOR_BASE_URL` の admin endpoint へ relay する。admin key は web に置かない。
-- **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 980枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+- **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 2000枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
 - **Cloudflare Tunnel:** named tunnel で `http://localhost:8080` を外部公開する。`/dispatch` と admin endpoint は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。疎通確認は `GET /dispatch-auth-probe` を使い、probe 自体は finalize を実行しない。
 
 ### 7.2 シークレット
@@ -235,7 +235,7 @@ one_portrait/
 ## 8. モザイク合成
 
 ### 8.1 入力
-目標画像 (`Unit.target_walrus_blob`) + `Unit.submissions` に保持された 980件の `{ submission_no, submitter, walrus_blob_id, submitted_at_ms }`。
+目標画像 (`Unit.target_walrus_blob`) + `Unit.submissions` に保持された 2000件の `{ submission_no, submitter, walrus_blob_id, submitted_at_ms }`。
 
 ### 8.2 配置戦略
 - **MVP:** 平均色ソート + greedy nearest assignment（Lab空間 ΔE*ab 最小、未使用タイルから選択）。
@@ -243,7 +243,7 @@ one_portrait/
 - **P1:** ハンガリアン法へアップグレード。
 
 ### 8.3 出力
-解像度 5600×7000px（28×35 = 980タイル、各200px角）の PNG。各投稿写真には目標タイル色へ寄せる軽いトーンカーブを可変強度で適用。
+解像度 8000×10000px（40×50 = 2000タイル、各200px角）の PNG。各投稿写真には目標タイル色へ寄せる軽いトーンカーブを可変強度で適用。
 
 ---
 

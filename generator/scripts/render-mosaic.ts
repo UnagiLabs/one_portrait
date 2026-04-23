@@ -1,13 +1,19 @@
+import { execFile as execFileCallback } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { unitTileGrid } from "@one-portrait/shared";
 
 import { generateMosaic } from "../src";
+import type { TargetAnalysis } from "../src";
+
+const execFile = promisify(execFileCallback);
 
 type CliOptions = {
   target: string;
-  tilesDir: string;
+  tilesDirs: string[];
   out: string;
   cols: number;
   rows: number;
@@ -15,11 +21,19 @@ type CliOptions = {
   colorMix: number;
   overlayOpacity: number;
   overlayBlur: number;
+  subjectPriority: number;
+  facePriority: number;
+  backgroundPriority: number;
+  analysisJson?: string;
+  autoAnalyze: boolean;
+  analysisDebugPreview?: string;
+  pythonBin: string;
+  tileShuffleSeed?: number;
 };
 
 const defaultOptions: CliOptions = {
   target: "",
-  tilesDir: "",
+  tilesDirs: [],
   out: "artifacts/rendered-mosaic.png",
   cols: unitTileGrid.cols,
   rows: unitTileGrid.rows,
@@ -27,28 +41,64 @@ const defaultOptions: CliOptions = {
   colorMix: 0.26,
   overlayOpacity: 0.12,
   overlayBlur: 8,
+  subjectPriority: 0.7,
+  facePriority: 0.22,
+  backgroundPriority: 0.06,
+  analysisJson: undefined,
+  autoAnalyze: false,
+  analysisDebugPreview: undefined,
+  pythonBin: resolveDefaultPythonBin(),
+  tileShuffleSeed: undefined,
 };
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const requiredTileCount = options.cols * options.rows;
 
-  if (!options.target || !options.tilesDir) {
+  if (!options.target || options.tilesDirs.length === 0) {
     throw new Error(
-      "Usage: pnpm --filter generator render:mosaic -- --target <image> --tiles-dir <dir> [--cols 12 --rows 15 --out output.png]",
+      "Usage: pnpm --filter generator render:mosaic -- --target <image> --tiles-dir <dir> [--tiles-dir <dir2>] [--cols 12 --rows 15 --out output.png]",
     );
   }
 
   const targetImage = await readFile(path.resolve(options.target));
-  const tilePaths = await listTileFiles(path.resolve(options.tilesDir));
+  const analysisPath = options.autoAnalyze
+    ? path.resolve(
+        options.analysisJson ?? replaceExtension(path.resolve(options.out), ".analysis.json"),
+      )
+    : options.analysisJson
+      ? path.resolve(options.analysisJson)
+      : undefined;
 
-  if (tilePaths.length < requiredTileCount) {
+  if (options.autoAnalyze && analysisPath) {
+    await runTargetAnalysis({
+      pythonBin: options.pythonBin,
+      target: path.resolve(options.target),
+      out: analysisPath,
+      cols: options.cols,
+      rows: options.rows,
+      debugPreview: options.analysisDebugPreview
+        ? path.resolve(options.analysisDebugPreview)
+        : undefined,
+    });
+  }
+
+  const targetAnalysis = analysisPath
+    ? (JSON.parse(await readFile(analysisPath, "utf8")) as TargetAnalysis)
+    : undefined;
+  const tilePaths = await listTileFiles(options.tilesDirs.map((dir) => path.resolve(dir)));
+  const orderedTilePaths =
+    options.tileShuffleSeed === undefined
+      ? tilePaths
+      : seededShuffle(tilePaths, options.tileShuffleSeed);
+
+  if (orderedTilePaths.length < requiredTileCount) {
     throw new Error(
-      `Need at least ${requiredTileCount} tiles in ${options.tilesDir}, found ${tilePaths.length}.`,
+      `Need at least ${requiredTileCount} tiles across ${options.tilesDirs.join(", ")}, found ${orderedTilePaths.length}.`,
     );
   }
 
-  const selectedTilePaths = tilePaths.slice(0, requiredTileCount);
+  const selectedTilePaths = orderedTilePaths.slice(0, requiredTileCount);
   const tiles = await Promise.all(
     selectedTilePaths.map(async (tilePath) => ({
       id: path.basename(tilePath),
@@ -64,6 +114,10 @@ async function main() {
     colorMix: options.colorMix,
     overlayOpacity: options.overlayOpacity,
     overlayBlur: options.overlayBlur,
+    subjectPriority: options.subjectPriority,
+    facePriority: options.facePriority,
+    backgroundPriority: options.backgroundPriority,
+    targetAnalysis,
   });
 
   const outputPath = path.resolve(options.out);
@@ -76,7 +130,8 @@ async function main() {
     JSON.stringify(
       {
         target: path.resolve(options.target),
-        tilesDir: path.resolve(options.tilesDir),
+        tilesDirs: options.tilesDirs.map((dir) => path.resolve(dir)),
+        analysisJson: analysisPath,
         tileCount: requiredTileCount,
         width: result.width,
         height: result.height,
@@ -102,6 +157,10 @@ function parseArgs(args: string[]) {
     const arg = args[index];
     const next = args[index + 1];
 
+    if (arg === "--") {
+      continue;
+    }
+
     if (!arg.startsWith("--")) {
       continue;
     }
@@ -112,7 +171,9 @@ function parseArgs(args: string[]) {
         index += 1;
         break;
       case "--tiles-dir":
-        options.tilesDir = next ?? "";
+        if (next) {
+          options.tilesDirs.push(next);
+        }
         index += 1;
         break;
       case "--out":
@@ -143,6 +204,37 @@ function parseArgs(args: string[]) {
         options.overlayBlur = parsePositiveInt(next, "--overlay-blur");
         index += 1;
         break;
+      case "--subject-priority":
+        options.subjectPriority = parseUnitFloat(next, "--subject-priority");
+        index += 1;
+        break;
+      case "--face-priority":
+        options.facePriority = parseUnitFloat(next, "--face-priority");
+        index += 1;
+        break;
+      case "--background-priority":
+        options.backgroundPriority = parseUnitFloat(next, "--background-priority");
+        index += 1;
+        break;
+      case "--analysis-json":
+        options.analysisJson = next ?? "";
+        index += 1;
+        break;
+      case "--analysis-debug-preview":
+        options.analysisDebugPreview = next ?? "";
+        index += 1;
+        break;
+      case "--auto-analyze":
+        options.autoAnalyze = true;
+        break;
+      case "--python-bin":
+        options.pythonBin = next ?? defaultOptions.pythonBin;
+        index += 1;
+        break;
+      case "--tile-shuffle-seed":
+        options.tileShuffleSeed = parsePositiveInt(next, "--tile-shuffle-seed");
+        index += 1;
+        break;
       default:
         throw new Error(`Unknown argument: ${arg}`);
     }
@@ -151,14 +243,19 @@ function parseArgs(args: string[]) {
   return options;
 }
 
-async function listTileFiles(tilesDir: string) {
-  const entries = await readdir(tilesDir, { withFileTypes: true });
+async function listTileFiles(tilesDirs: string[]) {
+  const fileGroups = await Promise.all(
+    tilesDirs.map(async (tilesDir) => {
+      const entries = await readdir(tilesDir, { withFileTypes: true });
 
-  return entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join(tilesDir, entry.name))
-    .filter((entryPath) => /\.(png|jpe?g|webp)$/i.test(entryPath))
-    .sort((left, right) => left.localeCompare(right));
+      return entries
+        .filter((entry) => entry.isFile())
+        .map((entry) => path.join(tilesDir, entry.name))
+        .filter((entryPath) => /\.(png|jpe?g|webp)$/i.test(entryPath));
+    }),
+  );
+
+  return fileGroups.flat().sort((left, right) => left.localeCompare(right));
 }
 
 function parsePositiveInt(value: string | undefined, flag: string) {
@@ -183,6 +280,62 @@ function parseUnitFloat(value: string | undefined, flag: string) {
 
 function replaceExtension(filePath: string, nextExtension: string) {
   return filePath.replace(/\.[^.]+$/, nextExtension);
+}
+
+function resolveDefaultPythonBin() {
+  const localCandidates = [
+    path.resolve(".venv/bin/python"),
+    path.resolve(".venv/bin/python3"),
+    path.resolve("../.venv/bin/python"),
+    path.resolve("../.venv/bin/python3"),
+    path.resolve("generator/.venv/bin/python"),
+    path.resolve("generator/.venv/bin/python3"),
+  ];
+
+  return localCandidates.find((candidate) => existsSync(candidate)) ?? "python3";
+}
+
+async function runTargetAnalysis(input: {
+  pythonBin: string;
+  target: string;
+  out: string;
+  cols: number;
+  rows: number;
+  debugPreview?: string;
+}) {
+  const scriptPath = path.resolve("scripts/analyze_target.py");
+  const args = [
+    scriptPath,
+    "--target",
+    input.target,
+    "--out",
+    input.out,
+    "--cols",
+    String(input.cols),
+    "--rows",
+    String(input.rows),
+  ];
+
+  if (input.debugPreview) {
+    args.push("--debug-preview", input.debugPreview);
+  }
+
+  await execFile(input.pythonBin, args, {
+    cwd: process.cwd(),
+  });
+}
+
+function seededShuffle(values: string[], seed: number) {
+  const copy = values.slice();
+  let state = seed >>> 0;
+
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+
+  return copy;
 }
 
 main().catch((error: unknown) => {
