@@ -38,7 +38,7 @@ export async function runGeneratorStackPreflight({
   }
 
   const localPort = normalizePort(
-    env.OP_LOCAL_GENERATOR_PORT ?? DEFAULT_LOCAL_PORT,
+    env.OP_LOCAL_GENERATOR_PORT ?? env.PORT ?? DEFAULT_LOCAL_PORT,
   );
   if (localPort === null) {
     emitFailure(logger, "tunnel-misconfig", [

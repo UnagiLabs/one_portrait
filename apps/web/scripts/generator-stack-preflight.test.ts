@@ -359,6 +359,40 @@ describe("runGeneratorStackPreflight", () => {
       {},
     );
   });
+
+  it("uses PORT as a fallback local generator port", async () => {
+    const logger = createLogger();
+    const runCommand = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "cloudflared version 2026.4.0" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockResolvedValueOnce({
+        stdout: "Name: one-portrait-generator",
+        stderr: "",
+      })
+      .mockResolvedValueOnce({
+        stdout:
+          "Matched rule #1\n  hostname: generator.example\n  service: http://localhost:9090\n",
+        stderr: "",
+      });
+
+    const result = await runGeneratorStackPreflight({
+      env: {
+        ...validEnv,
+        PORT: "9090",
+      },
+      logger,
+      runCommand,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      exitCode: 0,
+      tunnelName: "one-portrait-generator",
+      publicHostname: "generator.example",
+      localPort: 9090,
+    });
+  });
 });
 
 function createLogger() {
