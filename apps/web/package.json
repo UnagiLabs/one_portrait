@@ -23,6 +23,7 @@
     "test:e2e:install": "playwright install --with-deps chromium",
     "generator": "node ./scripts/run-local-generator.mjs",
     "generator:tunnel": "node ./scripts/run-generator-stack-tunnel.mjs",
+    "generator:smoke": "node ./scripts/run-generator-stack-dispatch-smoke.mjs",
     "preview": "PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare build && PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare preview -- --ip 0.0.0.0",
     "deploy": "PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare build && PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare deploy -- --keep-vars",
     "upload": "PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare build && PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare upload",
