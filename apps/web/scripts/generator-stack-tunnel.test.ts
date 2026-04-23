@@ -660,7 +660,7 @@ describe("runGeneratorStackTunnel", () => {
       );
       expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          env: expect.any(Object),
+          env: expect.objectContaining({}),
           logger,
           mode: "quick",
           url: "https://fresh-runtime.trycloudflare.com",
@@ -686,7 +686,7 @@ describe("runGeneratorStackTunnel", () => {
       });
       expect(deleteRemoteGeneratorRuntimeMock).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          env: expect.any(Object),
+          env: expect.objectContaining({}),
           logger,
         }),
       );

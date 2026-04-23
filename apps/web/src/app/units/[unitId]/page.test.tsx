@@ -145,7 +145,9 @@ describe("UnitPage", () => {
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       `72 / ${unitTileCount}`,
     );
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
+    ).toBeTruthy();
   });
 
   it("passes the server-derived public props to the waiting-room clients", async () => {
@@ -407,7 +409,9 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
+    ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
 
@@ -431,7 +435,9 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
+    ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "347 /",
     );

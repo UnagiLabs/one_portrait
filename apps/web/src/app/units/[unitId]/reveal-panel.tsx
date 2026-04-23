@@ -16,28 +16,41 @@ export function RevealPanel({
 }: RevealPanelProps): React.ReactElement {
   return (
     <section
-      className="mt-6 grid gap-4 rounded-[1.75rem] border border-emerald-300/25 bg-emerald-400/10 p-4"
+      className="mt-8 grid gap-5 border border-[var(--rule-strong)] bg-[rgba(10,6,4,0.85)] p-5 text-left"
       data-testid="reveal-panel"
     >
-      <div className="grid gap-1">
-        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
-          Reveal
-        </p>
-        <h2 className="font-serif text-2xl text-white">Completed mosaic</h2>
+      <div className="flex items-center justify-between gap-4">
+        <div className="grid gap-1">
+          <p className="op-eyebrow">
+            <span className="bar" />
+            <span>◉ Revealed</span>
+          </p>
+          <h2 className="font-display text-[28px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
+            Completed mosaic
+          </h2>
+        </div>
+        <div className="text-right font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+          <div>Simultaneous to every participant</div>
+        </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950/70">
+      <div
+        className="op-reveal-surface relative"
+        style={{
+          aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+        }}
+      >
         {/* biome-ignore lint: remote Walrus aggregator image, next/image not configured for it yet. */}
         <img
           alt={`${displayName} completed mosaic`}
-          className="block h-auto w-full"
+          className="block h-full w-full object-cover"
           data-testid="reveal-image"
           src={mosaicUrl}
         />
 
         {placement ? (
           <div
-            className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-200 bg-amber-300/25 shadow-[0_0_0_9999px_rgba(2,6,23,0.08)]"
+            className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--fire-1)] bg-[rgba(255,209,102,0.25)] shadow-[0_0_0_9999px_rgba(2,6,23,0.12)]"
             data-testid="placement-highlight"
             style={{
               left: `${((placement.x + 0.5) / unitTileGrid.cols) * 100}%`,
@@ -48,12 +61,12 @@ export function RevealPanel({
       </div>
 
       {placement ? (
-        <p className="text-sm text-emerald-50/90">
+        <p className="font-serif-display italic text-[15px] text-[var(--ink)]">
           Your Kakera is highlighted at ({placement.x}, {placement.y}) as #
           {placement.submissionNo}.
         </p>
       ) : (
-        <p className="text-sm text-emerald-50/90">
+        <p className="font-serif-display italic text-[15px] text-[var(--ink-dim)]">
           The completed mosaic is ready.
         </p>
       )}

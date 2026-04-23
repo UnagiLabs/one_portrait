@@ -13,7 +13,7 @@ test.describe("home smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: new RegExp(`${unitTileCount} faces`, "i"),
+        name: new RegExp(`${unitTileCount.toLocaleString()}[\\s\\S]*fans`, "i"),
       }),
     ).toBeVisible();
 
@@ -76,7 +76,7 @@ test.describe("home smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: new RegExp(`${unitTileCount} faces`, "i"),
+        name: new RegExp(`${unitTileCount.toLocaleString()}[\\s\\S]*fans`, "i"),
       }),
     ).toBeVisible();
     await expect(page.getByRole("heading", { level: 2 }).first()).toBeVisible();

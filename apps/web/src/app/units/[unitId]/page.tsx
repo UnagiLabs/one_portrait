@@ -83,117 +83,144 @@ export default async function UnitPage(
     progress.submittedCount >= 0 && progress.athletePublicId !== null;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
-      <div className="mx-auto grid max-w-3xl gap-8">
-        <nav className="flex flex-wrap items-center gap-4">
-          <Link
-            className="text-sm uppercase tracking-[0.3em] text-cyan-200/80 hover:text-cyan-100"
-            href="/"
-          >
-            ← All athletes
-          </Link>
-          <Link
-            className="text-sm uppercase tracking-[0.3em] text-cyan-200/80 hover:text-cyan-100"
-            href="/gallery"
-          >
-            Participation history
-          </Link>
-        </nav>
+    <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
+      <div className="mx-auto grid max-w-6xl gap-px bg-[var(--rule)] lg:grid-cols-[1fr_380px]">
+        <section className="relative flex min-h-[80vh] flex-col justify-between gap-10 bg-[var(--bg-2)] p-8 md:p-12 lg:p-14">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 45%, rgba(255, 122, 26, 0.08), transparent 65%)",
+            }}
+          />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+            <nav className="flex flex-wrap items-center gap-4">
+              <Link
+                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                href="/"
+              >
+                ← All athletes
+              </Link>
+              <Link
+                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                href="/gallery"
+              >
+                Participation history
+              </Link>
+            </nav>
+            <div className="text-right font-mono-op text-[11px] text-[var(--ink-dim)]">
+              <div>
+                {displayName}{" "}
+                <span className="text-[var(--ember)]">— UNIT</span>
+              </div>
+              <div className="mt-1 break-all text-[var(--ink-faint)]">
+                one_portrait::unit · {unitId.slice(0, 10)}…
+              </div>
+            </div>
+          </div>
 
-        <header className="grid gap-4 rounded-[2rem] border border-white/10 bg-white/6 p-8 shadow-2xl shadow-black/30 backdrop-blur">
-          {thumbnailUrl ? (
-            // Intentionally using <img> over next/image: the MVP thumbnails
-            // are external placeholder URLs and we want zero deploy-time
-            // config for remotePatterns. Swap when real Walrus CDN lands.
-            // biome-ignore lint: placeholder CDN, intentional use of <img>.
-            <img
-              alt={displayName}
-              className="h-32 w-32 rounded-2xl border border-white/10 object-cover"
-              src={thumbnailUrl}
-            />
-          ) : null}
-          <div className="grid gap-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-              Waiting room
-            </p>
-            <h1 className="font-serif text-4xl text-white">{displayName}</h1>
-            <p className="font-mono text-xs text-slate-400 break-all">
+          <div className="relative z-10 grid justify-items-center gap-6 text-center">
+            <div className="op-eyebrow">
+              <span className="bar" />
+              <span
+                className="h-2 w-2 rounded-full bg-[var(--ember)]"
+                style={{
+                  boxShadow: "0 0 14px var(--ember)",
+                  animation: "op-pulse 1s infinite",
+                }}
+              />
+              <span>UNIT ACTIVE — HIDDEN UNTIL REVEAL</span>
+            </div>
+
+            {thumbnailUrl ? (
+              // biome-ignore lint: external placeholder thumbnail
+              <img
+                alt={displayName}
+                className="h-24 w-24 rounded-none border border-[var(--rule-strong)] object-cover"
+                src={thumbnailUrl}
+              />
+            ) : null}
+
+            <h1 className="font-display text-[clamp(40px,7vw,88px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
+              {displayName}
+            </h1>
+            <p className="font-mono-op text-[11px] break-all text-[var(--ink-faint)]">
               {unitId}
             </p>
-          </div>
-        </header>
 
-        <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-          <p className="text-xs uppercase tracking-[0.3em] text-amber-300/80">
-            Progress
-          </p>
-          {hasProgress ? (
-            <div className="mt-4">
-              <UnitRevealClient
-                displayName={displayName}
-                aggregatorBase={aggregatorBase}
-                eventSubscriptionEnabled={startupEnabled && packageId !== null}
-                initialMasterId={progress.masterId}
-                initialSubmittedCount={progress.submittedCount}
-                maxSlots={progress.maxSlots}
-                packageId={packageId}
-                startupEnabled={startupEnabled}
-                unitId={unitId}
-              />
+            <div className="mt-4 w-full">
+              {hasProgress ? (
+                <UnitRevealClient
+                  aggregatorBase={aggregatorBase}
+                  displayName={displayName}
+                  eventSubscriptionEnabled={
+                    startupEnabled && packageId !== null
+                  }
+                  initialMasterId={progress.masterId}
+                  initialSubmittedCount={progress.submittedCount}
+                  maxSlots={progress.maxSlots}
+                  packageId={packageId}
+                  startupEnabled={startupEnabled}
+                  unitId={unitId}
+                />
+              ) : (
+                <p className="font-serif-display italic text-lg text-[var(--ink-dim)]">
+                  待機中 / No active unit — on-chain progress is not available
+                  right now.
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="mt-4 text-slate-300">
-              待機中 / No active unit — on-chain progress is not available right
-              now.
-            </p>
-          )}
+          </div>
+
+          <div className="relative z-10 text-right font-mono-op text-[11px] uppercase tracking-[0.12em] text-[var(--ink-dim)]">
+            Sponsored transaction · 0 SUI required
+            <br />
+            Soulbound mint on submit · Walrus blob storage
+          </div>
         </section>
 
-        {demoMode ? (
-          <DemoParticipationPreview />
-        ) : (
-          <ParticipationAccess
-            packageId={packageId}
-            startupEnabled={startupEnabled}
-            unitId={unitId}
-            walrusEnv={walrusEnv}
-          />
-        )}
-
-        {/*
-         * Hook points for follow-up issues (kept as comments so reviewers can
-         * see the intended seams without dead components floating around):
-         *   - Submit button: zkLogin login + Enoki Sponsored Tx invoking
-         *     `PACKAGE_ID::accessors::submit_photo`.
-         *   - Reveal overlay: listen for MosaicReadyEvent on LiveProgress and
-         *     render the mosaic blob from Walrus (client-only).
-         *   - /api/finalize trigger: fire-and-forget POST on UnitFilledEvent.
-         */}
+        <aside className="flex flex-col gap-6 bg-[var(--bg-2)] p-6 lg:p-7">
+          {demoMode ? (
+            <DemoParticipationPreview />
+          ) : (
+            <ParticipationAccess
+              packageId={packageId}
+              startupEnabled={startupEnabled}
+              unitId={unitId}
+              walrusEnv={walrusEnv}
+            />
+          )}
+        </aside>
       </div>
+
+      {/*
+       * Hook points for follow-up issues (kept as comments so reviewers can
+       * see the intended seams without dead components floating around):
+       *   - Submit button: zkLogin login + Enoki Sponsored Tx invoking
+       *     `PACKAGE_ID::accessors::submit_photo`.
+       *   - Reveal overlay: listen for MosaicReadyEvent on LiveProgress and
+       *     render the mosaic blob from Walrus (client-only).
+       *   - /api/finalize trigger: fire-and-forget POST on UnitFilledEvent.
+       */}
     </main>
   );
 }
 
 function DemoParticipationPreview(): React.ReactElement {
   return (
-    <section className="grid gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-6">
-      <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-        Demo login preview
+    <section className="grid gap-3 border border-[var(--rule)] bg-[rgba(245,239,227,0.03)] p-5">
+      <p className="op-eyebrow">
+        <span className="bar" />
+        <span>Demo login preview</span>
       </p>
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-[var(--ink-dim)]">
         `dev:demo` では導線だけを確認します。実際のログインや投稿は行いません。
       </p>
       <div className="flex flex-wrap gap-3">
-        <button
-          className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950"
-          type="button"
-        >
+        <button className="op-btn-primary" type="button">
           Google zkLogin
         </button>
-        <button
-          className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100"
-          type="button"
-        >
+        <button className="op-btn-ghost" type="button">
           Sui wallet
         </button>
       </div>

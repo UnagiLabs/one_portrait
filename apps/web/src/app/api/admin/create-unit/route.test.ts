@@ -62,7 +62,7 @@ describe("POST /api/admin/create-unit", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
-          maxSlots: 980,
+          maxSlots: 2000,
         }),
         method: "POST",
       }),
@@ -105,7 +105,7 @@ describe("POST /api/admin/create-unit", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
-          maxSlots: 980,
+          maxSlots: 2000,
         }),
         headers: {
           "x-one-portrait-admin-request": "same-origin",
@@ -124,7 +124,7 @@ describe("POST /api/admin/create-unit", () => {
     await expect(request.json()).resolves.toEqual({
       athleteId: 12,
       blobId: "target-blob-12",
-      maxSlots: 980,
+      maxSlots: 2000,
       registryObjectId: VALID_REGISTRY_ID,
     });
     await expect(response.json()).resolves.toEqual({

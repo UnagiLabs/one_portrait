@@ -58,9 +58,19 @@ describe("RootLayout", () => {
     const ui = RootLayout({
       children: <div>page body</div>,
     });
+    const children = Array.isArray(ui.props.children)
+      ? ui.props.children
+      : [ui.props.children];
+    const body = children.find(
+      (child: unknown) =>
+        typeof child === "object" &&
+        child !== null &&
+        "type" in child &&
+        child.type === "body",
+    );
 
     expect(ui.type).toBe("html");
-    expect(ui.props.children.type).toBe("body");
-    expect(ui.props.children.props.children.props.children.type).toBe(AppShell);
+    expect(body).toBeTruthy();
+    expect(body.props.children.props.children.type).toBe(AppShell);
   });
 });

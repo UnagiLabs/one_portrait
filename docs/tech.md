@@ -29,7 +29,7 @@
    ├─ MasterPortrait (運営保有, 将来選手移管): placements Table<blob_id, Placement>
    └─ Kakera (Soulbound, ファン保有): blob_id, submission_no, unit_id
 
-[Walrus] ファン投稿2000枚 + 完成モザイク1枚
+[Walrus] ファン投稿2,000枚 + 完成モザイク1枚
 [Cloudflare] Finalize Worker ──▶ External Mosaic Generator
                                (manji PC + Cloudflare Tunnel)
 ```
@@ -54,7 +54,7 @@ sequenceDiagram
     Sui-->>Browser: emit SubmittedEvent (count/max)
 ```
 
-#### 1.3.2 2000枚到達〜リビール
+#### 1.3.2 2,000枚到達〜リビール
 ```mermaid
 sequenceDiagram
     autonumber
@@ -64,13 +64,13 @@ sequenceDiagram
     participant Gen as Generator Container
     participant Walrus
 
-    Note over Sui: 2000枚目着弾 → status=Filled / UnitFilledEvent
+    Note over Sui: 2,000枚目着弾 → status=Filled / UnitFilledEvent
     Sui-->>Clients: UnitFilledEvent
     Clients->>Worker: POST /api/finalize { unitId }
     Worker->>Sui: status==Filled && master_id.is_none()?
     Worker->>Gen: dispatch (on-demand)
     Gen->>Sui: Unit.submissions / target_walrus_blob 取得
-    Gen->>Walrus: GET 2000枚 (並列)
+    Gen->>Walrus: GET 2,000枚 (並列)
     Gen->>Gen: 平均色再算出 / 決定的 greedy配置 / sharp合成
     Gen->>Walrus: PUT mosaic (epochs=100)
     Gen->>Sui: finalize(mosaic_blob, placements)<br/>→ MasterPortrait発行
@@ -113,29 +113,12 @@ one_portrait/
 └── docs/{spec,tech}.md
 ```
 
-### 3.1 `generator/` の住み分け
-
-- `generator/src/`
-  finalize 本流の実装。runtime、Sui/Walrus 連携、配置決定、合成処理を置く。
-- `generator/src/core.ts`
-  画像生成コアだけを使いたい呼び出し元向けの barrel。Sui 依存は含めない。
-- `generator/src/integration.ts`
-  finalize / seeding 向けの接続層 barrel。Sui/Walrus 連携はここから辿れるようにする。
-- `generator/scripts/`
-  デモ運用で使う実行スクリプトを置く。現時点では `seed-demo-submissions.ts` が主対象。
-- `generator/experiments/`
-  モザイク品質検証、データセット収集、MediaPipe 解析などの研究用スクリプトを置く。本番 finalize パスには含めない。
-- `generator/assets/*`, `generator/artifacts/`
-  実験で生成するローカルデータ置き場。Git 管理対象にはしない。
-
-後から見た人が迷わないよう、workspace 内の詳細な案内は `generator/README.md` と `generator/experiments/README.md` を正本とする。
-
 ---
 
 ## 4. スマートコントラクト (Move)
 
 ### 4.1 パッケージ `one_portrait`
-単一パッケージ／複数モジュール。ユニットサイズは `max_slots` でパラメータ化し、本番・デモともに **2000 固定**（デモは Mock データを事前投入）。
+単一パッケージ／複数モジュール。ユニットサイズは `max_slots` でパラメータ化し、本番・デモともに **2,000 固定**（デモは Mock データを事前投入）。
 
 ### 4.2 モジュールと責務
 
@@ -179,7 +162,7 @@ one_portrait/
   - `submission_no`
 
 ### 4.4 状態遷移
-`Pending (0..1999) → Filled (2000到達) → Finalized (Masterミント済)`
+`Pending (0..1,999) → Filled (2,000到達) → Finalized (Masterミント済)`
 
 ### 4.5 権限
 - `create_unit` / `rotate_current_unit`: `AdminCap` 保有者のみ。次 unit は自動生成せず、運営が `Registry` を更新する。
@@ -237,10 +220,10 @@ one_portrait/
 ### 7.1 構成
 常駐 Listener・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が external generator を叩く。
 
-- **Finalize Worker:** `/api/finalize` で冪等チェック → server-side runtime resolver で generator URL を決めて `/dispatch` を呼ぶ。優先順は `OP_GENERATOR_RUNTIME_URL_OVERRIDE` → `apps/web/.cache/generator-runtime.json` → legacy env (`OP_FINALIZE_DISPATCH_URL` / `OP_GENERATOR_BASE_URL`) → local fallback。
-- **Admin UI Relay:** `/admin` は同一オリジン前提のデモ管理画面として公開し、web の `/api/admin/*` は入力検証と same-origin ガードだけを行い、`/api/finalize` と同じ runtime resolver で決めた generator endpoint へ relay する。admin key は web に置かない。
-- **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 2000枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
-- **Cloudflare Tunnel:** `generator:tunnel` は `OP_LOCAL_TUNNEL_NAME` があれば named tunnel、無ければ Quick Tunnel を起動する。起動した URL は `apps/web/.cache/generator-runtime.json` に保存し、`/dispatch` と admin endpoint は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。疎通確認は `GET /dispatch-auth-probe` を使い、probe 自体は finalize を実行しない。
+- **Finalize Worker:** `/api/finalize` で冪等チェック → `OP_FINALIZE_DISPATCH_URL` の `/dispatch` を呼ぶ。
+- **Admin UI Relay:** `/admin` は同一オリジン前提のデモ管理画面として公開し、web の `/api/admin/*` は入力検証と same-origin ガードだけを行って `OP_GENERATOR_BASE_URL` の admin endpoint へ relay する。admin key は web に置かない。
+- **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 2,000枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
+- **Cloudflare Tunnel:** named tunnel で `http://localhost:8080` を外部公開する。`/dispatch` と admin endpoint は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。疎通確認は `GET /dispatch-auth-probe` を使い、probe 自体は finalize を実行しない。
 
 ### 7.2 シークレット
 - `ADMIN_SUI_PRIVATE_KEY` は `manji` PC 上の generator にだけ置く。
@@ -252,7 +235,7 @@ one_portrait/
 ## 8. モザイク合成
 
 ### 8.1 入力
-目標画像 (`Unit.target_walrus_blob`) + `Unit.submissions` に保持された 2000件の `{ submission_no, submitter, walrus_blob_id, submitted_at_ms }`。
+目標画像 (`Unit.target_walrus_blob`) + `Unit.submissions` に保持された 2,000件の `{ submission_no, submitter, walrus_blob_id, submitted_at_ms }`。
 
 ### 8.2 配置戦略
 - **MVP:** 平均色ソート + greedy nearest assignment（Lab空間 ΔE*ab 最小、未使用タイルから選択）。
@@ -260,7 +243,7 @@ one_portrait/
 - **P1:** ハンガリアン法へアップグレード。
 
 ### 8.3 出力
-解像度 8000×10000px（40×50 = 2000タイル、各200px角）の PNG。各投稿写真には目標タイル色へ寄せる軽いトーンカーブを可変強度で適用。
+解像度 8000×10000px（40×50 = 2,000タイル、各200px角）の PNG。各投稿写真には目標タイル色へ寄せる軽いトーンカーブを可変強度で適用。
 
 ---
 
@@ -279,7 +262,7 @@ one_portrait/
 | シナリオ | 対策 |
 | :--- | :--- |
 | 同一ユーザーの同一 unit への複数投稿 | `submitters` Table で abort。別 unit には参加可能。 |
-| 501枚目・Finalized後の投稿 | `status == Pending` で abort。 |
+| 2,001枚目・Finalized後の投稿 | `status == Pending` で abort。 |
 | `/api/finalize` 同時多重発火 | `master_id.is_none()` で Move側が1件のみ成功、他は abort。Worker はエラーを 200 で吸収。 |
 | 誰も finalize を叩かない | `/units/[id]` や `/gallery` を開いた任意のクライアントが検知→発火。分散トリガー。 |
 | finalize 途中クラッシュ | Tx は atomic。generator process か Tunnel が落ちても、復旧後に次回呼び出しで再実行できる。配置アルゴリズムは決定的にして再試行時も同一結果に揃える。 |
@@ -304,8 +287,8 @@ one_portrait/
 ## 12. 開発・デプロイ
 
 - **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
-- **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
-- **設定反映:** ローカル `pnpm run build` に必要なのは `apps/web/.env.local` の `NEXT_PUBLIC_SUI_NETWORK` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` だけで、`NEXT_PUBLIC_PACKAGE_ID` は任意。Cloudflare `build:cf` に必要な 7 つの `NEXT_PUBLIC_*` は Cloudflare Build Variables を優先し、未設定分だけ `wrangler.jsonc` の `vars` から補完する。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_FINALIZE_DISPATCH_SECRET` を必須で置き、固定 URL を使う時だけ `OP_FINALIZE_DISPATCH_URL` と `OP_GENERATOR_BASE_URL` を同じ値で置く。手動 override が必要な時は shell で `OP_GENERATOR_RUNTIME_URL_OVERRIDE` を使う。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
+- **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。`Registry` ID は `sui_getObject` で `content.fields.current_units` / `athlete_metadata` / `slug_to_athlete` の 3 つが見える object だけを採用する。
+- **設定反映:** ローカル `pnpm run build` に必要なのは `apps/web/.env.local` の `NEXT_PUBLIC_SUI_NETWORK` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` だけで、`NEXT_PUBLIC_PACKAGE_ID` は任意。Cloudflare `build:cf` に必要な 7 つの `NEXT_PUBLIC_*` は Cloudflare Build Variables を優先し、未設定分だけ `wrangler.jsonc` の `vars` から補完する。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_GENERATOR_BASE_URL` と `OP_FINALIZE_DISPATCH_SECRET` を設定する。finalize Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で `build:cf`（`opennextjs-cloudflare build`）のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。OpenNext の deploy は内部で Wrangler deploy を呼ぶ。deploy 実行端末にも Docker CLI と daemon が必要。
 - **運用手順:** `manji` PC 上の generator 起動、Cloudflare Tunnel、復旧順は `docs/finalize-generator-runbook.md` を正本とする。
 - **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test --test` を回す。`e2e` は Playwright の mock 経路を確認する。

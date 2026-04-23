@@ -29,11 +29,7 @@ export function GlobalWalletEntry(): React.ReactElement {
 
   if (!state.submitEnabled) {
     return (
-      <button
-        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300"
-        disabled
-        type="button"
-      >
+      <button className="op-btn-outline" disabled type="button">
         ログイン準備中
       </button>
     );
@@ -109,22 +105,29 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
       <>
         <div className="relative" ref={containerRef}>
           <button
-            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-200 hover:text-white"
+            className="op-btn-outline"
             onClick={() => {
               setOpen((current) => !current);
             }}
             type="button"
           >
-            ログイン
+            <GoogleGlyph />
+            <span className="ml-2">ログイン</span>
           </button>
 
           {open ? (
-            <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-56 gap-3 rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40">
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Connect
+            <div
+              className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-64 gap-3 border border-[var(--rule-strong)] bg-[#0a0604] p-5 shadow-2xl shadow-black/60"
+              style={{
+                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+              }}
+            >
+              <p className="op-eyebrow">
+                <span className="bar" />
+                <span>Connect</span>
               </p>
               <button
-                className="rounded-2xl bg-cyan-300 px-4 py-3 text-left text-sm font-medium text-slate-950 transition hover:bg-cyan-200"
+                className="op-btn-primary"
                 onClick={() => {
                   void handleGoogleLogin();
                 }}
@@ -133,7 +136,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
                 Google zkLogin
               </button>
               <button
-                className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:border-cyan-200/60"
+                className="op-btn-ghost"
                 onClick={() => {
                   setConnectError(null);
                   setOpen(false);
@@ -147,7 +150,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
               {connectError ? (
                 <p
                   aria-live="polite"
-                  className="rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100"
+                  className="op-alert-warn text-sm"
                   role="alert"
                 >
                   {connectError}
@@ -167,29 +170,36 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
   return (
     <div className="relative" ref={containerRef}>
       <button
-        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:border-cyan-200/60"
+        className="op-btn-outline"
         onClick={() => {
           setOpen((current) => !current);
         }}
         type="button"
       >
-        {shortenAddress(currentAccount.address)}
+        <span className="font-mono-op text-[11px] tracking-[0.08em]">
+          {shortenAddress(currentAccount.address)}
+        </span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-72 gap-3 rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40">
+        <div
+          className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-80 gap-4 border border-[var(--rule-strong)] bg-[#0a0604] p-5 shadow-2xl shadow-black/60"
+          style={{
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          }}
+        >
           <div className="grid gap-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+            <p className="font-mono-op text-[10px] uppercase tracking-[0.2em] text-[var(--ink-dim)]">
               {isGoogleConnected ? "Google zkLogin" : "Sui wallet"}
             </p>
-            <p className="font-mono text-xs break-all text-cyan-100">
+            <p className="font-mono-op text-xs break-all text-[var(--ember)]">
               {currentAccount.address}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button
-              className="rounded-full border border-white/10 px-3 py-2 text-sm text-white transition hover:border-cyan-200/60"
+              className="op-btn-outline"
               onClick={() => {
                 void handleCopy(currentAccount.address);
               }}
@@ -198,7 +208,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
               {copied ? "Copied" : "Copy"}
             </button>
             <a
-              className="rounded-full border border-white/10 px-3 py-2 text-sm text-white transition hover:border-cyan-200/60"
+              className="op-btn-outline"
               href={buildExplorerUrl(currentAccount.address)}
               rel="noreferrer"
               target="_blank"
@@ -206,7 +216,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
               Explorer
             </a>
             <button
-              className="rounded-full border border-white/10 px-3 py-2 text-sm text-white transition hover:border-cyan-200/60"
+              className="op-btn-outline"
               onClick={() => {
                 disconnectWallet.mutate();
                 setOpen(false);
@@ -219,6 +229,29 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function GoogleGlyph(): React.ReactElement {
+  return (
+    <svg aria-hidden="true" height={14} viewBox="0 0 18 18" width={14}>
+      <path
+        d="M17.64 9.2c0-.63-.06-1.25-.17-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
+        fill="#FFC107"
+      />
+      <path
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.6-5.05-3.74H.95v2.34A9 9 0 0 0 9 18Z"
+        fill="#4CAF50"
+      />
+      <path
+        d="M3.95 10.68a5.4 5.4 0 0 1 0-3.36V4.98H.95a9 9 0 0 0 0 8.04l3-2.34Z"
+        fill="#FFC107"
+      />
+      <path
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59A9 9 0 0 0 .95 4.98l3 2.34C4.66 5.18 6.65 3.58 9 3.58Z"
+        fill="#F44336"
+      />
+    </svg>
   );
 }
 

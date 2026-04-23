@@ -37,7 +37,7 @@ import {
 } from "./event-types";
 
 const EVENTS_MODULE_NAME = "events";
-// Demo scale: 980 slots × 1 unit live during reveal. At 4s poll + 50 events/page
+// Demo scale: 2,000 slots × 1 unit live during reveal. At 4s poll + 50 events/page
 // the worst-case throughput is 12.5 events/s before we start paging — well
 // above expected submission cadence. Bump if we ever host multiple units
 // concurrently.

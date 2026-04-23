@@ -98,7 +98,9 @@ describe("GalleryPage", () => {
     const ui = await GalleryPage();
     render(ui);
 
-    expect(screen.getByText(/Participation gallery/i)).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: /participation gallery/i }),
+    ).toBeTruthy();
     expect(screen.getByTestId("gallery-client").textContent).toContain(
       "2 athletes",
     );

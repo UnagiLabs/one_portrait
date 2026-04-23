@@ -39,6 +39,7 @@ const gridOptions: GridOption[] = [
   { cols: 26, rows: 33 },
   { cols: 28, rows: 35 },
   { cols: 25, rows: 40 },
+  { cols: 40, rows: 50 },
 ];
 
 const targets = [
