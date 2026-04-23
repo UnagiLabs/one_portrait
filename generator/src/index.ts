@@ -114,6 +114,7 @@ export {
   createSubmitPhotoTransactionExecutor,
   createSuiClient,
   createUnitSnapshotLoader,
+  createUpsertAthleteMetadataTransactionExecutor,
   type FinalizeTransactionResult,
   type GeneratorSeedingSnapshot,
   type GeneratorSeedingSnapshotLoader,
@@ -121,6 +122,7 @@ export {
   type RotateCurrentUnitTransactionResult,
   readTransactionBlockStatus,
   type SubmitPhotoTransactionResult,
+  type UpsertAthleteMetadataTransactionResult,
 } from "./sui";
 export {
   createWalrusReadClient,

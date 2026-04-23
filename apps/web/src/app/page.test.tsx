@@ -6,16 +6,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../lib/demo";
 
-const {
-  getAthleteCatalogMock,
-  getCurrentUnitIdForAthleteMock,
-  getUnitProgressMock,
-  loadPublicEnvMock,
-} = vi.hoisted(() => ({
+const { getAthleteCatalogMock, getActiveHomeUnitsMock } = vi.hoisted(() => ({
   getAthleteCatalogMock: vi.fn(),
-  getCurrentUnitIdForAthleteMock: vi.fn(),
-  getUnitProgressMock: vi.fn(),
-  loadPublicEnvMock: vi.fn(),
+  getActiveHomeUnitsMock: vi.fn(),
 }));
 
 vi.mock("../lib/catalog", () => ({
@@ -23,12 +16,7 @@ vi.mock("../lib/catalog", () => ({
 }));
 
 vi.mock("../lib/sui", () => ({
-  getCurrentUnitIdForAthlete: getCurrentUnitIdForAthleteMock,
-  getUnitProgress: getUnitProgressMock,
-}));
-
-vi.mock("../lib/env", () => ({
-  loadPublicEnv: loadPublicEnvMock,
+  getActiveHomeUnits: getActiveHomeUnitsMock,
 }));
 
 import HomePage from "./page";
@@ -52,30 +40,25 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
   getAthleteCatalogMock.mockReset();
-  getCurrentUnitIdForAthleteMock.mockReset();
-  getUnitProgressMock.mockReset();
-  loadPublicEnvMock.mockReset();
+  getActiveHomeUnitsMock.mockReset();
 });
 
 describe("HomePage", () => {
-  it("renders a card for each catalog entry with display metadata", async () => {
-    getAthleteCatalogMock.mockResolvedValue(CATALOG);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockImplementation(async (id: string) =>
-      id === "1" ? "0xunit-1" : null,
-    );
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 42,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
+  it("renders chain-driven cards with on-chain metadata", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        maxSlots: unitTileCount,
+        submittedCount: 42,
+        unitId: "0xunit-1",
+      },
+      {
+        ...CATALOG[1],
+        maxSlots: unitTileCount,
+        submittedCount: 12,
+        unitId: "0xunit-2",
+      },
+    ]);
 
     const ui = await HomePage();
     render(ui);
@@ -87,21 +70,14 @@ describe("HomePage", () => {
   });
 
   it("shows the current unit progress when an active unit exists", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 123,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        maxSlots: unitTileCount,
+        submittedCount: 123,
+        unitId: "0xunit-1",
+      },
+    ]);
 
     const ui = await HomePage();
     render(ui);
@@ -112,21 +88,14 @@ describe("HomePage", () => {
   });
 
   it("shows a hero link to the participation gallery", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 123,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        maxSlots: unitTileCount,
+        submittedCount: 123,
+        unitId: "0xunit-1",
+      },
+    ]);
 
     const ui = await HomePage();
     render(ui);
@@ -137,38 +106,26 @@ describe("HomePage", () => {
     expect(link.getAttribute("href")).toBe("/gallery");
   });
 
-  it("renders a waiting-state card when no current unit is registered", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue(null);
+  it("shows an empty state when no active units are available", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
 
     const ui = await HomePage();
     render(ui);
 
-    expect(getUnitProgressMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+    expect(
+      screen.getByText(/現在表示できる開催中ユニットはありません/),
+    ).toBeTruthy();
   });
 
   it("links each athlete card to /units/[unitId] when a unit exists", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 0,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        maxSlots: unitTileCount,
+        submittedCount: 0,
+        unitId: "0xunit-1",
+      },
+    ]);
 
     const ui = await HomePage();
     render(ui);
@@ -183,48 +140,14 @@ describe("HomePage", () => {
     expect(link).toBeTruthy();
   });
 
-  it("keeps catalog-only display and marks progress unavailable when env is missing", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockImplementation(() => {
-      throw new Error("env missing");
-    });
+  it("falls back to the empty state when the chain read fails", async () => {
+    getActiveHomeUnitsMock.mockRejectedValue(new Error("rpc down"));
 
     const ui = await HomePage();
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
-    expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
     expect(
-      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
-    ).toBeTruthy();
-  });
-
-  it("keeps the waiting-room link when progress fetch fails after resolving unitId", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getUnitProgressMock.mockRejectedValue(new Error("rpc down"));
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
-    expect(screen.getByText(/demo-athlete-one/)).toBeTruthy();
-    expect(
-      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
-    ).toBeTruthy();
-    expect(
-      screen
-        .getAllByRole("link")
-        .find(
-          (el) =>
-            el.getAttribute("href") ===
-            "/units/0xunit-1?athleteName=Demo+Athlete+One",
-        ),
+      screen.getByText(/現在表示できる開催中ユニットはありません/),
     ).toBeTruthy();
   });
 
@@ -244,18 +167,12 @@ describe("HomePage", () => {
       );
 
     expect(link).toBeTruthy();
-    expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
-    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });
 
   it("applies explicit home degraded overrides only in stub E2E mode", async () => {
     process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
     getAthleteCatalogMock.mockResolvedValue(CATALOG);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
 
     const ui = await HomePage({
       searchParams: Promise.resolve({
@@ -264,30 +181,24 @@ describe("HomePage", () => {
     });
     render(ui);
 
-    expect(getCurrentUnitIdForAthleteMock).not.toHaveBeenCalled();
-    expect(getUnitProgressMock).not.toHaveBeenCalled();
+    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
     expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
     expect(
       screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
     ).toBeTruthy();
+    expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });
 
   it("ignores home degraded overrides outside stub E2E mode", async () => {
-    getAthleteCatalogMock.mockResolvedValue([CATALOG[0]]);
-    loadPublicEnvMock.mockReturnValue({
-      suiNetwork: "testnet",
-      packageId: "0xpkg",
-      registryObjectId: "0xreg",
-    });
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 12,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        maxSlots: unitTileCount,
+        submittedCount: 12,
+        unitId: "0xunit-1",
+      },
+    ]);
 
     const ui = await HomePage({
       searchParams: Promise.resolve({

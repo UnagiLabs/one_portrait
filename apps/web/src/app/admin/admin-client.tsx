@@ -2,19 +2,10 @@
 
 import { type ChangeEvent, type FormEvent, useState } from "react";
 
+import type { AdminAthleteEntry } from "../../lib/admin/athletes";
 import type { AdminHealthSummary } from "../../lib/admin/health";
 import { preprocessPhoto } from "../../lib/image/preprocess";
-import type { AdminUnitSnapshot } from "../../lib/sui";
 import { putTargetBlobToWalrus } from "../../lib/walrus/put-target";
-
-export type AdminAthleteEntry = {
-  readonly athletePublicId: string;
-  readonly currentUnit: AdminUnitSnapshot | null;
-  readonly displayName: string;
-  readonly lookupState: "missing" | "ready" | "unavailable";
-  readonly slug: string;
-  readonly thumbnailUrl: string;
-};
 
 type ActionResult = {
   readonly detail: string;
@@ -32,6 +23,24 @@ export function AdminClient({
 }: AdminClientProps): React.ReactElement {
   const [athletes, setAthletes] = useState(initialAthletes);
   const [health, setHealth] = useState(initialHealth);
+  const [metadataAthleteId, setMetadataAthleteId] = useState(
+    initialAthletes[0]?.athletePublicId ?? "",
+  );
+  const [metadataDisplayName, setMetadataDisplayName] = useState(
+    initialAthletes[0]?.metadataState === "ready"
+      ? initialAthletes[0].displayName
+      : "",
+  );
+  const [metadataSlug, setMetadataSlug] = useState(
+    initialAthletes[0]?.metadataState === "ready"
+      ? initialAthletes[0].slug
+      : "",
+  );
+  const [metadataThumbnailUrl, setMetadataThumbnailUrl] = useState(
+    initialAthletes[0]?.metadataState === "ready"
+      ? initialAthletes[0].thumbnailUrl
+      : "",
+  );
   const [selectedAthleteId, setSelectedAthleteId] = useState(
     initialAthletes[0]?.athletePublicId ?? "",
   );
@@ -78,6 +87,20 @@ export function AdminClient({
     }
   }
 
+  function loadMetadataDraft(athleteId: string): void {
+    const athlete = athletes.find(
+      (entry) => entry.athletePublicId === athleteId,
+    );
+    setMetadataAthleteId(athleteId);
+    setMetadataDisplayName(
+      athlete?.metadataState === "ready" ? athlete.displayName : "",
+    );
+    setMetadataSlug(athlete?.metadataState === "ready" ? athlete.slug : "");
+    setMetadataThumbnailUrl(
+      athlete?.metadataState === "ready" ? athlete.thumbnailUrl : "",
+    );
+  }
+
   async function handleTargetUpload(
     event: ChangeEvent<HTMLInputElement>,
   ): Promise<void> {
@@ -114,6 +137,40 @@ export function AdminClient({
     } finally {
       setIsUploading(false);
       event.target.value = "";
+    }
+  }
+
+  async function handleMetadataSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPendingAction("metadata");
+
+    try {
+      const payload = await postJson("/api/admin/upsert-athlete-metadata", {
+        athleteId: Number(metadataAthleteId),
+        displayName: metadataDisplayName,
+        slug: metadataSlug,
+        thumbnailUrl: metadataThumbnailUrl,
+      });
+
+      if (!selectedAthleteId) {
+        setSelectedAthleteId(metadataAthleteId);
+      }
+      if (!rotateAthleteId) {
+        setRotateAthleteId(metadataAthleteId);
+      }
+
+      setLastAction({
+        detail: formatActionDetail(payload),
+        summary: "athlete metadata を更新しました",
+      });
+      await refreshAll();
+    } catch (error) {
+      setLastAction({
+        detail: error instanceof Error ? error.message : String(error),
+        summary: "athlete metadata の更新に失敗しました",
+      });
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -232,13 +289,109 @@ export function AdminClient({
         </section>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
+          <div className="grid gap-1">
+            <h2 className="font-serif text-2xl text-white">
+              athlete metadata を登録
+            </h2>
+            <p className="text-sm leading-6 text-stone-300">
+              先に displayName、slug、thumbnail URL を on-chain 登録します。
+              unit 作成前の必須ステップです。
+            </p>
+          </div>
+
+          {athletes.length > 0 ? (
+            <label className="grid gap-2 text-sm text-stone-200">
+              既存 athlete から読み込む
+              <select
+                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                onChange={(event) => loadMetadataDraft(event.target.value)}
+                value={metadataAthleteId}
+              >
+                {athletes.map((athlete) => (
+                  <option
+                    key={athlete.athletePublicId}
+                    value={athlete.athletePublicId}
+                  >
+                    #{athlete.athletePublicId} {athlete.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => void handleMetadataSubmit(event)}
+          >
+            <label className="grid gap-2 text-sm text-stone-200">
+              athlete ID
+              <input
+                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                inputMode="numeric"
+                onChange={(event) => setMetadataAthleteId(event.target.value)}
+                placeholder="例: 7"
+                value={metadataAthleteId}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm text-stone-200">
+              displayName
+              <input
+                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                onChange={(event) => setMetadataDisplayName(event.target.value)}
+                placeholder="Demo Athlete Seven"
+                value={metadataDisplayName}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm text-stone-200">
+              slug
+              <input
+                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
+                onChange={(event) => setMetadataSlug(event.target.value)}
+                placeholder="demo-athlete-seven"
+                value={metadataSlug}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm text-stone-200">
+              thumbnail URL
+              <input
+                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
+                onChange={(event) =>
+                  setMetadataThumbnailUrl(event.target.value)
+                }
+                placeholder="https://example.com/7.png"
+                value={metadataThumbnailUrl}
+              />
+            </label>
+
+            <button
+              className="rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={
+                pendingAction === "metadata" ||
+                metadataAthleteId.trim().length === 0 ||
+                metadataDisplayName.trim().length === 0 ||
+                metadataSlug.trim().length === 0 ||
+                metadataThumbnailUrl.trim().length === 0
+              }
+              type="submit"
+            >
+              {pendingAction === "metadata"
+                ? "更新中..."
+                : "metadata を登録 / 更新"}
+            </button>
+          </form>
+        </section>
+
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
             <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
             <p className="text-sm leading-6 text-stone-300">
-              対象ポートレートをアップロードして blob ID を確認し、選択した
-              選手向けの新しいユニットを作成します。
+              metadata 登録済みの athlete ID を指定して、新しい unit
+              を作成します。
             </p>
           </div>
 
@@ -247,21 +400,14 @@ export function AdminClient({
             onSubmit={(event) => void handleCreateUnit(event)}
           >
             <label className="grid gap-2 text-sm text-stone-200">
-              選手
-              <select
+              athlete ID
+              <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                inputMode="numeric"
                 onChange={(event) => setSelectedAthleteId(event.target.value)}
+                placeholder="例: 7"
                 value={selectedAthleteId}
-              >
-                {athletes.map((athlete) => (
-                  <option
-                    key={athlete.athletePublicId}
-                    value={athlete.athletePublicId}
-                  >
-                    {athlete.displayName}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
@@ -308,7 +454,7 @@ export function AdminClient({
               disabled={
                 isUploading ||
                 pendingAction === "create" ||
-                selectedAthleteId.length === 0 ||
+                selectedAthleteId.trim().length === 0 ||
                 targetBlobId.trim().length === 0
               }
               type="submit"
@@ -328,8 +474,7 @@ export function AdminClient({
               ユニットを切り替え
             </h2>
             <p className="text-sm leading-6 text-stone-300">
-              選択した選手の現在ユニットを切り替えます。直前に作成した unit ID
-              は自動でここに反映されます。
+              athlete ID と next unit ID を指定して current unit を更新します。
             </p>
           </div>
 
@@ -338,21 +483,14 @@ export function AdminClient({
             onSubmit={(event) => void handleRotateUnit(event)}
           >
             <label className="grid gap-2 text-sm text-stone-200">
-              選手
-              <select
+              athlete ID
+              <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+                inputMode="numeric"
                 onChange={(event) => setRotateAthleteId(event.target.value)}
+                placeholder="例: 7"
                 value={rotateAthleteId}
-              >
-                {athletes.map((athlete) => (
-                  <option
-                    key={athlete.athletePublicId}
-                    value={athlete.athletePublicId}
-                  >
-                    {athlete.displayName}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
@@ -369,7 +507,7 @@ export function AdminClient({
               className="rounded-full border border-white/15 bg-white/90 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
               disabled={
                 pendingAction === "rotate" ||
-                rotateAthleteId.length === 0 ||
+                rotateAthleteId.trim().length === 0 ||
                 rotateUnitId.trim().length === 0
               }
               type="submit"
@@ -386,8 +524,8 @@ export function AdminClient({
         <div className="grid gap-1">
           <h2 className="font-serif text-2xl text-white">現在の状態</h2>
           <p className="text-sm leading-6 text-stone-300">
-            各選手の現在ユニット状態を確認し、filled のまま停止した ユニットで
-            finalize を再試行できます。
+            on-chain metadata と current unit の状態を確認し、filled のまま停止
+            した unit で finalize を再試行できます。
           </p>
         </div>
 
@@ -396,6 +534,7 @@ export function AdminClient({
             <AdminAthleteCard
               athlete={athlete}
               key={athlete.athletePublicId}
+              onEditMetadata={loadMetadataDraft}
               onFinalize={handleFinalize}
               pendingAction={pendingAction}
             />
@@ -444,10 +583,12 @@ function InfoRow({
 
 function AdminAthleteCard({
   athlete,
+  onEditMetadata,
   onFinalize,
   pendingAction,
 }: {
   readonly athlete: AdminAthleteEntry;
+  readonly onEditMetadata: (athleteId: string) => void;
   readonly onFinalize: (unitId: string) => Promise<void>;
   readonly pendingAction: string | null;
 }): React.ReactElement {
@@ -467,6 +608,26 @@ function AdminAthleteCard({
           <p className="font-mono text-xs text-stone-400">{athlete.slug}</p>
         </div>
       </div>
+
+      <dl className="grid gap-2 text-sm text-stone-200">
+        <InfoRow label="athlete ID" value={athlete.athletePublicId} />
+        <InfoRow
+          label="metadata"
+          value={
+            athlete.metadataState === "ready"
+              ? "registered"
+              : "missing / register before create-unit"
+          }
+        />
+      </dl>
+
+      <button
+        className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/20"
+        onClick={() => onEditMetadata(athlete.athletePublicId)}
+        type="button"
+      >
+        metadata フォームに反映
+      </button>
 
       {currentUnit ? (
         <>
@@ -493,8 +654,8 @@ function AdminAthleteCard({
       ) : (
         <p className="text-sm leading-6 text-stone-300">
           {athlete.lookupState === "missing"
-            ? "この選手にはまだ現在ユニットが登録されていません。"
-            : "現在ユニットの状態を一時的に取得できません。"}
+            ? "この athlete にはまだ current unit が登録されていません。"
+            : "current unit の状態を一時的に取得できません。"}
         </p>
       )}
     </article>
@@ -532,6 +693,9 @@ function formatActionDetail(payload: Record<string, unknown>): string {
     typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
     typeof payload.digest === "string"
       ? `ダイジェスト: ${payload.digest}`
+      : null,
+    typeof payload.athleteId === "number"
+      ? `athlete ID: ${payload.athleteId}`
       : null,
     typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.mosaicBlobId === "string"

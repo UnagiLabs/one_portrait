@@ -33,6 +33,10 @@ const rotateUnitMock = vi.fn(async () => ({
   digest: "0xrotate",
   unitId: VALID_UNIT_ID,
 }));
+const upsertMetadataMock = vi.fn(async () => ({
+  athleteId: 12,
+  digest: "0xupsert",
+}));
 
 vi.mock("../src/runtime", () => ({
   createFinalizeRunnerFromEndpoints: vi.fn(() => ({
@@ -44,6 +48,9 @@ vi.mock("../src/sui", () => ({
   createCreateUnitTransactionExecutor: vi.fn(() => createUnitMock),
   createFinalizeTransactionExecutor: vi.fn(() => vi.fn()),
   createRotateCurrentUnitTransactionExecutor: vi.fn(() => rotateUnitMock),
+  createUpsertAthleteMetadataTransactionExecutor: vi.fn(
+    () => upsertMetadataMock,
+  ),
   createSuiClient: vi.fn(() => ({ mocked: true })),
   createUnitSnapshotLoader: vi.fn(() => vi.fn()),
 }));
@@ -70,6 +77,7 @@ afterEach(() => {
   runMock.mockClear();
   createUnitMock.mockClear();
   rotateUnitMock.mockClear();
+  upsertMetadataMock.mockClear();
 });
 
 describe("generator server", () => {
@@ -212,6 +220,76 @@ describe("generator server", () => {
         athleteId: 12,
         registryObjectId: VALID_REGISTRY_ID,
         unitId: VALID_UNIT_ID,
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("returns 400 for /admin/upsert-athlete-metadata when the payload is invalid", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/upsert-athlete-metadata`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          athleteId: 12,
+          slug: "demo-athlete",
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "invalid_args",
+        message: "Payload requires displayName as a non-empty string.",
+      });
+      expect(upsertMetadataMock).not.toHaveBeenCalled();
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("accepts /admin/upsert-athlete-metadata when the payload is valid", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/upsert-athlete-metadata`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          athleteId: 12,
+          displayName: "Demo Athlete Twelve",
+          registryObjectId: VALID_REGISTRY_ID,
+          slug: "demo-athlete-twelve",
+          thumbnailUrl: "https://example.com/12.png",
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        athleteId: 12,
+        digest: "0xupsert",
+        status: "upserted",
+      });
+      expect(upsertMetadataMock).toHaveBeenCalledWith({
+        athleteId: 12,
+        displayName: "Demo Athlete Twelve",
+        registryObjectId: VALID_REGISTRY_ID,
+        slug: "demo-athlete-twelve",
+        thumbnailUrl: "https://example.com/12.png",
       });
     } finally {
       await close(server);

@@ -1,15 +1,9 @@
 import Link from "next/link";
 
+import { loadAdminAthletes } from "../../lib/admin/athletes";
 import { getAdminHealth } from "../../lib/admin/health";
-import { getAthleteCatalog } from "../../lib/catalog";
-import { loadPublicEnv } from "../../lib/env";
-import {
-  type AdminUnitSnapshot,
-  getAdminUnitSnapshot,
-  getCurrentUnitIdForAthlete,
-} from "../../lib/sui";
 
-import { type AdminAthleteEntry, AdminClient } from "./admin-client";
+import { AdminClient } from "./admin-client";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +33,9 @@ export default async function AdminPage(): Promise<React.ReactElement> {
             デモ管理コンソール
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
-            対象画像のアップロード、次のユニット作成、現在ユニットの切り替え、
-            finalize の再試行をこの 1 ページで操作できます。
+            先に athlete metadata を on-chain 登録し、その後にユニット作成、
+            current unit の切り替え、finalize の再試行をこの 1
+            ページで操作します。
           </p>
         </header>
 
@@ -50,61 +45,11 @@ export default async function AdminPage(): Promise<React.ReactElement> {
   );
 }
 
-async function loadInitialAthletes(): Promise<readonly AdminAthleteEntry[]> {
-  const catalog = await getAthleteCatalog();
-
+async function loadInitialAthletes() {
   try {
-    const { registryObjectId } = loadPublicEnv(process.env);
-
-    return await Promise.all(
-      catalog.map(async (athlete) => {
-        try {
-          const unitId = await getCurrentUnitIdForAthlete(
-            athlete.athletePublicId,
-            {
-              registryObjectId,
-            },
-          );
-
-          if (!unitId) {
-            return buildEntry(athlete, "missing", null);
-          }
-
-          return buildEntry(
-            athlete,
-            "ready",
-            await getAdminUnitSnapshot(unitId),
-          );
-        } catch (error) {
-          console.error(
-            `Failed to load admin entry for athlete ${athlete.athletePublicId}`,
-            error,
-          );
-
-          return buildEntry(athlete, "unavailable", null);
-        }
-      }),
-    );
+    return await loadAdminAthletes();
   } catch (error) {
-    console.error("Admin page is missing required env", error);
-
-    return catalog.map((athlete) => buildEntry(athlete, "unavailable", null));
+    console.error("Failed to load admin athletes", error);
+    return [];
   }
-}
-
-function buildEntry(
-  athlete: {
-    readonly athletePublicId: string;
-    readonly displayName: string;
-    readonly slug: string;
-    readonly thumbnailUrl: string;
-  },
-  lookupState: AdminAthleteEntry["lookupState"],
-  currentUnit: AdminUnitSnapshot | null,
-): AdminAthleteEntry {
-  return {
-    ...athlete,
-    currentUnit,
-    lookupState,
-  };
 }

@@ -1,7 +1,14 @@
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { describe, expect, it, vi } from "vitest";
 
-import { createSeedingSnapshotLoader } from "../src";
-import type { GeneratorSuiReadClient } from "../src/sui";
+import {
+  createSeedingSnapshotLoader,
+  createUpsertAthleteMetadataTransactionExecutor,
+} from "../src";
+import type {
+  GeneratorSuiReadClient,
+  GeneratorSuiWriteClient,
+} from "../src/sui";
 
 describe("createSeedingSnapshotLoader", () => {
   it("derives submittedCount, maxSlots, status, and submitter addresses from the unit object", async () => {
@@ -54,6 +61,60 @@ describe("createSeedingSnapshotLoader", () => {
       masterId: null,
       submitterAddresses: ["0xsubmitter-a", "0xsubmitter-b"],
     });
+  });
+});
+
+describe("createUpsertAthleteMetadataTransactionExecutor", () => {
+  it("returns the digest and athlete id after a successful transaction", async () => {
+    const signer = Ed25519Keypair.generate();
+    const signAndExecuteTransaction = vi.fn(async () => ({
+      digest: "0xupsert",
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+    }));
+    const waitForTransaction = vi.fn(async () => ({
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+    }));
+    const upsert = createUpsertAthleteMetadataTransactionExecutor({
+      adminCapId:
+        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      client: {
+        signAndExecuteTransaction,
+        waitForTransaction,
+      } as unknown as GeneratorSuiWriteClient,
+      packageId: "0xpackage",
+      privateKey: signer.getSecretKey(),
+    });
+
+    await expect(
+      upsert({
+        athleteId: 12,
+        displayName: "Demo Athlete Twelve",
+        registryObjectId:
+          "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        slug: "demo-athlete-twelve",
+        thumbnailUrl: "https://example.com/12.png",
+      }),
+    ).resolves.toEqual({
+      athleteId: 12,
+      digest: "0xupsert",
+    });
+    expect(signAndExecuteTransaction).toHaveBeenCalledTimes(1);
+    expect(waitForTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        digest: "0xupsert",
+        options: {
+          showEffects: true,
+        },
+      }),
+    );
   });
 });
 

@@ -3,71 +3,42 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const {
-  getAdminHealthMock,
-  getAdminUnitSnapshotMock,
-  getAthleteCatalogMock,
-  getCurrentUnitIdForAthleteMock,
-  loadPublicEnvMock,
-} = vi.hoisted(() => ({
+const { getAdminHealthMock, loadAdminAthletesMock } = vi.hoisted(() => ({
   getAdminHealthMock: vi.fn(),
-  getAdminUnitSnapshotMock: vi.fn(),
-  getAthleteCatalogMock: vi.fn(),
-  getCurrentUnitIdForAthleteMock: vi.fn(),
-  loadPublicEnvMock: vi.fn(),
+  loadAdminAthletesMock: vi.fn(),
+}));
+
+vi.mock("../../lib/admin/athletes", () => ({
+  loadAdminAthletes: loadAdminAthletesMock,
 }));
 
 vi.mock("../../lib/admin/health", () => ({
   getAdminHealth: getAdminHealthMock,
 }));
 
-vi.mock("../../lib/catalog", () => ({
-  getAthleteCatalog: getAthleteCatalogMock,
-}));
-
-vi.mock("../../lib/env", () => ({
-  loadPublicEnv: loadPublicEnvMock,
-}));
-
-vi.mock("../../lib/sui", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../lib/sui")>("../../lib/sui");
-
-  return {
-    ...actual,
-    getAdminUnitSnapshot: getAdminUnitSnapshotMock,
-    getCurrentUnitIdForAthlete: getCurrentUnitIdForAthleteMock,
-  };
-});
-
 import AdminPage from "./page";
 
 describe("AdminPage", () => {
   it("renders the admin console with the initial server data", async () => {
-    loadPublicEnvMock.mockReturnValue({
-      packageId: "0xpkg",
-      registryObjectId:
-        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-      suiNetwork: "testnet",
-    });
-    getAthleteCatalogMock.mockResolvedValue([
+    loadAdminAthletesMock.mockResolvedValue([
       {
         athletePublicId: "1",
+        currentUnit: {
+          athletePublicId: "1",
+          masterId: null,
+          maxSlots: 980,
+          status: "filled",
+          submittedCount: 980,
+          targetWalrusBlobId: "target-blob-1",
+          unitId: "0xunit-1",
+        },
         displayName: "Demo Athlete One",
+        lookupState: "ready",
+        metadataState: "ready",
         slug: "demo-athlete-one",
         thumbnailUrl: "https://example.com/1.png",
       },
     ]);
-    getCurrentUnitIdForAthleteMock.mockResolvedValue("0xunit-1");
-    getAdminUnitSnapshotMock.mockResolvedValue({
-      athletePublicId: "1",
-      masterId: null,
-      maxSlots: 980,
-      status: "filled",
-      submittedCount: 980,
-      targetWalrusBlobId: "target-blob-1",
-      unitId: "0xunit-1",
-    });
     getAdminHealthMock.mockResolvedValue({
       dispatchAuthorization: { httpStatus: 200, status: "ok" },
       generatorReadiness: { httpStatus: 200, status: "ok" },

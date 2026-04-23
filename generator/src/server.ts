@@ -14,9 +14,17 @@ import {
   createRotateCurrentUnitTransactionExecutor,
   createSuiClient,
   createUnitSnapshotLoader,
+  createUpsertAthleteMetadataTransactionExecutor,
 } from "./sui";
 
 export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
+
+class InvalidPayloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidPayloadError";
+  }
+}
 
 export function createGeneratorServer(): http.Server {
   return http.createServer((request, response) => {
@@ -133,6 +141,14 @@ export async function handleRequest(
       });
       return;
     } catch (error) {
+      if (error instanceof InvalidPayloadError) {
+        writeJson(response, 400, {
+          error: "invalid_args",
+          message: error.message,
+        });
+        return;
+      }
+
       writeJson(response, 500, {
         error: "create_unit_failed",
         message: error instanceof Error ? error.message : String(error),
@@ -173,8 +189,70 @@ export async function handleRequest(
       });
       return;
     } catch (error) {
+      if (error instanceof InvalidPayloadError) {
+        writeJson(response, 400, {
+          error: "invalid_args",
+          message: error.message,
+        });
+        return;
+      }
+
       writeJson(response, 500, {
         error: "rotate_unit_failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+  }
+
+  if (
+    request.method === "POST" &&
+    request.url === "/admin/upsert-athlete-metadata"
+  ) {
+    const authorizationError = validateDispatchAuthorization(request);
+    if (authorizationError !== null) {
+      writeJson(
+        response,
+        authorizationError.status,
+        authorizationError.payload,
+      );
+      return;
+    }
+
+    try {
+      const input = parseUpsertAthleteMetadataInput(
+        await readJsonBody(request),
+      );
+      const env = loadGeneratorRuntimeEnv(process.env);
+      const client = createSuiClient({
+        network: env.suiNetwork,
+      });
+      const executeUpsertMetadata =
+        createUpsertAthleteMetadataTransactionExecutor({
+          adminCapId: env.adminCapId,
+          client,
+          packageId: env.packageId,
+          privateKey: env.adminPrivateKey,
+        });
+      const result = await executeUpsertMetadata(input);
+
+      writeJson(response, 200, {
+        athleteId: result.athleteId,
+        digest: result.digest,
+        status: "upserted",
+      });
+      return;
+    } catch (error) {
+      if (error instanceof InvalidPayloadError) {
+        writeJson(response, 400, {
+          error: "invalid_args",
+          message: error.message,
+        });
+        return;
+      }
+
+      writeJson(response, 500, {
+        error: "upsert_athlete_metadata_failed",
         message: error instanceof Error ? error.message : String(error),
       });
       return;
@@ -267,9 +345,30 @@ function parseRotateUnitInput(input: unknown): {
   };
 }
 
+function parseUpsertAthleteMetadataInput(input: unknown): {
+  readonly athleteId: number;
+  readonly displayName: string;
+  readonly registryObjectId: string;
+  readonly slug: string;
+  readonly thumbnailUrl: string;
+} {
+  const record = parseJsonRecord(input);
+
+  return {
+    athleteId: parseAthleteId(record.athleteId),
+    displayName: parseNonEmptyString(record.displayName, "displayName"),
+    registryObjectId: parseObjectId(
+      record.registryObjectId,
+      "registryObjectId",
+    ),
+    slug: parseNonEmptyString(record.slug, "slug"),
+    thumbnailUrl: parseNonEmptyString(record.thumbnailUrl, "thumbnailUrl"),
+  };
+}
+
 function parseJsonRecord(input: unknown): Record<string, unknown> {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    throw new Error("Payload must be an object.");
+    throw new InvalidPayloadError("Payload must be an object.");
   }
 
   return input as Record<string, unknown>;
@@ -284,7 +383,9 @@ function parseAthleteId(value: unknown): number {
         : NaN;
 
   if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
-    throw new Error("Payload requires athleteId as a u16 integer.");
+    throw new InvalidPayloadError(
+      "Payload requires athleteId as a u16 integer.",
+    );
   }
 
   return athleteId;
@@ -299,7 +400,9 @@ function parsePositiveInteger(value: unknown, fieldName: string): number {
         : NaN;
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Payload requires ${fieldName} as a positive integer.`);
+    throw new InvalidPayloadError(
+      `Payload requires ${fieldName} as a positive integer.`,
+    );
   }
 
   return parsed;
@@ -309,7 +412,9 @@ function parseNonEmptyString(value: unknown, fieldName: string): string {
   const parsed = typeof value === "string" ? value.trim() : "";
 
   if (parsed.length === 0) {
-    throw new Error(`Payload requires ${fieldName} as a non-empty string.`);
+    throw new InvalidPayloadError(
+      `Payload requires ${fieldName} as a non-empty string.`,
+    );
   }
 
   return parsed;
@@ -319,7 +424,7 @@ function parseObjectId(value: unknown, fieldName: string): string {
   const parsed = typeof value === "string" ? value.trim() : "";
 
   if (!isValidSuiObjectId(parsed)) {
-    throw new Error(`Payload requires a valid ${fieldName}.`);
+    throw new InvalidPayloadError(`Payload requires a valid ${fieldName}.`);
   }
 
   return parsed;
@@ -334,6 +439,11 @@ function writeJson(
         readonly digest: string;
         readonly status: "created" | "rotated";
         readonly unitId: string;
+      }
+    | {
+        readonly athleteId: number;
+        readonly digest: string;
+        readonly status: "upserted";
       }
     | {
         readonly status: "ok";

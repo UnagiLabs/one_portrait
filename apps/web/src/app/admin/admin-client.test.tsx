@@ -45,6 +45,7 @@ describe("AdminClient", () => {
             },
             displayName: "Demo Athlete One",
             lookupState: "ready",
+            metadataState: "ready",
             slug: "demo-athlete-one",
             thumbnailUrl: "https://example.com/1.png",
           },
@@ -60,6 +61,7 @@ describe("AdminClient", () => {
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
     expect(screen.getByText(/target-blob-1/)).toBeTruthy();
+    expect(screen.getByText(/registered/)).toBeTruthy();
     expect(screen.getAllByText("ok")).toHaveLength(2);
   });
 
@@ -83,10 +85,11 @@ describe("AdminClient", () => {
           {
             athletePublicId: "1",
             currentUnit: null,
-            displayName: "Demo Athlete One",
+            displayName: "Athlete #1",
             lookupState: "missing",
-            slug: "demo-athlete-one",
-            thumbnailUrl: "https://example.com/1.png",
+            metadataState: "missing",
+            slug: "athlete-1",
+            thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
           },
         ]}
         initialHealth={{
@@ -111,6 +114,102 @@ describe("AdminClient", () => {
     expect(
       screen.getByAltText("アップロードした対象画像のプレビュー"),
     ).toBeTruthy();
+  });
+
+  it("submits athlete metadata and records the latest action", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/admin/upsert-athlete-metadata")) {
+        return new Response(
+          JSON.stringify({
+            athleteId: 7,
+            digest: "0xmetadata",
+            status: "upserted",
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      if (url.endsWith("/api/admin/status")) {
+        return new Response(
+          JSON.stringify({
+            athletes: [
+              {
+                athletePublicId: "7",
+                currentUnit: null,
+                displayName: "Demo Athlete Seven",
+                lookupState: "missing",
+                metadataState: "ready",
+                slug: "demo-athlete-seven",
+                thumbnailUrl: "https://example.com/7.png",
+              },
+            ],
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          dispatchAuthorization: { httpStatus: 200, status: "ok" },
+          generatorReadiness: { httpStatus: 200, status: "ok" },
+        }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      );
+    });
+
+    render(
+      <AdminClient
+        initialAthletes={[]}
+        initialHealth={{
+          dispatchAuthorization: { httpStatus: 200, status: "ok" },
+          generatorReadiness: { httpStatus: 200, status: "ok" },
+        }}
+      />,
+    );
+
+    const athleteIdInput = screen.getAllByLabelText(/^athlete ID$/i)[0];
+    if (!athleteIdInput) {
+      throw new Error("metadata athlete ID input not found");
+    }
+
+    fireEvent.change(athleteIdInput, {
+      target: { value: "7" },
+    });
+    fireEvent.change(screen.getByLabelText(/displayName/), {
+      target: { value: "Demo Athlete Seven" },
+    });
+    fireEvent.change(screen.getByLabelText(/^slug$/i), {
+      target: { value: "demo-athlete-seven" },
+    });
+    fireEvent.change(screen.getByLabelText(/thumbnail URL/i), {
+      target: { value: "https://example.com/7.png" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /metadata を登録 \/ 更新/ }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("athlete metadata を更新しました")).toBeTruthy();
+    });
+    expect(screen.getByText(/ダイジェスト: 0xmetadata/)).toBeTruthy();
+    expect(screen.getByText(/athlete ID: 7/)).toBeTruthy();
   });
 
   it("submits create-unit and records the latest action", async () => {
@@ -147,6 +246,7 @@ describe("AdminClient", () => {
                 currentUnit: null,
                 displayName: "Demo Athlete One",
                 lookupState: "missing",
+                metadataState: "ready",
                 slug: "demo-athlete-one",
                 thumbnailUrl: "https://example.com/1.png",
               },
@@ -179,6 +279,7 @@ describe("AdminClient", () => {
             currentUnit: null,
             displayName: "Demo Athlete One",
             lookupState: "missing",
+            metadataState: "ready",
             slug: "demo-athlete-one",
             thumbnailUrl: "https://example.com/1.png",
           },

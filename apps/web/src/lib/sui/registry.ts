@@ -3,17 +3,20 @@
  *
  * Error contract (kept consistent with the rest of `lib/sui`):
  *   - Object missing entirely  → throw {@link RegistryNotFoundError}.
- *   - Dynamic field absent     → return `null` (semantically: "no current
- *     unit yet for this athlete"). This is a normal pre-launch state.
- *   - Transport failure        → propagate the underlying SDK error.
- *
- * The boundary lives here so screens can write `if (unitId === null) ...`
- * for the empty case but still rely on `try/catch` for unexpected outages.
+ *   - Dynamic field absent     → return `null` for the specific lookup.
+ *   - Per-entry read failure   → log and fail closed for that entry.
+ *   - Transport failure on the registry root → propagate the SDK error.
  */
 
 import { getPublicEnvSource, loadPublicEnv } from "../env";
 import { getSuiClient, type SuiReadClient } from "./client";
-import type { RegistryView } from "./types";
+import type {
+  ActiveHomeUnitView,
+  AthleteMetadataView,
+  RegistryAthleteView,
+  RegistryView,
+} from "./types";
+import { getUnitProgress } from "./unit";
 
 export class RegistryNotFoundError extends Error {
   constructor(public readonly objectId: string) {
@@ -39,10 +42,10 @@ export async function getRegistryObject(
     throw new RegistryNotFoundError(id);
   }
 
-  const tableId = extractCurrentUnitsTableId(data.content);
   return {
+    athleteMetadataTableId: extractTableId(data.content, "athlete_metadata"),
     objectId: data.objectId,
-    currentUnitsTableId: tableId,
+    currentUnitsTableId: extractTableId(data.content, "current_units"),
   };
 }
 
@@ -50,10 +53,6 @@ export async function getCurrentUnitIdForAthlete(
   athletePublicId: string,
   options: {
     client?: SuiReadClient;
-    /**
-     * Pass the table id when you've already fetched the registry — saves a
-     * round-trip. When omitted, this helper does the registry lookup itself.
-     */
     currentUnitsTableId?: string;
     registryObjectId?: string;
   } = {},
@@ -78,6 +77,103 @@ export async function getCurrentUnitIdForAthlete(
   return extractDynamicFieldIdValue(data.content);
 }
 
+export async function listRegistryAthletes(
+  options: { client?: SuiReadClient; registryObjectId?: string } = {},
+): Promise<readonly RegistryAthleteView[]> {
+  const client = options.client ?? getSuiClient();
+  const registry = await getRegistryObject(options.registryObjectId, {
+    client,
+  });
+  const [currentUnitKeys, metadataKeys] = await Promise.all([
+    listAthleteKeys(registry.currentUnitsTableId, client),
+    listAthleteKeys(registry.athleteMetadataTableId, client),
+  ]);
+  const athleteIds = [...new Set([...currentUnitKeys, ...metadataKeys])].sort(
+    compareAthleteIds,
+  );
+
+  const [unitEntries, metadataEntries] = await Promise.all([
+    Promise.all(
+      athleteIds.map(async (athletePublicId) => ({
+        athletePublicId,
+        currentUnitId: await loadCurrentUnitId(
+          registry.currentUnitsTableId,
+          athletePublicId,
+          client,
+        ),
+      })),
+    ),
+    Promise.all(
+      athleteIds.map(async (athletePublicId) => ({
+        athletePublicId,
+        metadata: await loadAthleteMetadata(
+          registry.athleteMetadataTableId,
+          athletePublicId,
+          client,
+        ),
+      })),
+    ),
+  ]);
+
+  const unitByAthlete = new Map(
+    unitEntries.map((entry) => [entry.athletePublicId, entry.currentUnitId]),
+  );
+  const metadataByAthlete = new Map(
+    metadataEntries.map((entry) => [entry.athletePublicId, entry.metadata]),
+  );
+
+  return athleteIds.map((athletePublicId) => ({
+    athletePublicId,
+    currentUnitId: unitByAthlete.get(athletePublicId) ?? null,
+    metadata: metadataByAthlete.get(athletePublicId) ?? null,
+  }));
+}
+
+export async function getActiveHomeUnits(
+  options: { client?: SuiReadClient; registryObjectId?: string } = {},
+): Promise<readonly ActiveHomeUnitView[]> {
+  const client = options.client ?? getSuiClient();
+  const athletes = await listRegistryAthletes(options);
+  const entries = await Promise.all(
+    athletes.map(async (athlete) => {
+      if (!athlete.currentUnitId) {
+        return null;
+      }
+
+      if (!athlete.metadata) {
+        console.error(
+          `Skipping athlete ${athlete.athletePublicId} on home because metadata is missing.`,
+        );
+        return null;
+      }
+
+      try {
+        const progress = await getUnitProgress(athlete.currentUnitId, {
+          client,
+        });
+        if (progress.status !== "pending" || progress.masterId !== null) {
+          return null;
+        }
+
+        return {
+          ...athlete.metadata,
+          maxSlots: progress.maxSlots,
+          submittedCount: progress.submittedCount,
+          unitId: progress.unitId,
+        };
+      } catch (error) {
+        console.error(
+          `Failed to load home unit ${athlete.currentUnitId} for athlete ${athlete.athletePublicId}`,
+          error,
+        );
+        return null;
+      }
+    }),
+  );
+
+  return entries.filter((entry): entry is ActiveHomeUnitView => entry !== null);
+}
+
 function parseAthleteU16(athletePublicId: string): number {
   if (!/^[0-9]+$/.test(athletePublicId)) {
     throw new Error(
@@ -93,30 +189,135 @@ function parseAthleteU16(athletePublicId: string): number {
   return value;
 }
 
-function extractCurrentUnitsTableId(content: unknown): string {
-  // SuiParsedData for a Move object is `{ dataType: 'moveObject', fields }`.
-  // `Registry.current_units: Table<u16, ID>` arrives as
-  // `{ type: '0x2::table::Table<...>', fields: { id: { id: '0x...' }, size } }`.
+async function listAthleteKeys(
+  tableId: string,
+  client: SuiReadClient,
+): Promise<readonly string[]> {
+  const keys: string[] = [];
+  let cursor: string | null | undefined;
+
+  do {
+    const page = await client.getDynamicFields({
+      cursor,
+      parentId: tableId,
+    });
+
+    for (const field of page.data) {
+      keys.push(parseDynamicFieldAthleteId(field.name.value));
+    }
+
+    cursor = page.nextCursor;
+  } while (cursor);
+
+  return keys;
+}
+
+async function loadCurrentUnitId(
+  tableId: string,
+  athletePublicId: string,
+  client: SuiReadClient,
+): Promise<string | null> {
+  try {
+    return await getCurrentUnitIdForAthlete(athletePublicId, {
+      client,
+      currentUnitsTableId: tableId,
+    });
+  } catch (error) {
+    console.error(
+      `Failed to resolve current unit for athlete ${athletePublicId}`,
+      error,
+    );
+    return null;
+  }
+}
+
+async function loadAthleteMetadata(
+  tableId: string,
+  athletePublicId: string,
+  client: SuiReadClient,
+): Promise<AthleteMetadataView | null> {
+  try {
+    const response = await client.getDynamicFieldObject({
+      parentId: tableId,
+      name: { type: "u16", value: parseAthleteU16(athletePublicId) },
+    });
+    const data = response.data;
+    if (!data?.content) {
+      return null;
+    }
+
+    const value = extractDynamicFieldValue(data.content);
+    const fields = asMoveStructFields(value);
+    return {
+      athletePublicId,
+      displayName: readVectorU8AsString(fields.display_name, "display_name"),
+      slug: readVectorU8AsString(fields.slug, "slug"),
+      thumbnailUrl: readVectorU8AsString(fields.thumbnail_url, "thumbnail_url"),
+    };
+  } catch (error) {
+    console.error(
+      `Failed to resolve athlete metadata for athlete ${athletePublicId}`,
+      error,
+    );
+    return null;
+  }
+}
+
+function compareAthleteIds(left: string, right: string): number {
+  return Number(left) - Number(right);
+}
+
+function parseDynamicFieldAthleteId(value: unknown): string {
+  if (
+    (typeof value === "number" && Number.isInteger(value)) ||
+    (typeof value === "string" && /^[0-9]+$/.test(value))
+  ) {
+    return String(value);
+  }
+  throw new Error(`Dynamic field athlete id is invalid: ${String(value)}`);
+}
+
+function extractTableId(content: unknown, fieldName: string): string {
   const moveObject = asMoveObject(content);
-  const tableField = moveObject.fields.current_units;
+  const tableField = moveObject.fields[fieldName];
   const tableInner = asMoveStructFields(tableField);
   const idWrapper = asMoveStructFields(tableInner.id);
   const id = idWrapper.id;
   if (typeof id !== "string") {
-    throw new Error("Registry.current_units.id is not a string");
+    throw new Error(`Registry.${fieldName}.id is not a string`);
   }
   return id;
 }
 
 function extractDynamicFieldIdValue(content: unknown): string {
-  // Dynamic field arrives as a Field<Name, Value> Move object whose
-  // `value` field is the ID string we want.
   const moveObject = asMoveObject(content);
   const value = moveObject.fields.value;
   if (typeof value !== "string") {
     throw new Error("Dynamic field value is not an ID string");
   }
   return value;
+}
+
+function extractDynamicFieldValue(content: unknown): unknown {
+  const moveObject = asMoveObject(content);
+  return moveObject.fields.value;
+}
+
+function readVectorU8AsString(value: unknown, label: string): string {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} is not a byte array`);
+  }
+
+  const bytes = new Uint8Array(value.length);
+  for (let index = 0; index < value.length; index += 1) {
+    const entry = value[index];
+    if (typeof entry !== "number" || !Number.isInteger(entry)) {
+      throw new Error(`${label}[${index}] is not an integer byte`);
+    }
+    bytes[index] = entry & 0xff;
+  }
+
+  return new TextDecoder().decode(bytes);
 }
 
 type MoveStructLike = {

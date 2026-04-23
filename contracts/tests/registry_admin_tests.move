@@ -21,6 +21,108 @@ fun init_creates_admin_cap_and_shared_registry() {
     let registry = scenario.take_shared<Registry>();
 
     assert_eq!(registry::current_unit_count_for_testing(&registry), 0);
+    assert_eq!(registry::athlete_metadata_count_for_testing(&registry), 0);
+    assert_eq!(registry::slug_count_for_testing(&registry), 0);
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+    scenario.end();
+}
+
+#[test]
+fun upsert_athlete_metadata_registers_updates_and_reads_metadata() {
+    let publisher = @0xA11CE;
+    let athlete_id = 7;
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+
+    admin_api::upsert_athlete_metadata(
+        &admin_cap,
+        &mut registry,
+        athlete_id,
+        b"Demo Athlete Seven",
+        b"demo-athlete-seven",
+        b"https://example.com/7.png",
+    );
+
+    let initial = accessors::athlete_metadata(&registry, athlete_id).destroy_some();
+    assert_eq!(
+        registry::athlete_metadata_display_name_for_testing(&initial),
+        b"Demo Athlete Seven",
+    );
+    assert_eq!(
+        registry::athlete_metadata_slug_for_testing(&initial),
+        b"demo-athlete-seven",
+    );
+    assert_eq!(
+        registry::athlete_metadata_thumbnail_url_for_testing(&initial),
+        b"https://example.com/7.png",
+    );
+
+    admin_api::upsert_athlete_metadata(
+        &admin_cap,
+        &mut registry,
+        athlete_id,
+        b"Demo Athlete Seven Updated",
+        b"demo-athlete-seven-updated",
+        b"https://example.com/7-updated.png",
+    );
+
+    let updated = accessors::athlete_metadata(&registry, athlete_id).destroy_some();
+    assert_eq!(
+        registry::athlete_metadata_display_name_for_testing(&updated),
+        b"Demo Athlete Seven Updated",
+    );
+    assert_eq!(
+        registry::athlete_metadata_slug_for_testing(&updated),
+        b"demo-athlete-seven-updated",
+    );
+    assert_eq!(
+        registry::athlete_metadata_thumbnail_url_for_testing(&updated),
+        b"https://example.com/7-updated.png",
+    );
+    assert_eq!(registry::athlete_metadata_count_for_testing(&registry), 1);
+    assert_eq!(registry::slug_count_for_testing(&registry), 1);
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = registry::EDUPLICATE_SLUG)]
+fun upsert_athlete_metadata_rejects_duplicate_slug() {
+    let publisher = @0xA11CE;
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+
+    admin_api::upsert_athlete_metadata(
+        &admin_cap,
+        &mut registry,
+        7,
+        b"Demo Athlete Seven",
+        b"duplicate-slug",
+        b"https://example.com/7.png",
+    );
+    admin_api::upsert_athlete_metadata(
+        &admin_cap,
+        &mut registry,
+        8,
+        b"Demo Athlete Eight",
+        b"duplicate-slug",
+        b"https://example.com/8.png",
+    );
 
     scenario.return_to_sender(admin_cap);
     test_scenario::return_shared(registry);
