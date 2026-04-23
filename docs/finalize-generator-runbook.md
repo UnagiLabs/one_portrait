@@ -45,9 +45,32 @@ Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-s
 | `OP_LOCAL_TUNNEL_NAME` | 任意。`cloudflared tunnel run` に使う named tunnel 名。未設定なら Quick Tunnel |
 | `OP_LOCAL_TUNNEL_CONFIG_PATH` | 任意。`cloudflared` の config path。省略時は `~/.cloudflared/config.yml` |
 | `OP_LOCAL_GENERATOR_PORT` | 任意。local generator の port。省略時は `8080` |
+| `OP_DEMO_FINALIZE_MANIFEST` | demo unit (`display_max_slots > max_slots`) を finalize するときだけ必須。mock tile の manifest JSON のパス |
 
 `ADMIN_SUI_PRIVATE_KEY` は generator にだけ置きます。
 Worker には置きません。
+
+## demo unit finalize の前提
+
+admin で `demo unit として作成` を選ぶと、`max_slots < display_max_slots` の unit が作られます。  
+この unit を finalize するときだけ、generator は `OP_DEMO_FINALIZE_MANIFEST` の manifest から mock 画像を読み、`display_max_slots - max_slots` 枚のタイルを合成に足します。  
+on-chain `placements` に記録されるのは実投稿分 (`max_slots` 枚) だけで、mock tile は on-chain には乗りません。
+
+manifest は `generator/src/seeding-input.ts` と同じ形式で、最小は次です。
+
+```json
+{
+  "entries": [
+    { "imageKey": "mock-0001", "filePath": "./mock-0001.png" },
+    { "imageKey": "mock-0002", "filePath": "./mock-0002.png" }
+  ]
+}
+```
+
+`filePath` は manifest からの相対でも絶対でも読めます。  
+必要枚数 (`display_max_slots - max_slots`) に満たないと finalize は `manifest only has N image(s)` で明示的に失敗します。  
+`OP_DEMO_FINALIZE_MANIFEST` が未設定で demo unit を finalize しようとした場合も、`OP_DEMO_FINALIZE_MANIFEST` を含む error で明示的に失敗します。  
+full-size unit (`max_slots == display_max_slots`) の finalize では、この env は使われません。
 
 ## 1 回だけやる準備
 
@@ -142,6 +165,7 @@ finalize 本体は実行しません。
   - `SUI_NETWORK` と `PACKAGE_ID` が本番対象に合っている
   - `WALRUS_PUBLISHER` と `WALRUS_AGGREGATOR` が正しい
   - `OP_LOCAL_TUNNEL_NAME` が作成済み tunnel 名と一致している
+  - demo unit を使う場合は `OP_DEMO_FINALIZE_MANIFEST` が設定済みで、manifest 内 entry 数が `display_max_slots - max_slots` 以上
 
 ## よくある失敗
 
@@ -154,6 +178,7 @@ finalize 本体は実行しません。
 | `/dispatch` が `401` を返す | Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch-auth-probe` が `401` を返す | web / Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch` が `500` を返す | generator 側の `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`PACKAGE_ID`、`SUI_NETWORK` |
+| demo unit の finalize が `OP_DEMO_FINALIZE_MANIFEST` 関連 error で落ちる | `OP_DEMO_FINALIZE_MANIFEST` の値、manifest JSON の entry 数、`filePath` が読めるか |
 | Worker から finalize が進まない | Cloudflare KV の current URL、`OP_GENERATOR_RUNTIME_URL_OVERRIDE`、legacy URL 設定、generator ログ |
 
 ## デモ当日の最低チェック

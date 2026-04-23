@@ -196,4 +196,4 @@ sui move test --list --test
 - 🛠 [`docs/tech.md`](docs/tech.md) — 技術仕様（アーキテクチャ / シーケンス図 / Move / Frontend / Backend / 整合性 / セキュリティ）
 - ✅ [`docs/demo-smoke.md`](docs/demo-smoke.md) — デモ前に実送信主線を 1 回確認する runbook
 - 🚦 [`docs/finalize-generator-runbook.md`](docs/finalize-generator-runbook.md) — generator 起動、Cloudflare Tunnel、復旧手順
-- ✅ [`docs/demo-seeding.md`](docs/demo-seeding.md) — デモ前に 979 件を事前投入する seeding runbook
+- ✅ [`docs/demo-seeding.md`](docs/demo-seeding.md) — デモ前に 1,999 件を事前投入する seeding runbook

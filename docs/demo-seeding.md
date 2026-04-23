@@ -2,9 +2,14 @@
 
 ## 目的
 
-この runbook は、デモ前に `submit_photo` を 979 件まで進めるための手順です。  
+この runbook は、デモ前に `submit_photo` を 1,999 件まで進めるための手順です。  
 対象は `画像前処理 -> Walrus PUT -> direct submit_photo -> progress 確認` です。  
 当日の最後の 1 件は、通常フロントから real submit します。
+
+通常デモは admin で **demo unit** (`max_slots = 実際に集める残り枚数`、`display_max_slots = 2,000`) を作る方が簡便です。  
+demo unit なら実送信は `max_slots` 枚 (例: 5 枚) で済み、残りタイルは generator の `OP_DEMO_FINALIZE_MANIFEST` 経由で mock 画像から埋まります。  
+この runbook は **full-size unit** (`max_slots == display_max_slots == 2,000`) を real データだけで通したい場合の fallback です。  
+demo unit の作成と finalize 手順は `docs/demo-smoke.md` と `docs/finalize-generator-runbook.md` にまとめています。
 
 前提として、対象 athlete の `displayName` / `slug` / `thumbnailUrl` は
 Admin UI から on-chain `Registry` に登録済みである必要があります。  
@@ -157,7 +162,7 @@ corepack pnpm --filter generator seed:demo-submissions -- \
 件数を明示したい場合:
 
 ```bash
-... --target-count 979
+... --target-count 1999
 ```
 
 ## 4. resume
@@ -213,7 +218,7 @@ EOF
 ```
 
 `UNIT_ID` を shell で渡します。  
-ここで `submissions` が `979`、`status` が `0` なら、最後の 1 件を残せています。
+ここで `submissions` が `1999`、`status` が `0` なら、最後の 1 件を残せています。
 
 ## ledger で残るもの
 
@@ -245,5 +250,5 @@ EOF
 1. `simulate` を通す
 2. 別 unit で `live --limit 10` を通す
 3. 本番相当 unit で full run を通す
-4. `submissions.length == 979` と `status == pending` を確認する
+4. `submissions.length == 1999` と `status == pending` を確認する
 5. 最後の 1 件だけ通常フロントから real submit する
