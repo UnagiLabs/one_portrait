@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertNormalDevEnvironment } from "./dev-mode.mjs";
+import { loadWebScriptEnv } from "./run-local-generator.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,14 +19,16 @@ export async function startSmokeDev({
 }) {
   cleanupStaleNextDevLock(path.join(cwd, ".next", "dev", "lock"));
   assertNormalDevEnvironment({ cwd, env });
+  const mergedEnv = loadWebScriptEnv({ env });
 
   const child = spawnImpl(nextDevBin, ["dev"], {
     cwd,
     env: {
       ...env,
-      OP_LOCAL_GENERATOR_RUNTIME: env.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
+      ...mergedEnv,
+      OP_LOCAL_GENERATOR_RUNTIME: mergedEnv.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
       OP_GENERATOR_RUNTIME_STATE_PATH:
-        env.OP_GENERATOR_RUNTIME_STATE_PATH ??
+        mergedEnv.OP_GENERATOR_RUNTIME_STATE_PATH ??
         path.join(cwd, ".cache", "generator-runtime.json"),
     },
     stdio: "inherit",

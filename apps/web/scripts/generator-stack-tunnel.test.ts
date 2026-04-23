@@ -605,6 +605,81 @@ describe("runGeneratorStackTunnel", () => {
       fs.rmSync(appRootPath, { force: true, recursive: true });
     }
   });
+
+  it("respects a custom runtime state path from merged env", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-quick-tunnel-custom-"),
+    );
+    const runtimeStatePath = path.join(appRootPath, "tmp", "runtime.json");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      tunnelMode: "quick",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    try {
+      const runPromise = runGeneratorStackTunnel({
+        appRootPath,
+        env: {
+          OP_GENERATOR_RUNTIME_STATE_PATH: runtimeStatePath,
+        },
+        logger,
+        preflight,
+        processImpl,
+        spawnImpl,
+        startLocalGenerator,
+        waitForHealth,
+      });
+
+      await settle();
+      localHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      });
+      await settle();
+
+      tunnelChild.stdout.emit(
+        "data",
+        "Quick Tunnel ready: https://custom-runtime.trycloudflare.com\n",
+      );
+      await settle();
+
+      expect(fs.existsSync(runtimeStatePath)).toBe(true);
+
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+      tunnelChild.emit("exit", 1, null);
+      await runPromise;
+
+      expect(fs.existsSync(runtimeStatePath)).toBe(false);
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
+  });
 });
 
 function createChildProcess(name: string) {

@@ -30,6 +30,21 @@ describe("local runtime entrypoints", () => {
     ).toBeUndefined();
   });
 
+  it("preserves a custom runtime state path from merged env", () => {
+    const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
+
+    startDev({
+      env: {
+        OP_GENERATOR_RUNTIME_STATE_PATH: "/tmp/custom-runtime.json",
+      },
+      spawnImpl,
+    });
+
+    expect(spawnImpl.mock.calls[0][2].env.OP_GENERATOR_RUNTIME_STATE_PATH).toBe(
+      "/tmp/custom-runtime.json",
+    );
+  });
+
   it("startSmokeDev enables the local generator runtime flag without injecting a dispatch URL", async () => {
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 

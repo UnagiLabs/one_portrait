@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { loadWebScriptEnv } from "./run-local-generator.mjs";
+
 const demoRegistryObjectId =
   "0x00000000000000000000000000000000000000000000000000000000000000d1";
 
@@ -18,16 +20,19 @@ export function startDemoDev({
   nextDevBin = path.join(cwd, "node_modules", ".bin", "next"),
   spawnImpl = spawn,
 }) {
+  const mergedEnv = loadWebScriptEnv({ env });
+
   return spawnImpl(nextDevBin, ["dev"], {
     cwd,
     env: {
       ...env,
+      ...mergedEnv,
       NEXT_PUBLIC_DEMO_MODE: "1",
       NEXT_PUBLIC_REGISTRY_OBJECT_ID: demoRegistryObjectId,
       NEXT_PUBLIC_SUI_NETWORK: "testnet",
-      OP_LOCAL_GENERATOR_RUNTIME: env.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
+      OP_LOCAL_GENERATOR_RUNTIME: mergedEnv.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
       OP_GENERATOR_RUNTIME_STATE_PATH:
-        env.OP_GENERATOR_RUNTIME_STATE_PATH ??
+        mergedEnv.OP_GENERATOR_RUNTIME_STATE_PATH ??
         path.join(cwd, ".cache", "generator-runtime.json"),
     },
     stdio: "inherit",

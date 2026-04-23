@@ -39,7 +39,7 @@ export async function runGeneratorStackTunnel({
   const cloudflaredConfigPath = resolveCloudflaredConfigPath(mergedEnv);
 
   try {
-    removeGeneratorRuntimeState({ appRootPath });
+    removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
 
     const preflightResult = await preflight({ env: mergedEnv, logger });
     if (!preflightResult.ok) {
@@ -152,6 +152,7 @@ export async function runGeneratorStackTunnel({
     const publicBaseUrl = publicBaseUrlResult.url;
     writeGeneratorRuntimeState({
       appRootPath,
+      env: mergedEnv,
       mode: preflightResult.tunnelMode,
       pid:
         typeof tunnelChild.pid === "number" && tunnelChild.pid > 0
@@ -226,7 +227,7 @@ export async function runGeneratorStackTunnel({
     });
   } finally {
     signalState.cleanup();
-    removeGeneratorRuntimeState({ appRootPath });
+    removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
   }
 }
 
