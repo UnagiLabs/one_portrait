@@ -183,9 +183,7 @@ describe("HomePage", () => {
 
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
     expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
-    expect(
-      screen.getByText(/待機中|No active unit/i),
-    ).toBeTruthy();
+    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
     expect(
       screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
     ).toBeTruthy();

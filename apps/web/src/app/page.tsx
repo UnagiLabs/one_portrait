@@ -112,7 +112,9 @@ function AthleteCard({
         src={athlete.thumbnailUrl}
       />
       <div className="grid gap-1 text-center">
-        <h2 className="font-serif text-2xl text-white">{athlete.displayName}</h2>
+        <h2 className="font-serif text-2xl text-white">
+          {athlete.displayName}
+        </h2>
         <p className="font-mono text-xs text-slate-400">{athlete.slug}</p>
       </div>
       <ProgressLabel progress={athlete.progress} />
