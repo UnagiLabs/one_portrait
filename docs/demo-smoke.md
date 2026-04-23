@@ -23,6 +23,7 @@ stub E2E と UI demo では代用しません。
 この issue では、自動 lane と手動 lane を分けます。  
 `#22` の実送信確認は **manual-only** です。  
 `test:e2e:readiness` が通っても、`dev:smoke` は代替しません。
+`generator:smoke` は already-running stack に対する補助の `/dispatch` 確認で、下の preview Worker の `/api/finalize` proof には使いません。
 
 | レーン | コマンド | 何を保証するか | 含まないもの |
 | :--- | :--- | :--- | :--- |
@@ -49,6 +50,9 @@ stub E2E と UI demo では代用しません。
 | `OP_FINALIZE_DISPATCH_SECRET` | preview Worker と generator で共有する secret |
 | `ADMIN_CAP_ID` | finalize 用の AdminCap |
 | `ADMIN_SUI_PRIVATE_KEY` | finalize を送る管理者鍵 |
+| `OP_LOCAL_TUNNEL_NAME` | `generator:tunnel` の named tunnel 名 |
+| `OP_LOCAL_TUNNEL_CONFIG_PATH` | 任意。`generator:tunnel` で使う `cloudflared` config path |
+| `OP_LOCAL_GENERATOR_PORT` | 任意。`generator:tunnel` で使う local generator port |
 
 `NEXT_PUBLIC_E2E_STUB_WALLET` は空にします。  
 Google popup を止める拡張やブラウザ設定は切っておきます。  
@@ -70,17 +74,15 @@ finalize を試すときは、別途 `Filled` の unit id も必要です。
 
 ## preview finalize smoke の実行手順
 
-1. `corepack pnpm --filter web run generator` を起動します。
-2. `curl http://127.0.0.1:8080/health` が `ok` を返すか確認します。
-3. named tunnel を起動します。
-4. `curl https://<hostname>/health` が `ok` を返すか確認します。
-5. preview Worker 側の `OP_FINALIZE_DISPATCH_URL` を `https://<hostname>` にそろえます。
-6. preview Worker 側の `OP_FINALIZE_DISPATCH_SECRET` を generator と同じ値にそろえます。
-7. `corepack pnpm --filter web preview` を起動します。
-8. `Filled` の unit id で preview Worker の `/api/finalize` に POST します。
-9. preview Worker の応答を控えます。
-10. generator 側で `/dispatch` 到達ログを確認します。
-11. 成功したら `digest` と完成モザイクの `blob_id` を控えます。
+1. `corepack pnpm --filter web run generator:tunnel` を起動します。
+2. `generator:tunnel` が local / external `/health` を自動確認して ready になるまで待ちます。
+3. preview Worker 側の `OP_FINALIZE_DISPATCH_URL` を `https://<hostname>` にそろえます。
+4. preview Worker 側の `OP_FINALIZE_DISPATCH_SECRET` を generator と同じ値にそろえます。
+5. `corepack pnpm --filter web preview` を起動します。
+6. `Filled` の unit id で preview Worker の `/api/finalize` に POST します。
+7. preview Worker の応答を控えます。
+8. generator 側で `/dispatch` 到達ログを確認します。
+9. 成功したら `digest` と完成モザイクの `blob_id` を控えます。
 
 ## 証跡の残し方
 
@@ -137,6 +139,7 @@ preview finalize で `/dispatch` が `500` の場合は generator 側の `ADMIN_
 `dev:e2e` は wallet、Enoki、Walrus を stub したままです。  
 `dev:demo` は UI の形だけを確認するため、実ログインや実投稿は行いません。  
 この smoke で確認するのは投稿主線と preview finalize です。  
+`generator:smoke` はこの proof の代わりではなく、generator stack そのものの補助確認です。  
 本番 deploy 後の最終運用確認は別レーンで扱います。
 
 ## Pre-Demo Checklist
@@ -158,10 +161,12 @@ preview finalize で `/dispatch` が `500` の場合は generator 側の `ADMIN_
 3. real `.env.local` を入れた状態で `corepack pnpm run dev:smoke` を起動します。
 4. `Google login -> Walrus PUT -> Sponsored submit -> Kakera 確認` を 1 回通します。
 5. `digest`、`blob_id`、Kakera 確認の 3 点を記録します。
-6. `corepack pnpm --filter web preview` で preview Worker を立ち上げます。
-7. `/api/finalize` を 1 回通し、preview Worker 応答と generator ログを記録します。
-8. `digest` と完成モザイク `blob_id` を記録します。
-9. 失敗した場合は、この runbook の「最新確認結果」に到達地点を書きます。
+6. `corepack pnpm --filter web run generator:tunnel` を起動し、local / external `/health` が ready になるまで待ちます。
+7. 必要なら `corepack pnpm --filter web run generator:smoke -- <Filled unit id>` を補助確認として 1 回通します。
+8. `corepack pnpm --filter web preview` で preview Worker を立ち上げます。
+9. `/api/finalize` を 1 回通し、preview Worker 応答と generator ログを記録します。
+10. `digest` と完成モザイク `blob_id` を記録します。
+11. 失敗した場合は、この runbook の「最新確認結果」に到達地点を書きます。
 
 ## 最新確認結果
 

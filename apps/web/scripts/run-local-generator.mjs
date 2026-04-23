@@ -8,37 +8,85 @@ const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(webRoot, "..", "..");
 const generatorRoot = path.join(repoRoot, "generator");
+const generatorTsxBin = path.join(generatorRoot, "node_modules", ".bin", "tsx");
 
-const mergedEnv = {
-  ...readEnvFile(path.join(webRoot, ".env")),
-  ...readEnvFile(path.join(webRoot, ".env.local")),
-  ...process.env,
-};
+export function loadWebScriptEnv({ env = process.env } = {}) {
+  return {
+    ...readEnvFile(path.join(webRoot, ".env")),
+    ...readEnvFile(path.join(webRoot, ".env.local")),
+    ...env,
+  };
+}
 
-const child = spawn("pnpm", ["exec", "tsx", "./src/server.ts"], {
-  cwd: generatorRoot,
-  env: {
-    ...process.env,
-    ...mergedEnv,
-    PORT: process.env.OP_LOCAL_GENERATOR_PORT ?? mergedEnv.PORT ?? "8080",
-    SUI_NETWORK: mergedEnv.SUI_NETWORK ?? mergedEnv.NEXT_PUBLIC_SUI_NETWORK,
-    PACKAGE_ID: mergedEnv.PACKAGE_ID ?? mergedEnv.NEXT_PUBLIC_PACKAGE_ID,
-    WALRUS_PUBLISHER:
-      mergedEnv.WALRUS_PUBLISHER ?? mergedEnv.NEXT_PUBLIC_WALRUS_PUBLISHER,
-    WALRUS_AGGREGATOR:
-      mergedEnv.WALRUS_AGGREGATOR ?? mergedEnv.NEXT_PUBLIC_WALRUS_AGGREGATOR,
-  },
-  stdio: "inherit",
-});
+function resolveLocalGeneratorPort(env) {
+  return (
+    normalizePortEnvValue(env.OP_LOCAL_GENERATOR_PORT) ??
+    normalizePortEnvValue(env.PORT) ??
+    "8080"
+  );
+}
 
-child.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
+export function startLocalGenerator({
+  env = process.env,
+  spawnImpl = spawn,
+  generatorBin = generatorTsxBin,
+  cwd = generatorRoot,
+} = {}) {
+  const mergedEnv = loadWebScriptEnv({ env });
 
-  process.exit(code ?? 0);
-});
+  const child = spawnImpl(generatorBin, ["./src/server.ts"], {
+    cwd,
+    env: {
+      ...env,
+      ...mergedEnv,
+      PORT: resolveLocalGeneratorPort(mergedEnv),
+      SUI_NETWORK: mergedEnv.SUI_NETWORK ?? mergedEnv.NEXT_PUBLIC_SUI_NETWORK,
+      PACKAGE_ID: mergedEnv.PACKAGE_ID ?? mergedEnv.NEXT_PUBLIC_PACKAGE_ID,
+      WALRUS_PUBLISHER:
+        mergedEnv.WALRUS_PUBLISHER ?? mergedEnv.NEXT_PUBLIC_WALRUS_PUBLISHER,
+      WALRUS_AGGREGATOR:
+        mergedEnv.WALRUS_AGGREGATOR ?? mergedEnv.NEXT_PUBLIC_WALRUS_AGGREGATOR,
+    },
+    stdio: "inherit",
+  });
+
+  return { child };
+}
+
+if (isExecutedDirectly()) {
+  const { child } = startLocalGenerator({
+    env: process.env,
+    spawnImpl: spawn,
+  });
+
+  let handled = false;
+  const finalize = ({ code = null, signal = null } = {}) => {
+    if (handled) {
+      return;
+    }
+
+    handled = true;
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+
+    process.exit(typeof code === "number" && code >= 0 ? code : 1);
+  };
+
+  child.once("error", (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    finalize({ code: 1 });
+  });
+
+  child.once("exit", (code, signal) => {
+    finalize({ code, signal });
+  });
+
+  child.once("close", (code, signal) => {
+    finalize({ code, signal });
+  });
+}
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -75,4 +123,22 @@ function stripQuotes(value) {
   }
 
   return value;
+}
+
+function normalizePortEnvValue(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function isExecutedDirectly() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+
+  return path.resolve(entry) === __filename;
 }
