@@ -7,28 +7,10 @@ export class AdminEnvError extends Error {
 
 type EnvSource = Readonly<Record<string, string | undefined>>;
 
-export type AdminAuthEnv = {
-  readonly password: string;
-  readonly username: string;
-};
-
 export type AdminRelayEnv = {
   readonly generatorBaseUrl: string;
   readonly sharedSecret: string;
 };
-
-export function loadAdminAuthEnv(source: EnvSource): AdminAuthEnv {
-  return {
-    password: readRequiredValue(
-      source.OP_ADMIN_BASIC_AUTH_PASSWORD,
-      "OP_ADMIN_BASIC_AUTH_PASSWORD",
-    ),
-    username: readRequiredValue(
-      source.OP_ADMIN_BASIC_AUTH_USERNAME,
-      "OP_ADMIN_BASIC_AUTH_USERNAME",
-    ),
-  };
-}
 
 export function loadAdminRelayEnv(source: EnvSource): AdminRelayEnv {
   return {
