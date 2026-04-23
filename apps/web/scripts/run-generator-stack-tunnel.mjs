@@ -87,14 +87,17 @@ export async function runGeneratorStackTunnel({
       });
     }
 
-    const localHealth = await waitForHealthPhase({
-      healthPromise: waitForHealth({
-        label: "local",
-        logger,
-        url: `http://127.0.0.1:${
-          preflightResult.localPort ?? DEFAULT_LOCAL_PORT
-        }/health`,
-      }),
+    const localHealth = await waitForHealthUntilReady({
+      healthFactory: () =>
+        waitForHealth({
+          label: "local",
+          logger,
+          url: `http://127.0.0.1:${
+            preflightResult.localPort ?? DEFAULT_LOCAL_PORT
+          }/health`,
+        }),
+      label: "local",
+      logger,
       terminalPromises: [
         generator.exitPromise.then((result) => ({
           child: "generator",
@@ -197,12 +200,15 @@ export async function runGeneratorStackTunnel({
       }
     }
 
-    const externalHealth = await waitForHealthPhase({
-      healthPromise: waitForHealth({
-        label: "external",
-        logger,
-        url: new URL("/health", `${publicBaseUrl}/`).href,
-      }),
+    const externalHealth = await waitForHealthUntilReady({
+      healthFactory: () =>
+        waitForHealth({
+          label: "external",
+          logger,
+          url: new URL("/health", `${publicBaseUrl}/`).href,
+        }),
+      label: "external",
+      logger,
       terminalPromises: [
         generator.exitPromise.then((result) => ({
           child: "generator",
@@ -423,6 +429,35 @@ async function waitForHealthPhase({ healthPromise, terminalPromises }) {
   ]);
 }
 
+async function waitForHealthUntilReady({
+  healthFactory,
+  label,
+  logger,
+  terminalPromises,
+}) {
+  while (true) {
+    const result = await waitForHealthPhase({
+      healthPromise: healthFactory(),
+      terminalPromises,
+    });
+
+    if (result.kind !== "health") {
+      return result;
+    }
+
+    if (result.result.ok) {
+      return result;
+    }
+
+    if (isTimeoutHealthResult(result.result)) {
+      logger?.warn?.(`[generator-stack][health][${label}][still-waiting]`);
+      continue;
+    }
+
+    return result;
+  }
+}
+
 async function waitForQuickTunnelUrl({ child, logger, terminalPromises }) {
   return Promise.race([
     listenForQuickTunnelUrl({ child, logger }),
@@ -527,6 +562,15 @@ function isSignalResult(value) {
     value !== null &&
     value.kind === "signal" &&
     typeof value.signal === "string"
+  );
+}
+
+function isTimeoutHealthResult(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof value.marker === "string" &&
+    value.marker.includes("[timeout]")
   );
 }
 
