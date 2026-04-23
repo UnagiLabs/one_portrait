@@ -10,6 +10,7 @@ import {
   isDemoModeEnabled,
 } from "../lib/demo";
 import { getActiveHomeUnits } from "../lib/sui";
+import { getDisplayedSubmittedCount } from "../lib/sui/types";
 
 type HomePageProps = {
   readonly searchParams?: Promise<{
@@ -24,6 +25,7 @@ type HomeEntry = {
   readonly thumbnailUrl: string;
   readonly progress:
     | {
+        readonly displayMaxSlots: number;
         readonly kind: "active";
         readonly maxSlots: number;
         readonly submittedCount: number;
@@ -204,14 +206,17 @@ function HeroFoot({
         <div className="mb-2">
           {firstActive ? `Live unit — ${firstActive.displayName}` : "Live registry"}
         </div>
-        <div className="font-display text-[56px] leading-none text-[var(--ink)]">
+        <div
+          className="font-display text-[56px] leading-none text-[var(--ink)]"
+          data-testid="home-hero-progress"
+        >
           {firstActive && firstActive.progress.kind === "active" ? (
             <>
               <em className="not-italic text-[var(--ember)]">
-                {firstActive.progress.submittedCount.toLocaleString()}
+                {getDisplayedSubmittedCount(firstActive.progress).toLocaleString()}
               </em>
               <span className="text-[var(--ink-faint)]"> / </span>
-              {firstActive.progress.maxSlots.toLocaleString()}
+              {firstActive.progress.displayMaxSlots.toLocaleString()}
             </>
           ) : (
             <span className="text-[var(--ink-faint)]">— / —</span>
@@ -363,6 +368,7 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
       thumbnailUrl: unit.thumbnailUrl,
       progress: {
         kind: "active" as const,
+        displayMaxSlots: unit.displayMaxSlots ?? unit.maxSlots,
         maxSlots: unit.maxSlots,
         submittedCount: unit.submittedCount,
         unitId: unit.unitId,
@@ -408,6 +414,7 @@ async function loadDemoEntries(
       ...athlete,
       progress: {
         kind: "active",
+        displayMaxSlots: progress.displayMaxSlots ?? progress.maxSlots,
         maxSlots: progress.maxSlots,
         submittedCount: progress.submittedCount,
         unitId,
@@ -471,19 +478,19 @@ function ProgressLabel({
 }): React.ReactElement {
   if (progress.kind === "active") {
     const pct =
-      progress.maxSlots > 0
-        ? (progress.submittedCount / progress.maxSlots) * 100
+      progress.displayMaxSlots > 0
+        ? (getDisplayedSubmittedCount(progress) / progress.displayMaxSlots) * 100
         : 0;
     return (
       <>
         <div className="flex items-baseline justify-between font-mono-op text-[11px] text-[var(--ink-dim)]">
           <div>
             <span className="font-display text-[22px] text-[var(--ink)]">
-              {progress.submittedCount.toLocaleString()}
+              {getDisplayedSubmittedCount(progress).toLocaleString()}
             </span>
             <span className="text-[var(--ink-faint)]">
               {" "}
-              / {progress.maxSlots.toLocaleString()}
+              / {progress.displayMaxSlots.toLocaleString()}
             </span>
           </div>
           <div>{Math.round(pct)}%</div>

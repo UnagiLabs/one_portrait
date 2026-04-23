@@ -17,6 +17,7 @@ const demoProgressByUnitId = new Map<string, AthleteProgressView>([
     {
       unitId: demoUnitId,
       athletePublicId: "1",
+      displayMaxSlots: unitTileCount,
       submittedCount: 347,
       maxSlots: unitTileCount,
       status: "pending",

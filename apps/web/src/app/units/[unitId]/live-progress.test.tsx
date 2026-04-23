@@ -38,9 +38,9 @@ describe("LiveProgress", () => {
       />,
     );
 
-    expect(
-      screen.getByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      `42/${unitTileCount.toLocaleString()}`,
+    );
   });
 
   it("updates the count when a SubmittedEvent arrives", () => {
@@ -58,9 +58,9 @@ describe("LiveProgress", () => {
       />,
     );
 
-    expect(
-      screen.getByText(new RegExp(`10\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      `10/${unitTileCount.toLocaleString()}`,
+    );
 
     act(() => {
       capturedOnSubmitted?.({
@@ -75,9 +75,9 @@ describe("LiveProgress", () => {
       });
     });
 
-    expect(
-      screen.getByText(new RegExp(`11\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      `11/${unitTileCount.toLocaleString()}`,
+    );
   });
 
   it("ignores older SubmittedEvent deliveries that would decrease the count", () => {
@@ -108,9 +108,79 @@ describe("LiveProgress", () => {
       });
     });
 
-    expect(
-      screen.getByText(new RegExp(`20\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      `20/${unitTileCount.toLocaleString()}`,
+    );
+  });
+
+  it("shows demo display totals while keeping the actual remaining count", () => {
+    useUnitEventsMock.mockImplementation(() => undefined);
+
+    render(
+      <LiveProgress
+        displayMaxSlots={2000}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+        initialSubmittedCount={0}
+        maxSlots={5}
+      />,
+    );
+
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      "1,995/2,000",
+    );
+    expect(screen.getByText(/5 tiles remaining/i)).toBeTruthy();
+  });
+
+  it("keeps demo counters aligned when the last SubmittedEvent and filled event arrive", async () => {
+    let capturedOnFilled: ((event: UnitFilledEvent) => void) | undefined;
+    let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+    const triggerFinalize = vi.fn(async () => undefined);
+    useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+      capturedOnFilled = args.onFilled;
+      capturedOnSubmitted = args.onSubmitted;
+    });
+
+    render(
+      <LiveProgress
+        displayMaxSlots={2000}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+        initialSubmittedCount={4}
+        maxSlots={5}
+        triggerFinalize={triggerFinalize}
+      />,
+    );
+
+    act(() => {
+      capturedOnSubmitted?.({
+        kind: "submitted",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        submitter: "0xabc",
+        walrusBlobId: [],
+        submissionNo: 5,
+        submittedCount: 5,
+        maxSlots: 5,
+      });
+    });
+
+    await act(async () => {
+      capturedOnFilled?.({
+        kind: "filled",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        filledCount: 5,
+        maxSlots: 5,
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      "2,000/2,000",
+    );
+    expect(screen.getByText(/0 tiles remaining/i)).toBeTruthy();
+    expect(triggerFinalize).toHaveBeenCalledWith("0xunit-1");
   });
 
   it("subscribes with the provided packageId and unitId", () => {

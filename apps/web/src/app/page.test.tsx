@@ -82,9 +82,9 @@ describe("HomePage", () => {
     const ui = await HomePage();
     render(ui);
 
-    expect(
-      screen.getByText(new RegExp(`123\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("home-hero-progress").textContent).toContain(
+      `123 / ${unitTileCount.toLocaleString()}`,
+    );
   });
 
   it("shows a hero link to the participation gallery", async () => {
@@ -207,8 +207,27 @@ describe("HomePage", () => {
     });
     render(ui);
 
-    expect(
-      screen.getByText(new RegExp(`12\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("home-hero-progress").textContent).toContain(
+      `12 / ${unitTileCount.toLocaleString()}`,
+    );
+  });
+
+  it("shows demo units as nearly complete on the home hero", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        ...CATALOG[0],
+        displayMaxSlots: unitTileCount,
+        maxSlots: 5,
+        submittedCount: 0,
+        unitId: "0xunit-1",
+      },
+    ]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByTestId("home-hero-progress").textContent).toContain(
+      `1,995 / ${unitTileCount.toLocaleString()}`,
+    );
   });
 });

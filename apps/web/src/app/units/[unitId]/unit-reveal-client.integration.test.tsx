@@ -78,6 +78,7 @@ describe("UnitRevealClient with missing public env", () => {
         <UnitRevealClient
           aggregatorBase={AGGREGATOR_BASE}
           displayName="Demo Athlete One"
+          displayMaxSlots={unitTileCount}
           initialMasterId={null}
           initialSubmittedCount={42}
           maxSlots={unitTileCount}
@@ -87,9 +88,9 @@ describe("UnitRevealClient with missing public env", () => {
       </AppWalletProvider>,
     );
 
-    expect(
-      screen.getByText(new RegExp(`42\\s*\\/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+    expect(screen.getByTestId("live-progress-counter").textContent).toBe(
+      `42/${unitTileCount.toLocaleString()}`,
+    );
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
   });
 
@@ -99,6 +100,7 @@ describe("UnitRevealClient with missing public env", () => {
         <UnitRevealClient
           aggregatorBase={AGGREGATOR_BASE}
           displayName="Demo Athlete One"
+          displayMaxSlots={unitTileCount}
           initialMasterId="0xmaster-1"
           initialSubmittedCount={unitTileCount}
           maxSlots={unitTileCount}
@@ -126,6 +128,7 @@ describe("UnitRevealClient with missing public env", () => {
         <UnitRevealClient
           aggregatorBase={AGGREGATOR_BASE}
           displayName="Demo Athlete One"
+          displayMaxSlots={unitTileCount}
           initialMasterId="0xmaster-1"
           initialSubmittedCount={unitTileCount}
           maxSlots={unitTileCount}

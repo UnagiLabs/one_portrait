@@ -40,6 +40,7 @@ vi.mock("../../../lib/env", () => ({
 vi.mock("./unit-reveal-client", () => ({
   UnitRevealClient: (props: {
     aggregatorBase?: string | null;
+    displayMaxSlots?: number;
     eventSubscriptionEnabled?: boolean;
     initialSubmittedCount: number;
     initialMasterId: string | null;
@@ -60,7 +61,7 @@ vi.mock("./unit-reveal-client", () => ({
         data-testid="unit-reveal-client"
         data-unit-id={props.unitId}
       >
-        {props.initialSubmittedCount} / {props.maxSlots}
+        {props.initialSubmittedCount} / {props.displayMaxSlots ?? props.maxSlots}
       </div>
     );
   },
@@ -145,7 +146,46 @@ describe("UnitPage", () => {
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       `72 / ${unitTileCount}`,
     );
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
+  });
+
+  it("passes displayMaxSlots through for demo waiting-room progress", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      displayMaxSlots: unitTileCount,
+      submittedCount: 0,
+      maxSlots: 5,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        displayMaxSlots: unitTileCount,
+        initialSubmittedCount: 0,
+        maxSlots: 5,
+      }),
+    );
   });
 
   it("passes the server-derived public props to the waiting-room clients", async () => {
@@ -407,7 +447,9 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
 
@@ -431,7 +473,9 @@ describe("UnitPage", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Demo Athlete One" }),
+    ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "347 /",
     );

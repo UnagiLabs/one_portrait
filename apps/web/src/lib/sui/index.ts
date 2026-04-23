@@ -84,6 +84,8 @@ export type {
   UnitStatus,
 } from "./types";
 export {
+  getDisplayedSubmittedCount,
+  getRemainingSlotsCount,
   UNIT_STATUS_FILLED,
   UNIT_STATUS_FINALIZED,
   UNIT_STATUS_PENDING,

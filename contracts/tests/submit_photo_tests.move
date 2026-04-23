@@ -268,6 +268,65 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     scenario.end();
 }
 
+#[test]
+fun demo_unit_still_marks_filled_on_the_last_actual_submission() {
+    let publisher = @0xA11CE;
+    let first_submitter = @0xD01;
+    let second_submitter = @0xD02;
+
+    let mut scenario = test_scenario::begin(publisher);
+    test_scenario::create_system_objects(&mut scenario);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = admin_api::create_unit(
+        &admin_cap,
+        &mut registry,
+        31,
+        b"target-blob",
+        2,
+        2000,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(first_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    accessors::submit_photo(&mut unit, b"photo-1", &clock, scenario.ctx());
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    let first_effects = scenario.next_tx(first_submitter);
+    assert_eq!(first_effects.num_user_events(), 1);
+    let first_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(first_kakera);
+
+    scenario.next_tx(second_submitter);
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    let clock = scenario.take_shared<Clock>();
+    accessors::submit_photo(&mut unit, b"photo-2", &clock, scenario.ctx());
+
+    assert!(unit::is_filled_for_testing(&unit));
+    assert_eq!(unit::display_max_slots_for_testing(&unit), 2000);
+    assert_eq!(unit::submission_count_for_testing(&unit), 2);
+
+    test_scenario::return_shared(clock);
+    test_scenario::return_shared(unit);
+
+    let second_effects = scenario.next_tx(second_submitter);
+    assert_eq!(second_effects.num_user_events(), 2);
+    let second_kakera = scenario.take_from_sender<Kakera>();
+    scenario.return_to_sender(second_kakera);
+
+    scenario.end();
+}
+
 #[test, expected_failure(abort_code = unit::EUNIT_NOT_PENDING)]
 fun submit_photo_rejects_submission_after_unit_is_filled() {
     let publisher = @0xA11CE;

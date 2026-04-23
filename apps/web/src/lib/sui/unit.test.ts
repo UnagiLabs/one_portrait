@@ -36,6 +36,7 @@ function unitData(fields: Record<string, unknown>) {
         id: { id: UNIT_ID },
         athlete_id: 1,
         target_walrus_blob: [],
+        display_max_slots: String(unitTileCount),
         max_slots: String(unitTileCount),
         status: 0,
         master_id: { fields: { vec: [] } },
@@ -59,6 +60,7 @@ describe("getUnitProgress", () => {
     expect(view).toEqual({
       unitId: UNIT_ID,
       athletePublicId: "1",
+      displayMaxSlots: unitTileCount,
       submittedCount: 0,
       maxSlots: unitTileCount,
       status: "pending",
@@ -102,6 +104,20 @@ describe("getUnitProgress", () => {
 
     expect(view.status).toBe("finalized");
     expect(view.masterId).toBe("0xmaster");
+  });
+
+  it("reads a larger displayMaxSlots value for demo units", async () => {
+    const client = clientReturning(
+      unitData({
+        display_max_slots: "2000",
+        max_slots: "5",
+      }),
+    );
+
+    const view = await getUnitProgress(UNIT_ID, { client });
+
+    expect(view.displayMaxSlots).toBe(2000);
+    expect(view.maxSlots).toBe(5);
   });
 
   it("throws UnitNotFoundError when the response has no data", async () => {

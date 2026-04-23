@@ -42,6 +42,10 @@ export async function getUnitProgress(
 
   const status: UnitStatus = normalizeUnitStatus(fields.status);
   const submittedCount = countSubmissions(fields.submissions);
+  const displayMaxSlots = parseIntegerField(
+    fields.display_max_slots,
+    "display_max_slots",
+  );
   const maxSlots = parseIntegerField(fields.max_slots, "max_slots");
   const athletePublicId = String(
     parseIntegerField(fields.athlete_id, "athlete_id"),
@@ -51,6 +55,7 @@ export async function getUnitProgress(
   return {
     unitId: data.objectId,
     athletePublicId,
+    displayMaxSlots,
     submittedCount,
     maxSlots,
     status,

@@ -27,9 +27,14 @@ import type {
   SubmittedEvent,
   UnitFilledEvent,
 } from "../../../lib/sui";
+import {
+  getDisplayedSubmittedCount,
+  getRemainingSlotsCount,
+} from "../../../lib/sui/types";
 import { useUnitEvents } from "../../../lib/sui/react";
 
 export type LiveProgressProps = {
+  readonly displayMaxSlots?: number;
   readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string;
   readonly unitId: string;
@@ -42,6 +47,7 @@ export type LiveProgressProps = {
 export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const {
     eventSubscriptionEnabled = true,
+    displayMaxSlots,
     packageId,
     unitId,
     initialSubmittedCount,
@@ -53,6 +59,7 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const [submittedCount, setSubmittedCount] = useState(initialSubmittedCount);
   const [filled, setFilled] = useState(false);
   const finalizeTriggeredRef = useRef(false);
+  const effectiveDisplayMaxSlots = displayMaxSlots ?? maxSlots;
 
   useUnitEvents({
     packageId: eventSubscriptionEnabled ? packageId : "",
@@ -78,16 +85,28 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     },
   });
 
+  const progressView = {
+    displayMaxSlots: effectiveDisplayMaxSlots,
+    maxSlots,
+    submittedCount,
+  };
+  const displayedSubmittedCount = getDisplayedSubmittedCount(progressView);
   const pct =
-    maxSlots > 0 ? (submittedCount / maxSlots) * 100 : 0;
-  const remaining = Math.max(0, maxSlots - submittedCount);
+    effectiveDisplayMaxSlots > 0
+      ? (displayedSubmittedCount / effectiveDisplayMaxSlots) * 100
+      : 0;
+  const remaining = getRemainingSlotsCount(progressView);
 
   return (
     <div className="grid gap-5">
-      <p aria-live="polite" className="op-big-counter tabular-nums">
-        <span className="num">{submittedCount.toLocaleString()}</span>
+      <p
+        aria-live="polite"
+        className="op-big-counter tabular-nums"
+        data-testid="live-progress-counter"
+      >
+        <span className="num">{displayedSubmittedCount.toLocaleString()}</span>
         <span className="slash">/</span>
-        <span className="total">{maxSlots.toLocaleString()}</span>
+        <span className="total">{effectiveDisplayMaxSlots.toLocaleString()}</span>
       </p>
       <div className="grid gap-2">
         <div className="op-progress-bar">
@@ -102,7 +121,7 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
           </span>
           <span>
             {remaining.toLocaleString()} tiles remaining ·{" "}
-            {submittedCount.toLocaleString()} Kakera minted
+            {displayedSubmittedCount.toLocaleString()} Kakera minted
           </span>
         </div>
       </div>

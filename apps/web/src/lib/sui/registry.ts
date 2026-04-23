@@ -157,6 +157,7 @@ export async function getActiveHomeUnits(
 
         return {
           ...athlete.metadata,
+          displayMaxSlots: progress.displayMaxSlots,
           maxSlots: progress.maxSlots,
           submittedCount: progress.submittedCount,
           unitId: progress.unitId,

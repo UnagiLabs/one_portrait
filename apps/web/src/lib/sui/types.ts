@@ -42,6 +42,7 @@ export type RegistryAthleteView = {
 };
 
 export type ActiveHomeUnitView = AthleteMetadataView & {
+  readonly displayMaxSlots: number;
   readonly maxSlots: number;
   readonly submittedCount: number;
   readonly unitId: string;
@@ -72,12 +73,14 @@ export type UnitStatus = "pending" | "filled" | "finalized";
  *
  * Field semantics:
  *   - `submittedCount`: length of `Unit.submissions` at fetch time.
+ *   - `displayMaxSlots`: UI 上で見せる総数。
  *   - `maxSlots`: copied from `Unit.max_slots` (always `> 0`).
  *   - `masterId`: `null` until the unit reaches `finalized`.
  */
 export type AthleteProgressView = {
   readonly unitId: string;
   readonly athletePublicId: AthletePublicId;
+  readonly displayMaxSlots: number;
   readonly submittedCount: number;
   readonly maxSlots: number;
   readonly status: UnitStatus;
@@ -127,4 +130,19 @@ export function normalizeUnitStatus(value: unknown): UnitStatus {
   if (value === UNIT_STATUS_FILLED) return "filled";
   if (value === UNIT_STATUS_FINALIZED) return "finalized";
   throw new Error(`Unknown Unit.status value: ${String(value)}`);
+}
+
+export function getDisplayedSubmittedCount(progress: {
+  readonly displayMaxSlots: number;
+  readonly maxSlots: number;
+  readonly submittedCount: number;
+}): number {
+  return progress.displayMaxSlots - progress.maxSlots + progress.submittedCount;
+}
+
+export function getRemainingSlotsCount(progress: {
+  readonly maxSlots: number;
+  readonly submittedCount: number;
+}): number {
+  return Math.max(0, progress.maxSlots - progress.submittedCount);
 }

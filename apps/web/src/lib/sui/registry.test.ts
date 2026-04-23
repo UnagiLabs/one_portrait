@@ -305,6 +305,7 @@ describe("getActiveHomeUnits", () => {
       {
         athletePublicId: "1",
         displayName: "Demo Athlete One",
+        displayMaxSlots: 2000,
         slug: "demo-athlete-one",
         thumbnailUrl: "https://example.com/1.png",
         maxSlots: 2000,
@@ -430,6 +431,7 @@ function unitObject(id: string) {
         type: "0xpkg::unit::Unit",
         fields: {
           athlete_id: athleteId,
+          display_max_slots: "2000",
           master_id: { fields: { vec: [] } },
           max_slots: "2000",
           status,

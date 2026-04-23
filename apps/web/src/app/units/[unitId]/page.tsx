@@ -35,6 +35,7 @@ type UnitPageProps = {
 };
 
 type ResolvedProgress = {
+  readonly displayMaxSlots: number;
   readonly submittedCount: number;
   readonly maxSlots: number;
   readonly athletePublicId: string | null;
@@ -153,6 +154,7 @@ export default async function UnitPage(
                 <UnitRevealClient
                   aggregatorBase={aggregatorBase}
                   displayName={displayName}
+                  displayMaxSlots={progress.displayMaxSlots}
                   eventSubscriptionEnabled={startupEnabled && packageId !== null}
                   initialMasterId={progress.masterId}
                   initialSubmittedCount={progress.submittedCount}
@@ -261,6 +263,7 @@ function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {
   }
 
   return {
+    displayMaxSlots: view.displayMaxSlots,
     submittedCount: view.submittedCount,
     maxSlots: view.maxSlots,
     athletePublicId: view.athletePublicId,
@@ -272,6 +275,7 @@ async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {
   try {
     const view = await getUnitProgress(unitId);
     return {
+      displayMaxSlots: view.displayMaxSlots,
       submittedCount: view.submittedCount,
       maxSlots: view.maxSlots,
       athletePublicId: view.athletePublicId,
@@ -305,6 +309,7 @@ function resolveDisplayName(
 
 function degradedProgress(): ResolvedProgress {
   return {
+    displayMaxSlots: FALLBACK_MAX_SLOTS,
     submittedCount: -1,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: null,
@@ -337,6 +342,7 @@ function resolveE2EUnitProgress(
 
 function activeProgress(): ResolvedProgress {
   return {
+    displayMaxSlots: FALLBACK_MAX_SLOTS,
     submittedCount: FALLBACK_MAX_SLOTS - 1,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: "1",
@@ -346,6 +352,7 @@ function activeProgress(): ResolvedProgress {
 
 function finalizedProgress(): ResolvedProgress {
   return {
+    displayMaxSlots: FALLBACK_MAX_SLOTS,
     submittedCount: FALLBACK_MAX_SLOTS,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: STUB_ATHLETE_ID,

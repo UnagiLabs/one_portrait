@@ -17,6 +17,7 @@ import { RevealPanel } from "./reveal-panel";
 type UnitRevealClientProps = {
   readonly displayName: string;
   readonly aggregatorBase?: string | null;
+  readonly displayMaxSlots?: number;
   readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string | null;
   readonly startupEnabled?: boolean;
@@ -202,6 +203,7 @@ function UnitRevealClientCore(
   return (
     <>
       <LiveProgress
+        displayMaxSlots={props.displayMaxSlots}
         eventSubscriptionEnabled={eventSubscriptionEnabled}
         initialSubmittedCount={initialSubmittedCount}
         maxSlots={maxSlots}
