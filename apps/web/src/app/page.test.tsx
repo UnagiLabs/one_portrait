@@ -17,6 +17,17 @@ vi.mock("../lib/catalog", () => ({
 
 vi.mock("../lib/sui", () => ({
   getActiveHomeUnits: getActiveHomeUnitsMock,
+  RegistrySchemaError: class RegistrySchemaError extends Error {
+    constructor(
+      public readonly objectId: string,
+      public readonly detail: string,
+    ) {
+      super(
+        `Registry object does not match current contract schema; ${detail} (object ${objectId})`,
+      );
+      this.name = "RegistrySchemaError";
+    }
+  },
 }));
 
 import HomePage from "./page";
@@ -142,6 +153,20 @@ describe("HomePage", () => {
 
   it("falls back to the empty state when the chain read fails", async () => {
     getActiveHomeUnitsMock.mockRejectedValue(new Error("rpc down"));
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(
+      screen.getByText(/現在表示できる開催中ユニットはありません/),
+    ).toBeTruthy();
+  });
+
+  it("falls back to the empty state when the configured registry is stale", async () => {
+    const { RegistrySchemaError } = await import("../lib/sui");
+    getActiveHomeUnitsMock.mockRejectedValue(
+      new RegistrySchemaError("0xstale", "missing `athlete_metadata`"),
+    );
 
     const ui = await HomePage();
     render(ui);

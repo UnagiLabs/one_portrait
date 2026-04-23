@@ -40,7 +40,7 @@ stub E2E と UI demo では代用しません。
 | :--- | :--- |
 | `NEXT_PUBLIC_SUI_NETWORK` | 接続先の Sui network |
 | `NEXT_PUBLIC_PACKAGE_ID` | `submit_photo` を含む package |
-| `NEXT_PUBLIC_REGISTRY_OBJECT_ID` | home から active unit を引く registry |
+| `NEXT_PUBLIC_REGISTRY_OBJECT_ID` | home から active unit を引く registry。`sui_getObject` の `content.fields` に `current_units` / `athlete_metadata` / `slug_to_athlete` が揃う object を使う |
 | `NEXT_PUBLIC_ENOKI_API_KEY` | Enoki の公開キー |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google login 用 client id |
 | `NEXT_PUBLIC_WALRUS_PUBLISHER` | Walrus PUT 先 |
@@ -60,6 +60,16 @@ stub E2E と UI demo では代用しません。
 Google popup を止める拡張やブラウザ設定は切っておきます。  
 投稿先に使う active unit が `Pending` のまま残っていることも先に確認します。
 finalize を試すときは、別途 `Filled` の unit id も必要です。
+
+`NEXT_PUBLIC_REGISTRY_OBJECT_ID` を更新した直後は、次も確認します。
+
+```bash
+curl -s https://fullnode.testnet.sui.io:443 \
+  -H 'Content-Type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"sui_getObject\",\"params\":[\"$NEXT_PUBLIC_REGISTRY_OBJECT_ID\",{\"showContent\":true,\"showType\":true}]}"
+```
+
+返ってくる `content.fields` に `current_units`、`athlete_metadata`、`slug_to_athlete` の 3 つが揃っていない場合、その object は現行 contract の Registry ではありません。
 
 ## 実行手順
 

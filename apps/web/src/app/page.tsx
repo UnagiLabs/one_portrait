@@ -9,7 +9,7 @@ import {
   getDemoUnitProgress,
   isDemoModeEnabled,
 } from "../lib/demo";
-import { getActiveHomeUnits } from "../lib/sui";
+import { getActiveHomeUnits, RegistrySchemaError } from "../lib/sui";
 
 type HomePageProps = {
   readonly searchParams?: Promise<{
@@ -369,6 +369,14 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
       },
     }));
   } catch (error) {
+    if (error instanceof RegistrySchemaError) {
+      console.error(
+        `Configured NEXT_PUBLIC_REGISTRY_OBJECT_ID ${error.objectId} does not match the current contract schema.`,
+        error,
+      );
+      return [];
+    }
+
     console.error("Failed to load active home units", error);
     return [];
   }

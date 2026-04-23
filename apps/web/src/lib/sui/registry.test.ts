@@ -7,6 +7,7 @@ import {
   getRegistryObject,
   listRegistryAthletes,
   RegistryNotFoundError,
+  RegistrySchemaError,
 } from "./registry";
 
 const REGISTRY_ID = "0xreg";
@@ -53,6 +54,10 @@ describe("getRegistryObject", () => {
                   type: "0x2::table::Table<u16, 0x2::object::ID>",
                   fields: { id: { id: "0xtable" }, size: "2" },
                 },
+                slug_to_athlete: {
+                  type: "0x2::table::Table<vector<u8>, u16>",
+                  fields: { id: { id: "0xslug" }, size: "2" },
+                },
               },
             },
           },
@@ -65,6 +70,42 @@ describe("getRegistryObject", () => {
     expect(view.objectId).toBe(REGISTRY_ID);
     expect(view.athleteMetadataTableId).toBe("0xmetadata");
     expect(view.currentUnitsTableId).toBe("0xtable");
+  });
+
+  it("throws RegistrySchemaError when athlete_metadata is missing", async () => {
+    const client = makeClient({
+      getObject: vi.fn(async () => ({
+        data: {
+          objectId: REGISTRY_ID,
+          digest: "d",
+          version: "1",
+          type: "0xpkg::registry::Registry",
+          content: {
+            dataType: "moveObject",
+            hasPublicTransfer: false,
+            type: "0xpkg::registry::Registry",
+            fields: {
+              id: { id: REGISTRY_ID },
+              current_units: {
+                type: "0x2::table::Table<u16, 0x2::object::ID>",
+                fields: { id: { id: "0xtable" }, size: "2" },
+              },
+              slug_to_athlete: {
+                type: "0x2::table::Table<vector<u8>, u16>",
+                fields: { id: { id: "0xslug" }, size: "0" },
+              },
+            },
+          },
+        },
+      })) as unknown as SuiReadClient["getObject"],
+    });
+
+    await expect(getRegistryObject(REGISTRY_ID, { client })).rejects.toThrow(
+      RegistrySchemaError,
+    );
+    await expect(getRegistryObject(REGISTRY_ID, { client })).rejects.toThrow(
+      /missing `athlete_metadata`/,
+    );
   });
 
   it("throws RegistryNotFoundError when the response carries no data", async () => {
@@ -348,6 +389,13 @@ function registryObject(
             fields: {
               id: { id: "0xtable" },
               size: overrides.currentUnitsSize ?? "1",
+            },
+          },
+          slug_to_athlete: {
+            type: "0x2::table::Table<vector<u8>, u16>",
+            fields: {
+              id: { id: "0xslug" },
+              size: overrides.athleteMetadataSize ?? "2",
             },
           },
         },

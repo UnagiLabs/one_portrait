@@ -3,6 +3,8 @@
  *
  * Error contract (kept consistent with the rest of `lib/sui`):
  *   - Object missing entirely  → throw {@link RegistryNotFoundError}.
+ *   - Object exists but its schema is stale / malformed
+ *                            → throw {@link RegistrySchemaError}.
  *   - Dynamic field absent     → return `null` for the specific lookup.
  *   - Per-entry read failure   → log and fail closed for that entry.
  *   - Transport failure on the registry root → propagate the SDK error.
@@ -25,6 +27,18 @@ export class RegistryNotFoundError extends Error {
   }
 }
 
+export class RegistrySchemaError extends Error {
+  constructor(
+    public readonly objectId: string,
+    public readonly detail: string,
+  ) {
+    super(
+      `Registry object does not match current contract schema; ${detail} (object ${objectId})`,
+    );
+    this.name = "RegistrySchemaError";
+  }
+}
+
 export async function getRegistryObject(
   objectId?: string,
   options?: { client?: SuiReadClient },
@@ -42,10 +56,21 @@ export async function getRegistryObject(
     throw new RegistryNotFoundError(id);
   }
 
+  assertRegistryType(data.type, id);
+  const registryFields = getRegistryFields(data.content, id);
+
   return {
-    athleteMetadataTableId: extractTableId(data.content, "athlete_metadata"),
+    athleteMetadataTableId: extractTableId(
+      registryFields.athlete_metadata,
+      id,
+      "athlete_metadata",
+    ),
     objectId: data.objectId,
-    currentUnitsTableId: extractTableId(data.content, "current_units"),
+    currentUnitsTableId: extractTableId(
+      registryFields.current_units,
+      id,
+      "current_units",
+    ),
   };
 }
 
@@ -277,14 +302,69 @@ function parseDynamicFieldAthleteId(value: unknown): string {
   throw new Error(`Dynamic field athlete id is invalid: ${String(value)}`);
 }
 
-function extractTableId(content: unknown, fieldName: string): string {
+function assertRegistryType(type: unknown, objectId: string): void {
+  if (typeof type === "string" && type.endsWith("::registry::Registry")) {
+    return;
+  }
+
+  throw new RegistrySchemaError(
+    objectId,
+    `expected a *::registry::Registry object, got ${String(type)}`,
+  );
+}
+
+function getRegistryFields(
+  content: unknown,
+  objectId: string,
+): Record<string, unknown> & {
+  readonly athlete_metadata: unknown;
+  readonly current_units: unknown;
+  readonly slug_to_athlete: unknown;
+} {
   const moveObject = asMoveObject(content);
-  const tableField = moveObject.fields[fieldName];
-  const tableInner = asMoveStructFields(tableField);
-  const idWrapper = asMoveStructFields(tableInner.id);
+  const requiredFields = [
+    "current_units",
+    "athlete_metadata",
+    "slug_to_athlete",
+  ] as const;
+
+  for (const fieldName of requiredFields) {
+    if (!(fieldName in moveObject.fields)) {
+      throw new RegistrySchemaError(
+        objectId,
+        `missing \`${fieldName}\``,
+      );
+    }
+  }
+
+  return moveObject.fields as Record<string, unknown> & {
+    readonly athlete_metadata: unknown;
+    readonly current_units: unknown;
+    readonly slug_to_athlete: unknown;
+  };
+}
+
+function extractTableId(
+  tableField: unknown,
+  objectId: string,
+  fieldName: string,
+): string {
+  const tableInner = asMoveStructFields(
+    tableField,
+    objectId,
+    `\`${fieldName}\``,
+  );
+  const idWrapper = asMoveStructFields(
+    tableInner.id,
+    objectId,
+    `\`${fieldName}.id\``,
+  );
   const id = idWrapper.id;
   if (typeof id !== "string") {
-    throw new Error(`Registry.${fieldName}.id is not a string`);
+    throw new RegistrySchemaError(
+      objectId,
+      `\`${fieldName}.id.id\` is not a string`,
+    );
   }
   return id;
 }
@@ -338,13 +418,23 @@ function asMoveObject(value: unknown): MoveStructLike {
   throw new Error("Expected SuiParsedData with dataType 'moveObject'");
 }
 
-function asMoveStructFields(value: unknown): Record<string, unknown> {
+function asMoveStructFields(
+  value: unknown,
+  objectId?: string,
+  label?: string,
+): Record<string, unknown> {
   if (typeof value === "object" && value !== null) {
     const maybeFields = (value as { fields?: unknown }).fields;
     if (typeof maybeFields === "object" && maybeFields !== null) {
       return maybeFields as Record<string, unknown>;
     }
     return value as Record<string, unknown>;
+  }
+  if (objectId && label) {
+    throw new RegistrySchemaError(
+      objectId,
+      `${label} is not a Move struct-like value`,
+    );
   }
   throw new Error("Expected Move struct-like value");
 }

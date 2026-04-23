@@ -64,6 +64,7 @@ export {
   getRegistryObject,
   listRegistryAthletes,
   RegistryNotFoundError,
+  RegistrySchemaError,
 } from "./registry";
 export type {
   CheckSubmissionExecutionArgs,
