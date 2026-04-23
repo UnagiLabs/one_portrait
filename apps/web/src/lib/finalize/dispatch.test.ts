@@ -126,4 +126,47 @@ describe("createFinalizeDispatcher", () => {
       message: expect.stringContaining("OP_FINALIZE_DISPATCH_SECRET"),
     });
   });
+
+  it("uses request-scoped worker kv and secret when provided", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        status: "ignored_pending",
+        unitId: VALID_UNIT_ID,
+      }),
+    );
+    const dispatchFinalize = createFinalizeDispatcher({
+      fetchImpl,
+      dispatchSecret: "shared-secret-from-process-env",
+    });
+
+    await expect(
+      dispatchFinalize(
+        {
+          unitId: VALID_UNIT_ID,
+        },
+        {
+          env: {
+            OP_FINALIZE_DISPATCH_SECRET: "request-scoped-secret",
+            OP_GENERATOR_RUNTIME_KV: {
+              get: async () => ({
+                mode: "quick",
+                updatedAt: new Date().toISOString(),
+                url: "https://worker-kv.example.com",
+                version: 1,
+              }),
+            },
+          },
+        },
+      ),
+    ).resolves.toEqual({
+      status: "ignored_pending",
+      unitId: VALID_UNIT_ID,
+    });
+
+    const request = (fetchImpl.mock.calls[0] as unknown as [Request])[0];
+    expect(request.url).toBe("https://worker-kv.example.com/dispatch");
+    expect(request.headers.get(DISPATCH_SECRET_HEADER)).toBe(
+      "request-scoped-secret",
+    );
+  });
 });

@@ -1,3 +1,4 @@
+import { getRequestCloudflareEnv } from "../../../../lib/cloudflare-context";
 import {
   AdminApiError,
   adminUnavailable,
@@ -11,15 +12,22 @@ import { loadPublicEnv } from "../../../../lib/env";
 export async function POST(request: Request): Promise<Response> {
   try {
     assertAdminMutationRequest(request);
+    const cloudflareEnv = getRequestCloudflareEnv() ?? undefined;
     const input = parseCreateUnitInput(await request.json());
     const { registryObjectId } = loadPublicEnv(process.env);
 
-    return await relayAdminPost("/admin/create-unit", {
-      athleteId: input.athleteId,
-      blobId: input.blobId,
-      maxSlots: input.maxSlots,
-      registryObjectId,
-    });
+    return await relayAdminPost(
+      "/admin/create-unit",
+      {
+        athleteId: input.athleteId,
+        blobId: input.blobId,
+        maxSlots: input.maxSlots,
+        registryObjectId,
+      },
+      {
+        env: cloudflareEnv,
+      },
+    );
   } catch (error) {
     return toResponse(error);
   }

@@ -1,3 +1,4 @@
+import { getRequestCloudflareEnv } from "../../../lib/cloudflare-context";
 import {
   FinalizeApiError,
   jsonError,
@@ -7,14 +8,17 @@ import { dispatchFinalize } from "../../../lib/finalize/dispatch";
 import { createFinalizeRouteService } from "../../../lib/finalize/service";
 import { getFinalizeUnitSnapshot } from "../../../lib/sui";
 
-const finalizeRoute = createFinalizeRouteService({
-  dispatch: dispatchFinalize,
-  readUnitSnapshot: getFinalizeUnitSnapshot,
-});
-
 export async function POST(request: Request): Promise<Response> {
   try {
     const input = parseFinalizeInput(await request.json());
+    const cloudflareEnv = getRequestCloudflareEnv() ?? undefined;
+    const finalizeRoute = createFinalizeRouteService({
+      dispatch: (dispatchRequest) =>
+        dispatchFinalize(dispatchRequest, {
+          env: cloudflareEnv,
+        }),
+      readUnitSnapshot: getFinalizeUnitSnapshot,
+    });
     const result = await finalizeRoute.execute(input.unitId);
     return Response.json(result);
   } catch (error) {

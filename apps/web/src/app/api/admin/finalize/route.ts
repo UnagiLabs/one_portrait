@@ -1,3 +1,4 @@
+import { getRequestCloudflareEnv } from "../../../../lib/cloudflare-context";
 import {
   AdminApiError,
   assertAdminMutationRequest,
@@ -14,6 +15,7 @@ import { getFinalizeUnitSnapshot } from "../../../../lib/sui";
 export async function POST(request: Request): Promise<Response> {
   try {
     assertAdminMutationRequest(request);
+    const cloudflareEnv = getRequestCloudflareEnv() ?? undefined;
     const input = parseFinalizeInput(await request.json());
     const snapshot = await getFinalizeUnitSnapshot(input.unitId);
 
@@ -32,7 +34,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-      return Response.json(await dispatchFinalize({ unitId: input.unitId }));
+      return Response.json(
+        await dispatchFinalize(
+          { unitId: input.unitId },
+          {
+            env: cloudflareEnv,
+          },
+        ),
+      );
     } catch (error) {
       console.error("Admin finalize dispatch failed", error);
 
