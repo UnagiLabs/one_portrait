@@ -45,6 +45,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
   const connectWallet = useConnectWallet();
   const disconnectWallet = useDisconnectWallet();
   const [open, setOpen] = useState(false);
+  const [suiWalletModalOpen, setSuiWalletModalOpen] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -101,54 +102,68 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
 
   if (!currentAccount) {
     return (
-      <div className="relative" ref={containerRef}>
-        <button
-          className="op-btn-outline"
-          onClick={() => {
-            setOpen((current) => !current);
-          }}
-          type="button"
-        >
-          <GoogleGlyph />
-          <span className="ml-2">Sign In</span>
-        </button>
-
-        {open ? (
-          <div
-            className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-64 gap-3 border border-[var(--rule-strong)] bg-[#0a0604] p-5 shadow-2xl shadow-black/60"
-            style={{
-              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+      <>
+        <div className="relative" ref={containerRef}>
+          <button
+            className="op-btn-outline"
+            onClick={() => {
+              setOpen((current) => !current);
             }}
+            type="button"
           >
-            <p className="op-eyebrow">
-              <span className="bar" />
-              <span>Connect</span>
-            </p>
-            <button
-              className="op-btn-primary"
-              onClick={() => {
-                void handleGoogleLogin();
-              }}
-              type="button"
-            >
-              Google zkLogin
-            </button>
-            <SuiWalletConnectModal
-              trigger={
-                <button className="op-btn-ghost" type="button">
-                  Sui wallet
-                </button>
-              }
-            />
+            <GoogleGlyph />
+            <span className="ml-2">Sign In</span>
+          </button>
 
-            {connectError ? (
-              <p aria-live="polite" className="op-alert-warn text-sm" role="alert">
-                {connectError}
+          {open ? (
+            <div
+              className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-64 gap-3 border border-[var(--rule-strong)] bg-[#0a0604] p-5 shadow-2xl shadow-black/60"
+              style={{
+                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+              }}
+            >
+              <p className="op-eyebrow">
+                <span className="bar" />
+                <span>Connect</span>
               </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              <button
+                className="op-btn-primary"
+                onClick={() => {
+                  void handleGoogleLogin();
+                }}
+                type="button"
+              >
+                Google zkLogin
+              </button>
+              <button
+                className="op-btn-ghost"
+                onClick={() => {
+                  setConnectError(null);
+                  setOpen(false);
+                  setSuiWalletModalOpen(true);
+                }}
+                type="button"
+              >
+                Sui wallet
+              </button>
+
+              {connectError ? (
+                <p
+                  aria-live="polite"
+                  className="op-alert-warn text-sm"
+                  role="alert"
+                >
+                  {connectError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <SuiWalletConnectModal
+          onOpenChange={setSuiWalletModalOpen}
+          open={suiWalletModalOpen}
+        />
+      </>
     );
   }
 

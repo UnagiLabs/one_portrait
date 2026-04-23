@@ -6,17 +6,18 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 const DEFAULT_LOCAL_PORT = 8080;
 
-export { resolveCloudflaredConfigPath };
+export { resolveCloudflaredConfigPath, resolveTunnelMode };
 
 export async function runGeneratorStackPreflight({
   env = process.env,
   runCommand = defaultRunCommand,
   logger = console,
 } = {}) {
+  const tunnelMode = resolveTunnelMode(env);
   const tunnelName = normalizeRequiredValue(env.OP_LOCAL_TUNNEL_NAME);
   const dispatchUrlRaw = normalizeRequiredValue(env.OP_FINALIZE_DISPATCH_URL);
 
-  if (!tunnelName || !dispatchUrlRaw) {
+  if (tunnelMode === "named" && (!tunnelName || !dispatchUrlRaw)) {
     emitFailure(
       logger,
       "missing-env",
@@ -29,8 +30,9 @@ export async function runGeneratorStackPreflight({
     return failureResult("missing-env");
   }
 
-  const dispatchUrl = parseHttpsUrl(dispatchUrlRaw);
-  if (!dispatchUrl) {
+  const dispatchUrl =
+    tunnelMode === "named" ? parseHttpsUrl(dispatchUrlRaw) : null;
+  if (tunnelMode === "named" && !dispatchUrl) {
     emitFailure(logger, "tunnel-misconfig", [
       "OP_FINALIZE_DISPATCH_URL must be a valid https:// URL with a hostname",
     ]);
@@ -61,6 +63,15 @@ export async function runGeneratorStackPreflight({
 
     throw error;
   }
+  if (tunnelMode === "quick") {
+    return {
+      ok: true,
+      exitCode: 0,
+      localPort,
+      tunnelMode,
+    };
+  }
+
   const configPath = resolveCloudflaredConfigPath(env);
   const expectedService = `http://localhost:${localPort}`;
 
@@ -113,9 +124,11 @@ export async function runGeneratorStackPreflight({
   return {
     ok: true,
     exitCode: 0,
+    localPort,
+    publicBaseUrl: dispatchUrl.origin,
     tunnelName,
     publicHostname: dispatchUrl.hostname,
-    localPort,
+    tunnelMode,
   };
 }
 
@@ -142,6 +155,15 @@ function resolveCloudflaredConfigPath(env) {
     normalizeRequiredValue(env.CLOUDFLARED_CONFIG);
 
   return explicitPath ?? path.join(os.homedir(), ".cloudflared", "config.yml");
+}
+
+function resolveTunnelMode(env) {
+  const explicitMode = normalizeRequiredValue(env.OP_LOCAL_TUNNEL_MODE);
+  if (explicitMode === "named" || explicitMode === "quick") {
+    return explicitMode;
+  }
+
+  return normalizeRequiredValue(env.OP_LOCAL_TUNNEL_NAME) ? "named" : "quick";
 }
 
 function emitFailure(logger, marker, details = []) {

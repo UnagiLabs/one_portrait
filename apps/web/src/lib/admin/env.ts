@@ -12,14 +12,59 @@ export type AdminRelayEnv = {
   readonly sharedSecret: string;
 };
 
-export function loadAdminRelayEnv(source: EnvSource): AdminRelayEnv {
+import {
+  type GeneratorRuntimeCloudflareEnv,
+  type GeneratorRuntimeResolution,
+  resolveCloudflareGeneratorRuntime,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
+
+type LoadAdminRelayEnvDeps = {
+  readonly appRootPath?: string;
+  readonly resolveRuntime?: () => GeneratorRuntimeResolution;
+};
+
+export function loadAdminRelayEnv(
+  source: EnvSource,
+  deps: LoadAdminRelayEnvDeps = {},
+): AdminRelayEnv {
+  const runtime =
+    deps.resolveRuntime?.() ??
+    resolveGeneratorRuntime({
+      appRootPath: deps.appRootPath,
+      env: source,
+    });
+
+  if (runtime.status !== "ok") {
+    throw new AdminEnvError(runtime.message);
+  }
+
   return {
-    generatorBaseUrl: readRequiredValue(
-      source.OP_GENERATOR_BASE_URL,
-      "OP_GENERATOR_BASE_URL",
-    ).replace(/\/+$/, ""),
+    generatorBaseUrl: runtime.url,
     sharedSecret: readRequiredValue(
       source.OP_FINALIZE_DISPATCH_SECRET,
+      "OP_FINALIZE_DISPATCH_SECRET",
+    ),
+  };
+}
+
+export async function loadCloudflareAdminRelayEnv(
+  source: GeneratorRuntimeCloudflareEnv,
+): Promise<AdminRelayEnv> {
+  const runtime = await resolveCloudflareGeneratorRuntime({
+    env: source,
+  });
+
+  if (runtime.status !== "ok") {
+    throw new AdminEnvError(runtime.message);
+  }
+
+  return {
+    generatorBaseUrl: runtime.url,
+    sharedSecret: readRequiredValue(
+      typeof source.OP_FINALIZE_DISPATCH_SECRET === "string"
+        ? source.OP_FINALIZE_DISPATCH_SECRET
+        : undefined,
       "OP_FINALIZE_DISPATCH_SECRET",
     ),
   };

@@ -110,6 +110,7 @@ function ConnectedGalleryClient({
   });
   const [reloadNonce, setReloadNonce] = useState(0);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [suiWalletModalOpen, setSuiWalletModalOpen] = useState(false);
   const [failedOriginalBlobIds, setFailedOriginalBlobIds] = useState<
     readonly string[]
   >([]);
@@ -226,6 +227,8 @@ function ConnectedGalleryClient({
                 : "Google zkLogin"}
           </button>
           <SuiWalletConnectModal
+            onOpenChange={setSuiWalletModalOpen}
+            open={suiWalletModalOpen}
             trigger={
               <button className="op-btn-ghost" type="button">
                 Sui wallet

@@ -5,12 +5,20 @@ const { loadAdminRelayEnvMock, loadPublicEnvMock } = vi.hoisted(() => ({
   loadPublicEnvMock: vi.fn(),
 }));
 
+const { getRequestCloudflareEnvMock } = vi.hoisted(() => ({
+  getRequestCloudflareEnvMock: vi.fn(),
+}));
+
 vi.mock("../../../../lib/admin/env", () => ({
   loadAdminRelayEnv: loadAdminRelayEnvMock,
 }));
 
 vi.mock("../../../../lib/env", () => ({
   loadPublicEnv: loadPublicEnvMock,
+}));
+
+vi.mock("../../../../lib/cloudflare-context", () => ({
+  getRequestCloudflareEnv: getRequestCloudflareEnvMock,
 }));
 
 import { POST } from "./route";
@@ -26,6 +34,7 @@ describe("POST /api/admin/rotate-unit", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     fetchMock.mockReset();
+    getRequestCloudflareEnvMock.mockReset();
     loadAdminRelayEnvMock.mockReset();
     loadPublicEnvMock.mockReset();
   });
@@ -65,6 +74,7 @@ describe("POST /api/admin/rotate-unit", () => {
   });
 
   it("relays the validated rotate-unit request to the generator", async () => {
+    getRequestCloudflareEnvMock.mockReturnValue(null);
     loadPublicEnvMock.mockReturnValue({
       packageId: "0xpkg",
       registryObjectId: VALID_REGISTRY_ID,

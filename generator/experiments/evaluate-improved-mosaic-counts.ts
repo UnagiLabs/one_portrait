@@ -79,7 +79,7 @@ async function main() {
 
   if (manifest.tileCount < 1000) {
     throw new Error(
-      `Dataset only has ${manifest.tileCount} tiles. Run pnpm --filter generator sync:demo-tiles first.`,
+      `Dataset only has ${manifest.tileCount} tiles. Run pnpm --filter generator experiment:sync-demo-tiles first.`,
     );
   }
 

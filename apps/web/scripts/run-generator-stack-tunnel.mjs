@@ -1,6 +1,15 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  removeGeneratorRuntimeState,
+  writeGeneratorRuntimeState,
+} from "./generator-runtime.mjs";
+import {
+  deleteRemoteGeneratorRuntime,
+  writeRemoteGeneratorRuntime,
+} from "./generator-runtime-remote.mjs";
 import { waitForGeneratorStackHealth } from "./generator-stack-health.mjs";
 import {
   resolveCloudflaredConfigPath,
@@ -17,6 +26,7 @@ const webRoot = path.resolve(__dirname, "..");
 const DEFAULT_LOCAL_PORT = 8080;
 
 export async function runGeneratorStackTunnel({
+  appRootPath = webRoot,
   env = process.env,
   logger = console,
   preflight = runGeneratorStackPreflight,
@@ -24,18 +34,36 @@ export async function runGeneratorStackTunnel({
   spawnImpl = spawn,
   startLocalGenerator = startLocalGeneratorLauncher,
   waitForHealth = waitForGeneratorStackHealth,
+  deleteRemoteRuntime = deleteRemoteGeneratorRuntime,
+  writeRemoteRuntime = writeRemoteGeneratorRuntime,
 } = {}) {
   const signalState = createSignalState(processImpl);
   let generator = null;
   let tunnel = null;
+  let tunnelChild = null;
+  let remoteRuntimeInitialized = false;
   const mergedEnv = loadWebScriptEnv({ env });
   const cloudflaredConfigPath = resolveCloudflaredConfigPath(mergedEnv);
 
   try {
+    removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
+
     const preflightResult = await preflight({ env: mergedEnv, logger });
     if (!preflightResult.ok) {
       return preflightResult;
     }
+    const deleteBeforeStartResult = await deleteRemoteRuntime({
+      env: mergedEnv,
+      logger,
+    });
+    if (!deleteBeforeStartResult.ok) {
+      return {
+        exitCode: 1,
+        marker: "[generator-stack][remote-kv][delete-failed]",
+        ok: false,
+      };
+    }
+    remoteRuntimeInitialized = true;
 
     if (signalState.value !== null) {
       return stopForSignal({
@@ -90,23 +118,15 @@ export async function runGeneratorStackTunnel({
       return localHealth.result;
     }
 
-    tunnel = trackChild(
-      spawnImpl(
-        "cloudflared",
-        [
-          "--config",
-          cloudflaredConfigPath,
-          "tunnel",
-          "run",
-          preflightResult.tunnelName,
-        ],
-        {
-          cwd: webRoot,
-          env: mergedEnv,
-          stdio: "inherit",
-        },
-      ),
-    );
+    tunnelChild = spawnTunnel({
+      cloudflaredConfigPath,
+      env: mergedEnv,
+      localPort: preflightResult.localPort ?? DEFAULT_LOCAL_PORT,
+      spawnImpl,
+      tunnelMode: preflightResult.tunnelMode,
+      tunnelName: preflightResult.tunnelName,
+    });
+    tunnel = trackChild(tunnelChild);
 
     if (signalState.value !== null) {
       return stopForSignal({
@@ -116,11 +136,72 @@ export async function runGeneratorStackTunnel({
       });
     }
 
+    const publicBaseUrlResult =
+      preflightResult.tunnelMode === "named"
+        ? {
+            kind: "url",
+            url: preflightResult.publicBaseUrl,
+          }
+        : await waitForQuickTunnelUrl({
+            child: tunnelChild,
+            logger,
+            terminalPromises: [
+              generator.exitPromise.then((result) => ({
+                child: "generator",
+                kind: "child-exit",
+                result,
+              })),
+              tunnel.exitPromise.then((result) => ({
+                child: "tunnel",
+                kind: "child-exit",
+                result,
+              })),
+              signalState.promise,
+            ],
+          });
+
+    if (publicBaseUrlResult.kind !== "url") {
+      return handleTerminalResult({
+        generator,
+        result: publicBaseUrlResult,
+        tunnel,
+      });
+    }
+
+    const publicBaseUrl = publicBaseUrlResult.url;
+    writeGeneratorRuntimeState({
+      appRootPath,
+      env: mergedEnv,
+      mode: preflightResult.tunnelMode,
+      pid:
+        typeof tunnelChild.pid === "number" && tunnelChild.pid > 0
+          ? tunnelChild.pid
+          : processImpl.pid,
+      url: publicBaseUrl,
+    });
+    if (preflightResult.tunnelMode === "quick") {
+      const writeRemoteRuntimeResult = await writeRemoteRuntime({
+        env: mergedEnv,
+        logger,
+        mode: "quick",
+        url: publicBaseUrl,
+      });
+      if (!writeRemoteRuntimeResult.ok) {
+        await stopTrackedChild(generator);
+        await stopTrackedChild(tunnel);
+        return {
+          exitCode: 1,
+          marker: "[generator-stack][remote-kv][write-failed]",
+          ok: false,
+        };
+      }
+    }
+
     const externalHealth = await waitForHealthPhase({
       healthPromise: waitForHealth({
         label: "external",
         logger,
-        url: new URL("/health", mergedEnv.OP_FINALIZE_DISPATCH_URL).href,
+        url: new URL("/health", `${publicBaseUrl}/`).href,
       }),
       terminalPromises: [
         generator.exitPromise.then((result) => ({
@@ -181,7 +262,14 @@ export async function runGeneratorStackTunnel({
       tunnel,
     });
   } finally {
+    if (remoteRuntimeInitialized) {
+      await deleteRemoteRuntime({
+        env: mergedEnv,
+        logger,
+      });
+    }
     signalState.cleanup();
+    removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
   }
 }
 
@@ -297,11 +385,87 @@ function trackChild(child) {
   };
 }
 
+function spawnTunnel({
+  cloudflaredConfigPath,
+  env,
+  localPort,
+  spawnImpl,
+  tunnelMode,
+  tunnelName,
+}) {
+  if (tunnelMode === "named") {
+    return spawnImpl(
+      "cloudflared",
+      ["--config", cloudflaredConfigPath, "tunnel", "run", tunnelName],
+      {
+        cwd: webRoot,
+        env,
+        stdio: "inherit",
+      },
+    );
+  }
+
+  return spawnImpl(
+    "cloudflared",
+    ["tunnel", "--url", `http://127.0.0.1:${localPort}`],
+    {
+      cwd: webRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+}
+
 async function waitForHealthPhase({ healthPromise, terminalPromises }) {
   return Promise.race([
     healthPromise.then((result) => ({ kind: "health", result })),
     ...terminalPromises,
   ]);
+}
+
+async function waitForQuickTunnelUrl({ child, logger, terminalPromises }) {
+  return Promise.race([
+    listenForQuickTunnelUrl({ child, logger }),
+    ...terminalPromises,
+  ]);
+}
+
+function listenForQuickTunnelUrl({ child, logger }) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const buffers = {
+      stderr: "",
+      stdout: "",
+    };
+
+    const onData = (stream) => (chunk) => {
+      const text = String(chunk ?? "");
+      if (!text) {
+        return;
+      }
+
+      buffers[stream] += text;
+      const parts = buffers[stream].split(/\r?\n/);
+      buffers[stream] = parts.pop() ?? "";
+
+      for (const line of parts) {
+        if (!line) {
+          continue;
+        }
+
+        logger?.info?.(line);
+        const url = extractQuickTunnelUrl(line);
+        if (url !== null && !settled) {
+          settled = true;
+          resolve({ kind: "url", url });
+          return;
+        }
+      }
+    };
+
+    child.stdout?.on?.("data", onData("stdout"));
+    child.stderr?.on?.("data", onData("stderr"));
+  });
 }
 
 async function handleTerminalResult({ generator, result, tunnel }) {
@@ -349,6 +513,14 @@ async function stopTrackedChild(child) {
   await child.stop("SIGTERM");
 }
 
+function extractQuickTunnelUrl(line) {
+  const matched = String(line ?? "").match(
+    /https:\/\/[a-z0-9-]+\.trycloudflare\.com/iu,
+  );
+
+  return matched ? matched[0].replace(/\/+$/, "") : null;
+}
+
 function isSignalResult(value) {
   return (
     typeof value === "object" &&
@@ -358,17 +530,6 @@ function isSignalResult(value) {
   );
 }
 
-function removeListener(target, eventName, handler) {
-  if (typeof target.off === "function") {
-    target.off(eventName, handler);
-    return;
-  }
-
-  if (typeof target.removeListener === "function") {
-    target.removeListener(eventName, handler);
-  }
-}
-
 function isExecutedDirectly() {
   const entry = process.argv[1];
   if (!entry) {
@@ -376,4 +537,13 @@ function isExecutedDirectly() {
   }
 
   return path.resolve(entry) === __filename;
+}
+
+function removeListener(processImpl, event, listener) {
+  if (typeof processImpl.off === "function") {
+    processImpl.off(event, listener);
+    return;
+  }
+
+  processImpl.removeListener?.(event, listener);
 }

@@ -1,3 +1,9 @@
+import {
+  type GeneratorRuntimeCloudflareEnv,
+  type GeneratorRuntimeResolution,
+  resolveCloudflareGeneratorRuntime,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
 import { FinalizeApiError } from "./api";
 
 export type FinalizeDispatchRequest = {
@@ -21,30 +27,43 @@ export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 
 type FinalizeDispatcherDeps = {
   readonly fetchImpl?: typeof fetch;
-  readonly dispatchBaseUrl?: string | undefined;
   readonly dispatchSecret?: string | undefined;
+  readonly resolveRuntime?:
+    | (() => GeneratorRuntimeResolution | Promise<GeneratorRuntimeResolution>)
+    | undefined;
+};
+
+type FinalizeDispatchRuntimeDeps = {
+  readonly env?: GeneratorRuntimeCloudflareEnv;
 };
 
 export function createFinalizeDispatcher(
   deps: FinalizeDispatcherDeps = {
     fetchImpl: fetch,
-    dispatchBaseUrl: process.env.OP_FINALIZE_DISPATCH_URL,
     dispatchSecret: process.env.OP_FINALIZE_DISPATCH_SECRET,
+    resolveRuntime: () => resolveGeneratorRuntime(),
   },
 ) {
   return async function dispatchFinalize(
     request: FinalizeDispatchRequest,
+    runtimeDeps: FinalizeDispatchRuntimeDeps = {},
   ): Promise<FinalizeDispatchResult> {
-    const dispatchBaseUrl = normalizeDispatchBaseUrl(deps.dispatchBaseUrl);
-    if (dispatchBaseUrl === null) {
-      throw new FinalizeApiError(
-        503,
-        "finalize_unavailable",
-        "外部 generator の URL が未設定です。`OP_FINALIZE_DISPATCH_URL` を設定してください。",
-      );
+    const runtime = runtimeDeps.env
+      ? await resolveCloudflareGeneratorRuntime({
+          env: runtimeDeps.env,
+        })
+      : await Promise.resolve(
+          deps.resolveRuntime?.() ?? resolveGeneratorRuntime(),
+        );
+    if (runtime.status !== "ok") {
+      throw new FinalizeApiError(503, "finalize_unavailable", runtime.message);
     }
 
-    const dispatchSecret = normalizeDispatchSecret(deps.dispatchSecret);
+    const dispatchSecret = normalizeDispatchSecret(
+      typeof runtimeDeps.env?.OP_FINALIZE_DISPATCH_SECRET === "string"
+        ? runtimeDeps.env.OP_FINALIZE_DISPATCH_SECRET
+        : deps.dispatchSecret,
+    );
     if (dispatchSecret === null) {
       throw new FinalizeApiError(
         503,
@@ -57,7 +76,7 @@ export function createFinalizeDispatcher(
       fetchImpl: deps.fetchImpl ?? fetch,
       request,
       secret: dispatchSecret,
-      url: new URL("/dispatch", `${dispatchBaseUrl}/`).toString(),
+      url: new URL("/dispatch", `${runtime.url}/`).toString(),
     });
   };
 }
@@ -86,16 +105,6 @@ async function dispatchToGenerator(input: {
   }
 
   return (await response.json()) as FinalizeDispatchResult;
-}
-
-function normalizeDispatchBaseUrl(value: string | undefined): string | null {
-  const normalized = typeof value === "string" ? value.trim() : "";
-
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  return normalized.replace(/\/+$/, "");
 }
 
 function normalizeDispatchSecret(value: string | undefined): string | null {

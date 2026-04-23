@@ -1,52 +1,34 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { loadAdminRelayEnvMock } = vi.hoisted(() => ({
-  loadAdminRelayEnvMock: vi.fn(),
+const { getAdminHealthMock, getRequestCloudflareEnvMock } = vi.hoisted(() => ({
+  getAdminHealthMock: vi.fn(),
+  getRequestCloudflareEnvMock: vi.fn(),
 }));
 
-vi.mock("../../../../lib/admin/env", () => ({
-  loadAdminRelayEnv: loadAdminRelayEnvMock,
+vi.mock("../../../../lib/admin/health", () => ({
+  getAdminHealth: getAdminHealthMock,
+}));
+
+vi.mock("../../../../lib/cloudflare-context", () => ({
+  getRequestCloudflareEnv: getRequestCloudflareEnvMock,
 }));
 
 import { GET } from "./route";
 
 describe("GET /api/admin/health", () => {
-  const fetchMock = vi.fn();
-
   afterEach(() => {
-    vi.unstubAllGlobals();
-    fetchMock.mockReset();
-    loadAdminRelayEnvMock.mockReset();
+    getAdminHealthMock.mockReset();
+    getRequestCloudflareEnvMock.mockReset();
   });
 
-  it("returns readiness and dispatch probe states separately", async () => {
-    loadAdminRelayEnvMock.mockReturnValue({
-      generatorBaseUrl: "https://generator.example.com",
-      sharedSecret: "shared-secret",
+  it("returns readiness, dispatch probe, and runtime source data", async () => {
+    getRequestCloudflareEnvMock.mockReturnValue({
+      OP_GENERATOR_RUNTIME_KV: {
+        get: vi.fn(),
+      },
     });
-    fetchMock.mockImplementation(async (request: Request) => {
-      if (request.url === "https://generator.example.com/health") {
-        return new Response("ok", { status: 200 });
-      }
-
-      if (request.url === "https://generator.example.com/dispatch-auth-probe") {
-        expect(request.headers.get("x-op-finalize-dispatch-secret")).toBe(
-          "shared-secret",
-        );
-        return new Response(JSON.stringify({ status: "ok" }), {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        });
-      }
-
-      throw new Error(`Unexpected URL: ${request.url}`);
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const response = await GET();
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    getAdminHealthMock.mockResolvedValue({
+      currentUrl: "https://generator.example.com",
       dispatchAuthorization: {
         httpStatus: 200,
         status: "ok",
@@ -55,44 +37,69 @@ describe("GET /api/admin/health", () => {
         httpStatus: 200,
         status: "ok",
       },
+      resolutionStatus: "ok",
+      source: "runtime_state",
     });
-  });
 
-  it("surfaces a dispatch authorization failure without hiding readiness", async () => {
-    loadAdminRelayEnvMock.mockReturnValue({
-      generatorBaseUrl: "https://generator.example.com",
-      sharedSecret: "shared-secret",
-    });
-    fetchMock.mockImplementation(async (request: Request) => {
-      if (request.url === "https://generator.example.com/health") {
-        return new Response("ok", { status: 200 });
-      }
+    const response = await GET();
 
-      return new Response(
-        JSON.stringify({
-          error: "unauthorized",
-          message: "Dispatch secret is invalid.",
-        }),
-        {
-          headers: { "content-type": "application/json" },
-          status: 401,
+    expect(getAdminHealthMock).toHaveBeenCalledWith({
+      env: {
+        OP_GENERATOR_RUNTIME_KV: {
+          get: expect.any(Function),
         },
-      );
+      },
     });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const response = await GET();
-
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      currentUrl: "https://generator.example.com",
       dispatchAuthorization: {
-        httpStatus: 401,
-        status: "unauthorized",
+        httpStatus: 200,
+        status: "ok",
       },
       generatorReadiness: {
         httpStatus: 200,
         status: "ok",
       },
+      resolutionStatus: "ok",
+      source: "runtime_state",
+    });
+  });
+
+  it("surfaces a misconfigured runtime payload", async () => {
+    getRequestCloudflareEnvMock.mockReturnValue(null);
+    getAdminHealthMock.mockResolvedValue({
+      currentUrl: null,
+      dispatchAuthorization: {
+        httpStatus: null,
+        status: "misconfigured",
+      },
+      generatorReadiness: {
+        httpStatus: null,
+        status: "misconfigured",
+      },
+      resolutionStatus: "misconfigured",
+      source: "none",
+    });
+
+    const response = await GET();
+
+    expect(getAdminHealthMock).toHaveBeenCalledWith({
+      env: undefined,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      dispatchAuthorization: {
+        httpStatus: null,
+        status: "misconfigured",
+      },
+      generatorReadiness: {
+        httpStatus: null,
+        status: "misconfigured",
+      },
+      currentUrl: null,
+      resolutionStatus: "misconfigured",
+      source: "none",
     });
   });
 });

@@ -1,6 +1,9 @@
 import { DISPATCH_SECRET_HEADER } from "../finalize/dispatch";
-
-import { loadAdminRelayEnv } from "./env";
+import {
+  type GeneratorRuntimeCloudflareEnv,
+  resolveCloudflareGeneratorRuntime,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
 
 export type AdminHealthStatus = {
   readonly httpStatus: number | null;
@@ -8,25 +11,34 @@ export type AdminHealthStatus = {
 };
 
 export type AdminHealthSummary = {
+  readonly currentUrl: string | null;
   readonly dispatchAuthorization: AdminHealthStatus;
   readonly generatorReadiness: AdminHealthStatus;
+  readonly resolutionStatus: "misconfigured" | "ok";
+  readonly source:
+    | "fallback"
+    | "legacy_env"
+    | "none"
+    | "override"
+    | "runtime_state"
+    | "worker_kv";
 };
 
-export async function getAdminHealth(): Promise<AdminHealthSummary> {
-  try {
-    const relay = loadAdminRelayEnv(process.env);
+type GetAdminHealthDeps = {
+  readonly env?: GeneratorRuntimeCloudflareEnv;
+};
 
-    const [generatorReadiness, dispatchAuthorization] = await Promise.all([
-      fetchGeneratorReadiness(relay.generatorBaseUrl),
-      fetchDispatchAuthorization(relay.generatorBaseUrl, relay.sharedSecret),
-    ]);
-
+export async function getAdminHealth(
+  deps: GetAdminHealthDeps = {},
+): Promise<AdminHealthSummary> {
+  const env = deps.env ?? process.env;
+  const runtime =
+    deps.env === undefined
+      ? resolveGeneratorRuntime({ env: process.env })
+      : await resolveCloudflareGeneratorRuntime({ env });
+  if (runtime.status !== "ok") {
     return {
-      dispatchAuthorization,
-      generatorReadiness,
-    };
-  } catch {
-    return {
+      currentUrl: null,
       dispatchAuthorization: {
         httpStatus: null,
         status: "misconfigured",
@@ -35,8 +47,33 @@ export async function getAdminHealth(): Promise<AdminHealthSummary> {
         httpStatus: null,
         status: "misconfigured",
       },
+      resolutionStatus: "misconfigured",
+      source: "none",
     };
   }
+
+  const sharedSecret = normalizeSharedSecret(
+    typeof env.OP_FINALIZE_DISPATCH_SECRET === "string"
+      ? env.OP_FINALIZE_DISPATCH_SECRET
+      : undefined,
+  );
+  const [generatorReadiness, dispatchAuthorization] = await Promise.all([
+    fetchGeneratorReadiness(runtime.url),
+    sharedSecret === null
+      ? Promise.resolve({
+          httpStatus: null,
+          status: "misconfigured",
+        } satisfies AdminHealthStatus)
+      : fetchDispatchAuthorization(runtime.url, sharedSecret),
+  ]);
+
+  return {
+    currentUrl: runtime.url,
+    dispatchAuthorization,
+    generatorReadiness,
+    resolutionStatus: "ok",
+    source: runtime.source,
+  };
 }
 
 async function fetchGeneratorReadiness(
@@ -98,4 +135,9 @@ function mapDispatchStatus(httpStatus: number): AdminHealthStatus["status"] {
     return "unauthorized";
   }
   return "unreachable";
+}
+
+function normalizeSharedSecret(value: string | undefined): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized.length > 0 ? normalized : null;
 }

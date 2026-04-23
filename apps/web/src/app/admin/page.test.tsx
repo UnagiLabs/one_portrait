@@ -18,6 +18,14 @@ vi.mock("../../lib/admin/health", () => ({
 
 import AdminPage from "./page";
 
+const HEALTH_OK = {
+  currentUrl: "https://generator.example.com",
+  dispatchAuthorization: { httpStatus: 200, status: "ok" } as const,
+  generatorReadiness: { httpStatus: 200, status: "ok" } as const,
+  resolutionStatus: "ok" as const,
+  source: "runtime_state" as const,
+};
+
 describe("AdminPage", () => {
   it("renders the admin console with the initial server data", async () => {
     loadAdminAthletesMock.mockResolvedValue([
@@ -39,10 +47,7 @@ describe("AdminPage", () => {
         thumbnailUrl: "https://example.com/1.png",
       },
     ]);
-    getAdminHealthMock.mockResolvedValue({
-      dispatchAuthorization: { httpStatus: 200, status: "ok" },
-      generatorReadiness: { httpStatus: 200, status: "ok" },
-    });
+    getAdminHealthMock.mockResolvedValue(HEALTH_OK);
 
     const ui = await AdminPage();
     render(ui);
@@ -52,6 +57,7 @@ describe("AdminPage", () => {
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
     expect(screen.getByText(/target-blob-1/)).toBeTruthy();
-    expect(screen.getAllByText("ok")).toHaveLength(2);
+    expect(screen.getAllByText("ok")).toHaveLength(3);
+    expect(screen.getByText("https://generator.example.com")).toBeTruthy();
   });
 });
