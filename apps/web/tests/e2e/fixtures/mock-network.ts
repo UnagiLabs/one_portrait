@@ -471,6 +471,7 @@ function handleGetObject(
             status: galleryEntryMode === "completed" ? 2 : 0,
             target_walrus_blob: [],
             submissions: [],
+            display_max_slots: String(unitTileCount),
             max_slots: String(unitTileCount),
             athlete_id: Number(STUB_ATHLETE_ID),
             submitters: {

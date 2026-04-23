@@ -29,11 +29,11 @@ test.describe("waiting room events", () => {
     await expect(
       page.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeVisible();
-    await expect(
-      page.getByText(
-        new RegExp(`${unitTileCount - 1}\\s*/\\s*${unitTileCount}`),
+    await expect(page.getByTestId("live-progress-counter")).toContainText(
+      new RegExp(
+        `${(unitTileCount - 1).toLocaleString()}\\s*/\\s*${unitTileCount.toLocaleString()}`,
       ),
-    ).toBeVisible();
+    );
   });
 
   test("SubmittedEvent increments the counter and UnitFilledEvent finalizes only once", async ({
@@ -43,9 +43,12 @@ test.describe("waiting room events", () => {
       waitingRoomEventMode: "active",
     });
 
-    await expect(
-      page.getByText(new RegExp(`${unitTileCount}\\s*/\\s*${unitTileCount}`)),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("live-progress-counter")).toContainText(
+      new RegExp(
+        `${unitTileCount.toLocaleString()}\\s*/\\s*${unitTileCount.toLocaleString()}`,
+      ),
+      { timeout: 15_000 },
+    );
     await expect(page.getByText("Filled")).toBeVisible();
     await expect.poll(() => state.finalizeRequests).toBe(1);
     await expect.poll(() => state.lastFinalizeUnitId).toBe(STUB_UNIT_ID);
