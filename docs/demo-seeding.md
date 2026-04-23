@@ -6,6 +6,10 @@
 対象は `画像前処理 -> Walrus PUT -> direct submit_photo -> progress 確認` です。  
 当日の最後の 1 件は、通常フロントから real submit します。
 
+前提として、対象 athlete の `displayName` / `slug` / `thumbnailUrl` は
+Admin UI から on-chain `Registry` に登録済みである必要があります。  
+unit 作成も、その metadata 登録の後に行います。
+
 ## このツールの前提
 
 - Sui は testnet を使います。
@@ -13,6 +17,7 @@
 - `submit_photo` は既存の `accessors::submit_photo` をそのまま使います。
 - sender は Sponsored ではありません。各 sender に testnet gas が必要です。
 - unit は `Pending` のまま残っている必要があります。
+- 対象 athlete の on-chain metadata が登録済みである必要があります。
 
 ## 必要なもの
 
@@ -79,6 +84,12 @@ corepack pnpm --filter generator seed:demo-submissions -- --mode <simulate|live>
 `--images` と `--manifest` はどちらか片方を使います。
 
 ## 1. simulate
+
+simulate の前に、Admin UI で次を済ませます。
+
+1. athlete metadata を on-chain 登録する
+2. 必要なら対象画像を使って unit を作成する
+3. seeding 対象の `unitId` を控える
 
 まずは副作用なしで、入力と sender 割当を確認します。
 
