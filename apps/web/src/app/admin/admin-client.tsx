@@ -324,10 +324,12 @@ export function AdminClient({
 
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">ユニットを切り替え</h2>
+            <h2 className="font-serif text-2xl text-white">
+              ユニットを切り替え
+            </h2>
             <p className="text-sm leading-6 text-stone-300">
-              選択した選手の現在ユニットを切り替えます。直前に作成した
-              unit ID は自動でここに反映されます。
+              選択した選手の現在ユニットを切り替えます。直前に作成した unit ID
+              は自動でここに反映されます。
             </p>
           </div>
 
@@ -384,8 +386,8 @@ export function AdminClient({
         <div className="grid gap-1">
           <h2 className="font-serif text-2xl text-white">現在の状態</h2>
           <p className="text-sm leading-6 text-stone-300">
-            各選手の現在ユニット状態を確認し、filled のまま停止した
-            ユニットで finalize を再試行できます。
+            各選手の現在ユニット状態を確認し、filled のまま停止した ユニットで
+            finalize を再試行できます。
           </p>
         </div>
 
@@ -475,10 +477,7 @@ function AdminAthleteCard({
               value={`${currentUnit.submittedCount} / ${currentUnit.maxSlots}`}
             />
             <InfoRow label="ステータス" value={currentUnit.status} />
-            <InfoRow
-              label="対象 blob"
-              value={currentUnit.targetWalrusBlobId}
-            />
+            <InfoRow label="対象 blob" value={currentUnit.targetWalrusBlobId} />
           </dl>
           <button
             className="rounded-full border border-emerald-200/30 bg-emerald-300/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -530,15 +529,11 @@ async function postJson(
 
 function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
-    typeof payload.status === "string"
-      ? `ステータス: ${payload.status}`
-      : null,
+    typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
     typeof payload.digest === "string"
       ? `ダイジェスト: ${payload.digest}`
       : null,
-    typeof payload.unitId === "string"
-      ? `ユニットID: ${payload.unitId}`
-      : null,
+    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.mosaicBlobId === "string"
       ? `モザイク Blob ID: ${payload.mosaicBlobId}`
       : null,
