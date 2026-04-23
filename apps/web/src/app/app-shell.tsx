@@ -18,29 +18,86 @@ export function AppShell({ children }: AppShellProps): React.ReactElement {
 
   return (
     <>
-      {showHeader ? <GlobalHeader /> : null}
+      {showHeader ? <GlobalHeader pathname={pathname} /> : null}
       {children}
     </>
   );
 }
 
-function GlobalHeader(): React.ReactElement {
+function GlobalHeader({
+  pathname,
+}: {
+  readonly pathname: string;
+}): React.ReactElement {
+  const isHome = pathname === "/";
+  const isGallery = pathname.startsWith("/gallery");
+  const isArena =
+    pathname.startsWith("/units") || (!isHome && !isGallery);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-6 py-3 text-slate-50">
-        <Link
-          className="text-sm uppercase tracking-[0.35em] text-cyan-200/90 hover:text-cyan-100"
-          href="/"
-        >
-          one portrait
+    <header className="op-chrome">
+      <div className="op-chrome-left">
+        <Link className="op-brand" href="/">
+          <BrandMark />
+          <div className="op-brand-name">
+            <span>ONE PORTRAIT</span>
+            <em>Kakera</em>
+          </div>
         </Link>
-        <nav className="flex items-center gap-4 text-sm text-slate-200">
-          <Link className="hover:text-white" href="/gallery">
+        <nav className="op-chrome-nav">
+          <Link className={isHome ? "active" : ""} href="/">
+            Home
+          </Link>
+          <Link className={isArena ? "active" : ""} href="/">
+            Arena
+          </Link>
+          <Link className={isGallery ? "active" : ""} href="/gallery">
             Gallery
           </Link>
         </nav>
+      </div>
+      <div className="op-chrome-right">
+        <div className="flex items-center gap-2">
+          <span className="op-status-dot" />
+          <span className="op-mono-tag">SUI · TESTNET</span>
+        </div>
         <GlobalWalletEntry />
       </div>
     </header>
+  );
+}
+
+function BrandMark(): React.ReactElement {
+  return (
+    <div className="op-brand-mark">
+      <svg viewBox="0 0 40 40">
+        <title>ONE Portrait</title>
+        <rect
+          fill="none"
+          height={36}
+          stroke="#FF7A1A"
+          strokeWidth={1.5}
+          width={36}
+          x={2}
+          y={2}
+        />
+        <rect fill="#FF7A1A" height={10} width={10} x={8} y={8} />
+        <rect
+          fill="rgba(255,122,26,0.4)"
+          height={10}
+          width={10}
+          x={22}
+          y={8}
+        />
+        <rect
+          fill="rgba(255,122,26,0.4)"
+          height={10}
+          width={10}
+          x={8}
+          y={22}
+        />
+        <rect fill="#FF7A1A" height={10} width={10} x={22} y={22} />
+      </svg>
+    </div>
   );
 }

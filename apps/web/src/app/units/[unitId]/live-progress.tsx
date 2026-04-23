@@ -78,17 +78,34 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     },
   });
 
+  const pct =
+    maxSlots > 0 ? (submittedCount / maxSlots) * 100 : 0;
+  const remaining = Math.max(0, maxSlots - submittedCount);
+
   return (
-    <div className="grid gap-2">
-      <p
-        aria-live="polite"
-        className="font-mono text-3xl tabular-nums text-white"
-      >
-        {submittedCount} / {maxSlots}
+    <div className="grid gap-5">
+      <p aria-live="polite" className="op-big-counter tabular-nums">
+        <span className="num">{submittedCount.toLocaleString()}</span>
+        <span className="slash">/</span>
+        <span className="total">{maxSlots.toLocaleString()}</span>
       </p>
-      <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-        {filled ? "Filled" : "Filling"}
-      </p>
+      <div className="grid gap-2">
+        <div className="op-progress-bar">
+          <div
+            className="op-progress-bar-fill"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-3 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+          <span className="text-[var(--ember)]">
+            {filled ? "Filled" : "Filling"}
+          </span>
+          <span>
+            {remaining.toLocaleString()} tiles remaining ·{" "}
+            {submittedCount.toLocaleString()} Kakera minted
+          </span>
+        </div>
+      </div>
       {/* TODO(issue-4+): render submit button here (zkLogin + Sponsored Tx). */}
       {/* TODO(issue-6+): wrap reveal timing around this counter if needed. */}
     </div>

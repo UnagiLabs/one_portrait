@@ -212,7 +212,7 @@ function ConnectedGalleryClient({
       >
         <div className="mt-4 flex flex-wrap gap-3">
           <button
-            className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200"
+            className="op-btn-primary"
             disabled={isConnecting}
             onClick={() => {
               void handleLogin();
@@ -227,10 +227,7 @@ function ConnectedGalleryClient({
           </button>
           <SuiWalletConnectModal
             trigger={
-              <button
-                className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
-                type="button"
-              >
+              <button className="op-btn-ghost" type="button">
                 Sui wallet
               </button>
             }
@@ -239,7 +236,7 @@ function ConnectedGalleryClient({
         {connectError ? (
           <p
             aria-live="polite"
-            className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+            className="op-alert-warn mt-4 font-mono-op text-[11px] tracking-[0.08em]"
             role="alert"
           >
             {connectError}
@@ -259,7 +256,7 @@ function ConnectedGalleryClient({
       >
         <div className="mt-4 flex flex-wrap gap-3">
           <button
-            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+            className="op-btn-outline"
             onClick={() => {
               setReloadNonce((current) => current + 1);
             }}
@@ -293,7 +290,7 @@ function ConnectedGalleryClient({
       >
         <div className="mt-4 flex flex-wrap gap-3">
           <button
-            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 hover:border-cyan-200"
+            className="op-btn-outline"
             onClick={() => {
               setReloadNonce((current) => current + 1);
             }}
@@ -337,7 +334,7 @@ function GalleryEntriesSection({
   onOriginalImageError,
 }: GalleryEntriesSectionProps): React.ReactElement {
   return (
-    <section className="grid gap-6 md:grid-cols-2">
+    <section className="grid gap-px bg-[var(--rule)] md:grid-cols-2">
       {entries.map((entry) => (
         <GalleryCard
           athlete={findAthlete(catalog, entry.athletePublicId)}
@@ -383,29 +380,39 @@ function GalleryStatusShell({
   const toneClasses =
     tone === "warning"
       ? {
-          shell: "border-amber-300/20 bg-amber-400/10",
-          label: "text-amber-200/80",
+          shell:
+            "border-[rgba(255,193,99,0.25)] bg-[rgba(255,193,99,0.06)]",
+          label: "text-[var(--ember)]",
         }
       : tone === "empty"
         ? {
-            shell: "border-emerald-300/20 bg-emerald-400/10",
-            label: "text-emerald-200/80",
+            shell:
+              "border-[rgba(20,184,138,0.25)] bg-[rgba(20,184,138,0.06)]",
+            label: "text-[var(--ok)]",
           }
         : {
-            shell: "border-cyan-300/20 bg-cyan-400/10",
-            label: "text-cyan-200/80",
+            shell: "border-[rgba(77,162,255,0.25)] bg-[rgba(77,162,255,0.06)]",
+            label: "text-[var(--sui)]",
           };
 
   return (
-    <section className={`rounded-[1.75rem] border p-7 ${toneClasses.shell}`}>
-      <p className={`text-xs uppercase tracking-[0.3em] ${toneClasses.label}`}>
+    <section className={`border p-7 ${toneClasses.shell}`}>
+      <p
+        className={`font-mono-op text-[11px] uppercase tracking-[0.2em] ${toneClasses.label}`}
+      >
         {label}
       </p>
       {title ? (
-        <h2 className="mt-3 font-serif text-2xl text-white">{title}</h2>
+        <h2 className="mt-3 font-display text-[28px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
+          {title}
+        </h2>
       ) : null}
-      <p className="mt-3 text-slate-100">{description}</p>
-      {note ? <p className="mt-2 text-sm text-slate-200">{note}</p> : null}
+      <p className="mt-3 text-[15px] leading-[1.55] text-[var(--ink)]">
+        {description}
+      </p>
+      {note ? (
+        <p className="mt-2 text-sm text-[var(--ink-dim)]">{note}</p>
+      ) : null}
       {children}
     </section>
   );
@@ -432,48 +439,61 @@ function GalleryCard({
     ? buildWalrusAggregatorUrl(completedEntry.mosaicWalrusBlobId)
     : null;
 
+  const statusLabel =
+    entry.status.kind === "completed"
+      ? "Completed"
+      : entry.status.kind === "pending"
+        ? "Pending"
+        : "Unavailable";
+
   return (
-    <article className="grid gap-5 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7">
-      <div className="grid gap-1">
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-          {entry.status.kind === "completed"
-            ? "Completed"
-            : entry.status.kind === "pending"
-              ? "Pending"
-              : "Unavailable"}
-        </p>
-        <h2 className="font-serif text-2xl text-white">{displayName}</h2>
-        <p className="font-mono text-xs text-slate-400">{entry.unitId}</p>
-        {completedEntry ? (
-          <div className="mt-3">
-            <Link
-              className="inline-flex items-center rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-cyan-50"
-              href={buildUnitPageHref({
-                displayName,
-                unitId: entry.unitId,
-              })}
-            >
-              Unit ページで位置を見る
-            </Link>
-          </div>
-        ) : null}
+    <article className="op-kakera-card relative grid gap-5 bg-[var(--bg-2)] p-6">
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <p className="font-mono-op text-[11px] uppercase tracking-[0.2em] text-[var(--ember)]">
+            {statusLabel}
+          </p>
+          <h2 className="font-display text-[28px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
+            {displayName}
+          </h2>
+          <p className="font-mono-op text-[11px] break-all text-[var(--ink-dim)]">
+            {entry.unitId}
+          </p>
+        </div>
+        <div className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+          KAKERA · 欠片
+        </div>
       </div>
 
-      <div className="grid gap-4">
+      {completedEntry ? (
+        <div className="relative z-10">
+          <Link
+            className="op-btn-outline"
+            href={buildUnitPageHref({
+              displayName,
+              unitId: entry.unitId,
+            })}
+          >
+            Unit ページで位置を見る
+          </Link>
+        </div>
+      ) : null}
+
+      <div className="relative z-10 grid gap-4">
         <section className="grid gap-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+          <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
             Original
           </p>
           {originalPhotoUrl && !originalImageFailed ? (
             // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
             <img
               alt={`${displayName} original submission`}
-              className="h-48 w-full rounded-2xl border border-white/10 object-cover"
+              className="h-48 w-full border border-[var(--rule-strong)] object-cover"
               onError={onOriginalImageError}
               src={originalPhotoUrl}
             />
           ) : (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/70 px-4 py-10 text-sm text-slate-300">
+            <div className="border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] px-4 py-10 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
               Original photo unavailable
             </div>
           )}
@@ -481,18 +501,18 @@ function GalleryCard({
 
         {completedEntry !== null ? (
           <section className="grid gap-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
+            <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ok)]">
               Mosaic
             </p>
             {completedMosaicUrl ? (
               // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
               <img
                 alt={`${displayName} completed mosaic`}
-                className="w-full rounded-2xl border border-emerald-300/20 bg-slate-900/70"
+                className="w-full border border-[rgba(20,184,138,0.3)] bg-[rgba(5,3,2,0.6)]"
                 src={completedMosaicUrl}
               />
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/70 px-4 py-10 text-sm text-slate-300">
+              <div className="border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] px-4 py-10 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
                 Completed mosaic unavailable
               </div>
             )}
@@ -500,45 +520,67 @@ function GalleryCard({
         ) : null}
       </div>
 
-      <dl className="grid gap-2 text-sm text-slate-200">
+      <dl className="relative z-10 grid gap-2 border-t border-[var(--rule)] pt-4 text-sm text-[var(--ink)]">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-slate-400">Submission</dt>
-          <dd>Submission #{entry.submissionNo}</dd>
+          <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+            Submission
+          </dt>
+          <dd className="font-mono-op text-[12px] text-[var(--ember)]">
+            Submission #{entry.submissionNo}
+          </dd>
         </div>
         {entry.status.kind === "pending" ? (
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-400">Status</dt>
-            <dd>Waiting for reveal</dd>
+            <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+              Status
+            </dt>
+            <dd className="font-mono-op text-[12px]">Waiting for reveal</dd>
           </div>
         ) : entry.status.kind === "unavailable" ? (
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-400">Status</dt>
-            <dd>Entry unavailable right now</dd>
+            <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+              Status
+            </dt>
+            <dd className="font-mono-op text-[12px]">
+              Entry unavailable right now
+            </dd>
           </div>
         ) : completedEntry !== null ? (
           <>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-slate-400">Status</dt>
-              <dd>Completed</dd>
+              <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+                Status
+              </dt>
+              <dd className="font-mono-op text-[12px] text-[var(--ok)]">
+                Completed
+              </dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-slate-400">Master</dt>
-              <dd className="font-mono text-xs break-all">
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+                Master
+              </dt>
+              <dd className="font-mono-op text-[11px] break-all text-right text-[var(--sui)]">
                 Master {completedEntry.masterId}
               </dd>
             </div>
             {completedEntry.placement ? (
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Placement</dt>
-                <dd>
+                <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+                  Placement
+                </dt>
+                <dd className="font-mono-op text-[12px]">
                   Placed at {completedEntry.placement.x},{" "}
                   {completedEntry.placement.y}
                 </dd>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Placement</dt>
-                <dd>Placement pending index sync</dd>
+                <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+                  Placement
+                </dt>
+                <dd className="font-mono-op text-[12px]">
+                  Placement pending index sync
+                </dd>
               </div>
             )}
           </>

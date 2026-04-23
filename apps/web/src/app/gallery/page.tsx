@@ -25,25 +25,29 @@ export default async function GalleryPage(
     : undefined;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
-      <div className="mx-auto grid max-w-5xl gap-8">
+    <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
+      <section className="relative grid gap-10 p-8 md:p-14 lg:p-16">
         <nav>
           <Link
-            className="text-sm uppercase tracking-[0.3em] text-cyan-200/80 hover:text-cyan-100"
+            className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
             href="/"
           >
             ← All athletes
           </Link>
         </nav>
 
-        <header className="grid gap-4 rounded-[2rem] border border-white/10 bg-white/6 p-8 shadow-2xl shadow-black/30 backdrop-blur">
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
-            History
-          </p>
-          <h1 className="font-serif text-4xl text-white md:text-5xl">
-            Participation gallery
+        <header className="flex flex-col gap-6 border-b border-[var(--rule)] pb-8">
+          <div className="op-eyebrow">
+            <span className="bar" />
+            <span>History · 参加の記録</span>
+          </div>
+          <h1 className="font-display text-[clamp(48px,8vw,96px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
+            Participation{" "}
+            <em className="font-serif-display not-italic text-[var(--ember)]">
+              <span className="italic">gallery</span>
+            </em>
           </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-200">
+          <p className="max-w-2xl text-base leading-[1.55] text-[var(--ink-dim)]">
             Rebuild your on-chain participation history from the Kakera your
             wallet already owns.
           </p>
@@ -54,7 +58,7 @@ export default async function GalleryPage(
           demoEntries={demoEntries}
           packageId={packageId ?? ""}
         />
-      </div>
+      </section>
     </main>
   );
 }
