@@ -38,7 +38,9 @@ export async function runGeneratorStackPreflight({
   }
 
   const localPort = normalizePort(
-    env.OP_LOCAL_GENERATOR_PORT ?? env.PORT ?? DEFAULT_LOCAL_PORT,
+    normalizePortInput(env.OP_LOCAL_GENERATOR_PORT) ??
+      normalizePortInput(env.PORT) ??
+      DEFAULT_LOCAL_PORT,
   );
   if (localPort === null) {
     emitFailure(logger, "tunnel-misconfig", [
@@ -185,6 +187,15 @@ function normalizePort(value) {
   }
 
   return port;
+}
+
+function normalizePortInput(value) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  return value ?? null;
 }
 
 function containsTunnelReference(output, tunnelName) {

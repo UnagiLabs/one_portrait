@@ -393,6 +393,40 @@ describe("runGeneratorStackPreflight", () => {
       localPort: 9090,
     });
   });
+
+  it("treats a blank OP_LOCAL_GENERATOR_PORT as unset and falls back to 8080", async () => {
+    const logger = createLogger();
+    const runCommand = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "cloudflared version 2026.4.0" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockResolvedValueOnce({
+        stdout: "Name: one-portrait-generator",
+        stderr: "",
+      })
+      .mockResolvedValueOnce({
+        stdout:
+          "Matched rule #1\n  hostname: generator.example\n  service: http://localhost:8080\n",
+        stderr: "",
+      });
+
+    const result = await runGeneratorStackPreflight({
+      env: {
+        ...validEnv,
+        OP_LOCAL_GENERATOR_PORT: "",
+      },
+      logger,
+      runCommand,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      exitCode: 0,
+      tunnelName: "one-portrait-generator",
+      publicHostname: "generator.example",
+      localPort: 8080,
+    });
+  });
 });
 
 function createLogger() {

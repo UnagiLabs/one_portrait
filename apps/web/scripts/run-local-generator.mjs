@@ -18,6 +18,14 @@ export function loadWebScriptEnv({ env = process.env } = {}) {
   };
 }
 
+function resolveLocalGeneratorPort(env) {
+  return (
+    normalizePortEnvValue(env.OP_LOCAL_GENERATOR_PORT) ??
+    normalizePortEnvValue(env.PORT) ??
+    "8080"
+  );
+}
+
 export function startLocalGenerator({
   env = process.env,
   spawnImpl = spawn,
@@ -31,7 +39,7 @@ export function startLocalGenerator({
     env: {
       ...env,
       ...mergedEnv,
-      PORT: env.OP_LOCAL_GENERATOR_PORT ?? mergedEnv.PORT ?? "8080",
+      PORT: resolveLocalGeneratorPort(mergedEnv),
       SUI_NETWORK: mergedEnv.SUI_NETWORK ?? mergedEnv.NEXT_PUBLIC_SUI_NETWORK,
       PACKAGE_ID: mergedEnv.PACKAGE_ID ?? mergedEnv.NEXT_PUBLIC_PACKAGE_ID,
       WALRUS_PUBLISHER:
@@ -115,6 +123,15 @@ function stripQuotes(value) {
   }
 
   return value;
+}
+
+function normalizePortEnvValue(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function isExecutedDirectly() {
