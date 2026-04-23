@@ -3,6 +3,7 @@ import path from "node:path";
 
 const DEFAULT_FALLBACK_URL = "http://127.0.0.1:8080";
 const DEFAULT_STATE_MAX_AGE_MS = 15 * 60 * 1000;
+const DEFAULT_REMOTE_STATE_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
 
 type EnvSource = Readonly<Record<string, string | undefined>>;
@@ -294,7 +295,9 @@ async function readGeneratorRuntimeKvState(
 
   try {
     const parsed = await kv.get(GENERATOR_RUNTIME_KV_KEY, "json");
-    return normalizeRuntimeKvState(parsed);
+    return normalizeRuntimeKvState(parsed, {
+      now: Date.now(),
+    });
   } catch {
     return null;
   }
@@ -337,6 +340,7 @@ function normalizeRuntimeState(input: unknown): GeneratorRuntimeState | null {
 
 function normalizeRuntimeKvState(
   input: unknown,
+  { now }: { now: number },
 ): GeneratorRuntimeKvState | null {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return null;
@@ -355,6 +359,14 @@ function normalizeRuntimeKvState(
     (mode !== "named" && mode !== "quick") ||
     typeof updatedAt !== "string" ||
     url === null
+  ) {
+    return null;
+  }
+
+  const updatedAtMs = Date.parse(updatedAt);
+  if (
+    !Number.isFinite(updatedAtMs) ||
+    now - updatedAtMs > DEFAULT_REMOTE_STATE_MAX_AGE_MS
   ) {
     return null;
   }

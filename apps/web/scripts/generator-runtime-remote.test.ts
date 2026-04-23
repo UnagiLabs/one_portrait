@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  deleteRemoteGeneratorRuntime,
   readRemoteGeneratorRuntime,
   writeRemoteGeneratorRuntime,
 } from "./generator-runtime-remote.mjs";
@@ -23,6 +24,7 @@ describe("generator-runtime-remote", () => {
           CLOUDFLARED_CONFIG: "/tmp/unused",
         },
         logger: createLogger(),
+        now: Date.parse("2026-04-23T00:00:00.000Z"),
         runCommand,
       }),
     ).resolves.toEqual({
@@ -43,6 +45,8 @@ describe("generator-runtime-remote", () => {
         "generator-runtime/current",
         "--binding",
         "OP_GENERATOR_RUNTIME_KV",
+        "--preview",
+        "false",
         "--remote",
         "--text",
       ],
@@ -67,6 +71,23 @@ describe("generator-runtime-remote", () => {
     expect(logger.warn).toHaveBeenCalledWith(
       "[generator-runtime][remote-kv][invalid-payload]",
     );
+  });
+
+  it("ignores stale remote runtime payloads", async () => {
+    await expect(
+      readRemoteGeneratorRuntime({
+        now: Date.parse("2026-04-23T00:20:00.000Z"),
+        runCommand: vi.fn().mockResolvedValue({
+          stderr: "",
+          stdout: JSON.stringify({
+            mode: "quick",
+            updatedAt: "2026-04-23T00:00:00.000Z",
+            url: "https://remote-kv.example.com/",
+            version: 1,
+          }),
+        }),
+      }),
+    ).resolves.toBeNull();
   });
 
   it("writes the current runtime to remote kv", async () => {
@@ -106,6 +127,8 @@ describe("generator-runtime-remote", () => {
         }),
         "--binding",
         "OP_GENERATOR_RUNTIME_KV",
+        "--preview",
+        "false",
         "--remote",
       ],
       expect.objectContaining({
@@ -114,6 +137,47 @@ describe("generator-runtime-remote", () => {
     );
     expect(logger.info).toHaveBeenCalledWith(
       "[generator-runtime][remote-kv][written] url=https://remote-kv.example.com",
+    );
+  });
+
+  it("deletes the current runtime from remote kv", async () => {
+    const logger = createLogger();
+    const runCommand = vi.fn().mockResolvedValue({
+      stderr: "",
+      stdout: "",
+    });
+
+    await expect(
+      deleteRemoteGeneratorRuntime({
+        logger,
+        runCommand,
+      }),
+    ).resolves.toEqual({
+      marker: "[generator-runtime][remote-kv][deleted]",
+      ok: true,
+    });
+    expect(runCommand).toHaveBeenCalledWith(
+      "corepack",
+      [
+        "pnpm",
+        "exec",
+        "wrangler",
+        "kv",
+        "key",
+        "delete",
+        "generator-runtime/current",
+        "--binding",
+        "OP_GENERATOR_RUNTIME_KV",
+        "--preview",
+        "false",
+        "--remote",
+      ],
+      expect.objectContaining({
+        cwd: expect.any(String),
+      }),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      "[generator-runtime][remote-kv][deleted]",
     );
   });
 });

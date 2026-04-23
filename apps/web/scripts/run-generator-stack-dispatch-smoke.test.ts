@@ -97,26 +97,34 @@ describe("runGeneratorStackDispatchSmoke", () => {
       }),
       status: 200,
     });
-
-    const result = await runGeneratorStackDispatchSmoke({
-      argv: ["node", "script.mjs", VALID_UNIT_ID],
-      env: {
-        OP_FINALIZE_DISPATCH_SECRET: VALID_ENV.OP_FINALIZE_DISPATCH_SECRET,
-      },
-      fetchImpl,
-      logger,
-    });
-
-    expect(result).toEqual({
-      exitCode: 0,
-      marker: "[generator-stack][smoke][ok]",
-      ok: true,
-      resultStatus: "ignored_finalized",
-    });
-    expect(fetchImpl).toHaveBeenCalledWith(
-      new URL("/dispatch", "http://127.0.0.1:8080/"),
-      expect.any(Object),
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-smoke-fallback-"),
     );
+
+    try {
+      const result = await runGeneratorStackDispatchSmoke({
+        appRootPath,
+        argv: ["node", "script.mjs", VALID_UNIT_ID],
+        env: {
+          OP_FINALIZE_DISPATCH_SECRET: VALID_ENV.OP_FINALIZE_DISPATCH_SECRET,
+        },
+        fetchImpl,
+        logger,
+      });
+
+      expect(result).toEqual({
+        exitCode: 0,
+        marker: "[generator-stack][smoke][ok]",
+        ok: true,
+        resultStatus: "ignored_finalized",
+      });
+      expect(fetchImpl).toHaveBeenCalledWith(
+        new URL("/dispatch", "http://127.0.0.1:8080/"),
+        expect.any(Object),
+      );
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
   });
 
   it("reads the runtime state file before legacy env", async () => {

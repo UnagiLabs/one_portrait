@@ -7,8 +7,8 @@
   "kv_namespaces": [
     {
       "binding": "OP_GENERATOR_RUNTIME_KV",
-      "id": "00000000000000000000000000000000",
-      "preview_id": "11111111111111111111111111111111"
+      "id": "9265a79b1e984244a9ee6afbf1d7bd59",
+      "preview_id": "3a9c9cde41ea4df588c6e1f0a3fca43f"
     }
   ],
   "vars": {

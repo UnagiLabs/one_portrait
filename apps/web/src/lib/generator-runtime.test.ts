@@ -230,6 +230,28 @@ describe("resolveCloudflareGeneratorRuntime", () => {
       url: "http://127.0.0.1:8080",
     });
   });
+
+  it("ignores stale worker kv payloads and falls back to legacy env", async () => {
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_GENERATOR_BASE_URL: "https://legacy.example.com",
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => ({
+              mode: "quick",
+              updatedAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+              url: "https://stale-worker-kv.example.com",
+              version: 1,
+            }),
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      source: "legacy_env",
+      status: "ok",
+      url: "https://legacy.example.com",
+    });
+  });
 });
 
 function createAppRootWithRuntimeState(input: {

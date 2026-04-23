@@ -10,12 +10,14 @@ const webRoot = path.resolve(__dirname, "..");
 
 const GENERATOR_RUNTIME_KV_BINDING = "OP_GENERATOR_RUNTIME_KV";
 const GENERATOR_RUNTIME_KV_KEY = "generator-runtime/current";
+const REMOTE_RUNTIME_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
 
 export async function readRemoteGeneratorRuntime({
   cwd = webRoot,
   env = process.env,
   logger = console,
+  now = Date.now(),
   runCommand = defaultRunCommand,
 } = {}) {
   try {
@@ -26,6 +28,8 @@ export async function readRemoteGeneratorRuntime({
         GENERATOR_RUNTIME_KV_KEY,
         "--binding",
         GENERATOR_RUNTIME_KV_BINDING,
+        "--preview",
+        "false",
         "--remote",
         "--text",
       ],
@@ -38,7 +42,9 @@ export async function readRemoteGeneratorRuntime({
       return null;
     }
 
-    const normalized = normalizeRuntimeState(JSON.parse(payload));
+    const normalized = normalizeRuntimeState(JSON.parse(payload), {
+      now,
+    });
     if (normalized !== null) {
       return normalized;
     }
@@ -50,6 +56,44 @@ export async function readRemoteGeneratorRuntime({
       `[generator-runtime][remote-kv][read-failed] message=${formatError(error)}`,
     );
     return null;
+  }
+}
+
+export async function deleteRemoteGeneratorRuntime({
+  cwd = webRoot,
+  env = process.env,
+  logger = console,
+  runCommand = defaultRunCommand,
+} = {}) {
+  try {
+    await runWranglerKvCommand({
+      args: [
+        "key",
+        "delete",
+        GENERATOR_RUNTIME_KV_KEY,
+        "--binding",
+        GENERATOR_RUNTIME_KV_BINDING,
+        "--preview",
+        "false",
+        "--remote",
+      ],
+      cwd,
+      env,
+      runCommand,
+    });
+    logger?.info?.("[generator-runtime][remote-kv][deleted]");
+    return {
+      marker: "[generator-runtime][remote-kv][deleted]",
+      ok: true,
+    };
+  } catch (error) {
+    logger?.warn?.(
+      `[generator-runtime][remote-kv][delete-failed] message=${formatError(error)}`,
+    );
+    return {
+      marker: "[generator-runtime][remote-kv][delete-failed]",
+      ok: false,
+    };
   }
 }
 
@@ -81,6 +125,8 @@ export async function writeRemoteGeneratorRuntime({
         }),
         "--binding",
         GENERATOR_RUNTIME_KV_BINDING,
+        "--preview",
+        "false",
         "--remote",
       ],
       cwd,
@@ -125,7 +171,7 @@ async function defaultRunCommand(command, args, options = {}) {
   };
 }
 
-function normalizeRuntimeState(input) {
+function normalizeRuntimeState(input, { now }) {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return null;
   }
@@ -140,6 +186,14 @@ function normalizeRuntimeState(input) {
     (mode !== "named" && mode !== "quick") ||
     typeof updatedAt !== "string" ||
     url === null
+  ) {
+    return null;
+  }
+
+  const updatedAtMs = Date.parse(updatedAt);
+  if (
+    !Number.isFinite(updatedAtMs) ||
+    now - updatedAtMs > REMOTE_RUNTIME_MAX_AGE_MS
   ) {
     return null;
   }
