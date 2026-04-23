@@ -33,6 +33,45 @@ describe("runGeneratorStackDispatchSmoke", () => {
     );
   });
 
+  it("validates the injected env without loading local env files", async () => {
+    vi.resetModules();
+    vi.doMock("./run-local-generator.mjs", () => ({
+      loadWebScriptEnv: vi.fn(() => {
+        throw new Error("loadWebScriptEnv should not be called");
+      }),
+    }));
+
+    try {
+      const { runGeneratorStackDispatchSmoke: runWithInjectedEnv } =
+        await import("./run-generator-stack-dispatch-smoke.mjs");
+      const logger = createLogger();
+      const fetchImpl = vi.fn().mockResolvedValue({
+        json: vi.fn(),
+        status: 500,
+      });
+
+      const result = await runWithInjectedEnv({
+        argv: ["node", "script.mjs", VALID_UNIT_ID],
+        env: {
+          OP_FINALIZE_DISPATCH_URL: VALID_ENV.OP_FINALIZE_DISPATCH_URL,
+          OP_FINALIZE_DISPATCH_SECRET: VALID_ENV.OP_FINALIZE_DISPATCH_SECRET,
+        },
+        fetchImpl,
+        logger,
+      });
+
+      expect(result).toEqual({
+        exitCode: 1,
+        marker: "[generator-stack][smoke][failed]",
+        ok: false,
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.doUnmock("./run-local-generator.mjs");
+      vi.resetModules();
+    }
+  });
+
   it("fails fast when the dispatch URL is missing", async () => {
     const logger = createLogger();
     const fetchImpl = vi.fn();

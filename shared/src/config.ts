@@ -1,6 +1,6 @@
 export const unitTileGrid = {
-  cols: 28,
-  rows: 35,
+  cols: 40,
+  rows: 50,
 } as const;
 
 export const unitTileCount = unitTileGrid.cols * unitTileGrid.rows;

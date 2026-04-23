@@ -22,6 +22,29 @@ export type GenerateMosaicInput = {
   colorMix?: number;
   overlayOpacity?: number;
   overlayBlur?: number;
+  subjectPriority?: number;
+  facePriority?: number;
+  backgroundPriority?: number;
+  backgroundColor?: Rgb;
+  targetAnalysis?: TargetAnalysis;
+};
+
+export type TargetAnalysisCell = {
+  index: number;
+  subjectCoverage: number;
+  faceWeight: number;
+  eyeWeight: number;
+  featureWeight: number;
+};
+
+export type TargetAnalysis = {
+  cols: number;
+  rows: number;
+  cells: TargetAnalysisCell[];
+  faceCount?: number;
+  imageWidth?: number;
+  imageHeight?: number;
+  sourceImage?: string;
 };
 
 export type MosaicPlacement = {
@@ -80,7 +103,9 @@ type TargetCell = {
   y: number;
   avgRgb: Rgb;
   avgLab: Lab;
+  alpha: number;
   importance: number;
+  analysis?: TargetAnalysisCell;
 };
 
 type PreparedTile = {
@@ -95,6 +120,14 @@ const defaultColorMix = 0.26;
 const defaultOverlayOpacity = 0.12;
 const defaultOverlayBlur = 8;
 const defaultGrid = unitTileGrid;
+const defaultSubjectPriority = 0.7;
+const defaultFacePriority = 0.22;
+const defaultBackgroundPriority = 0.06;
+const defaultBackgroundColor = {
+  r: 246,
+  g: 242,
+  b: 238,
+} satisfies Rgb;
 
 export async function generateMosaic(
   input: GenerateMosaicInput,
@@ -103,7 +136,13 @@ export async function generateMosaic(
   const colorMix = input.colorMix ?? defaultColorMix;
   const overlayOpacity = input.overlayOpacity ?? defaultOverlayOpacity;
   const overlayBlur = input.overlayBlur ?? defaultOverlayBlur;
+  const subjectPriority = input.subjectPriority ?? defaultSubjectPriority;
+  const facePriority = input.facePriority ?? defaultFacePriority;
+  const backgroundPriority =
+    input.backgroundPriority ?? defaultBackgroundPriority;
+  const backgroundColor = input.backgroundColor ?? defaultBackgroundColor;
   const cellCount = input.grid.cols * input.grid.rows;
+  const analysisByIndex = buildAnalysisMap(input.targetAnalysis, input.grid);
 
   if (input.tiles.length !== cellCount) {
     throw new Error(
@@ -111,7 +150,13 @@ export async function generateMosaic(
     );
   }
 
-  const targetCells = await buildTargetCells(input.targetImage, input.grid);
+  const targetCells = await buildTargetCells(input.targetImage, input.grid, {
+    subjectPriority,
+    facePriority,
+    backgroundPriority,
+    backgroundColor,
+    analysisByIndex,
+  });
   const preparedTiles = await Promise.all(
     input.tiles.map((tile) => prepareTile(tile, tileSize)),
   );
@@ -147,6 +192,7 @@ export async function generateMosaic(
   const overlayBase = sharp(input.targetImage)
     .rotate()
     .resize(width, height, { fit: "cover" })
+    .flatten({ background: backgroundColor })
     .blur(overlayBlur);
   const overlaySoft = await overlayBase
     .clone()
@@ -252,23 +298,38 @@ export async function generateFinalizeMosaic(
 async function buildTargetCells(
   targetImage: Buffer,
   grid: MosaicGrid,
+  options: {
+    subjectPriority: number;
+    facePriority: number;
+    backgroundPriority: number;
+    backgroundColor: Rgb;
+    analysisByIndex?: Map<number, TargetAnalysisCell>;
+  },
 ): Promise<TargetCell[]> {
   const raw = await sharp(targetImage)
     .rotate()
     .resize(grid.cols, grid.rows, { fit: "cover" })
-    .removeAlpha()
     .raw()
     .toBuffer();
 
   const luminances = new Array<number>(grid.cols * grid.rows).fill(0);
+  const alphas = new Array<number>(grid.cols * grid.rows).fill(1);
 
   for (let index = 0; index < luminances.length; index += 1) {
-    const offset = index * 3;
-    luminances[index] = rgbToLuminance({
-      r: raw[offset],
-      g: raw[offset + 1],
-      b: raw[offset + 2],
-    });
+    const offset = index * 4;
+    const alpha = (raw[offset + 3] ?? 255) / 255;
+    const rgb = blendOverBackground(
+      {
+        r: raw[offset],
+        g: raw[offset + 1],
+        b: raw[offset + 2],
+      },
+      alpha,
+      options.backgroundColor,
+    );
+
+    alphas[index] = alpha;
+    luminances[index] = rgbToLuminance(rgb);
   }
 
   const contrastValues = new Array<number>(grid.cols * grid.rows).fill(0);
@@ -309,14 +370,19 @@ async function buildTargetCells(
   const maxContrast = Math.max(...contrastValues, 1);
 
   return contrastValues.map((contrast, index) => {
-    const offset = index * 3;
+    const offset = index * 4;
     const x = index % grid.cols;
     const y = Math.floor(index / grid.cols);
-    const rgb = {
-      r: raw[offset],
-      g: raw[offset + 1],
-      b: raw[offset + 2],
-    };
+    const alpha = alphas[index];
+    const rgb = blendOverBackground(
+      {
+        r: raw[offset],
+        g: raw[offset + 1],
+        b: raw[offset + 2],
+      },
+      alpha,
+      options.backgroundColor,
+    );
 
     return {
       index,
@@ -324,12 +390,19 @@ async function buildTargetCells(
       y,
       avgRgb: rgb,
       avgLab: rgbToLab(rgb),
+      alpha,
+      analysis: options.analysisByIndex?.get(index),
       importance: computeImportance({
         x,
         y,
         cols: grid.cols,
         rows: grid.rows,
+        alpha,
         contrast: contrast / maxContrast,
+        subjectPriority: options.subjectPriority,
+        facePriority: options.facePriority,
+        backgroundPriority: options.backgroundPriority,
+        analysis: options.analysisByIndex?.get(index),
       }),
     };
   });
@@ -340,7 +413,12 @@ function computeImportance(input: {
   y: number;
   cols: number;
   rows: number;
+  alpha: number;
   contrast: number;
+  subjectPriority: number;
+  facePriority: number;
+  backgroundPriority: number;
+  analysis?: TargetAnalysisCell;
 }) {
   const nx = input.cols === 1 ? 0 : input.x / (input.cols - 1);
   const ny = input.rows === 1 ? 0 : input.y / (input.rows - 1);
@@ -350,10 +428,60 @@ function computeImportance(input: {
   const eyeBand =
     Math.exp(-(((ny - 0.36) * (ny - 0.36)) / 0.008)) *
     Math.exp(-(((nx - 0.5) * (nx - 0.5)) / 0.12));
+  const faceMask =
+    Math.exp(-(((nx - 0.5) * (nx - 0.5)) / 0.018)) *
+    Math.exp(-(((ny - 0.22) * (ny - 0.22)) / 0.01));
+  const torsoMask =
+    Math.exp(-(((nx - 0.5) * (nx - 0.5)) / 0.05)) *
+    Math.exp(-(((ny - 0.55) * (ny - 0.55)) / 0.05));
+  const subjectCoverage = input.analysis?.subjectCoverage ?? input.alpha;
+  const faceAnalysis = input.analysis?.faceWeight ?? faceMask;
+  const eyeAnalysis = input.analysis?.eyeWeight ?? eyeBand;
+  const featureAnalysis =
+    input.analysis?.featureWeight ?? Math.max(eyeBand, faceMask * 0.82);
+  const alphaBias =
+    input.backgroundPriority + subjectCoverage * input.subjectPriority;
+  const centerWeight = input.analysis ? 0.08 : 0.22;
+  const contrastWeight = input.analysis ? 0.1 : 0.12;
+  const eyeWeight = input.analysis ? 0.16 : 0.12;
+  const featureWeight = input.analysis ? 0.22 : 0;
+  const faceWeight = input.analysis
+    ? input.facePriority + 0.12
+    : input.facePriority;
+  const torsoWeight = input.analysis ? 0.04 : 0.08;
 
   return clamp(
-    0.35 + centerBias * 0.38 + input.contrast * 0.19 + eyeBand * 0.08,
+    alphaBias +
+      centerBias * centerWeight +
+      input.contrast * contrastWeight +
+      eyeAnalysis * eyeWeight +
+      featureAnalysis * featureWeight +
+      faceAnalysis * faceWeight +
+      torsoMask * torsoWeight,
   );
+}
+
+function buildAnalysisMap(
+  analysis: TargetAnalysis | undefined,
+  grid: MosaicGrid,
+) {
+  if (!analysis) {
+    return undefined;
+  }
+
+  if (analysis.cols !== grid.cols || analysis.rows !== grid.rows) {
+    throw new Error(
+      `Target analysis grid ${analysis.cols}x${analysis.rows} does not match requested mosaic grid ${grid.cols}x${grid.rows}.`,
+    );
+  }
+
+  if (analysis.cells.length !== grid.cols * grid.rows) {
+    throw new Error(
+      `Target analysis expected ${grid.cols * grid.rows} cells, received ${analysis.cells.length}.`,
+    );
+  }
+
+  return new Map(analysis.cells.map((cell) => [cell.index, cell]));
 }
 
 async function prepareTile(
@@ -501,4 +629,12 @@ function pivotXyz(value: number) {
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max);
+}
+
+function blendOverBackground(source: Rgb, alpha: number, background: Rgb): Rgb {
+  return {
+    r: source.r * alpha + background.r * (1 - alpha),
+    g: source.g * alpha + background.g * (1 - alpha),
+    b: source.b * alpha + background.b * (1 - alpha),
+  };
 }

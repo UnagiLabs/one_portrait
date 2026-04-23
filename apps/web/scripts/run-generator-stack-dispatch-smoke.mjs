@@ -13,13 +13,10 @@ export async function runGeneratorStackDispatchSmoke({
   fetchImpl = globalThis.fetch,
   logger = console,
 } = {}) {
-  const mergedEnv = loadWebScriptEnv({ env });
   const unitId = parseUnitId(argv);
-  const dispatchUrl = normalizeRequiredValue(
-    mergedEnv.OP_FINALIZE_DISPATCH_URL,
-  );
+  const dispatchUrl = normalizeRequiredValue(env.OP_FINALIZE_DISPATCH_URL);
   const dispatchSecret = normalizeRequiredValue(
-    mergedEnv.OP_FINALIZE_DISPATCH_SECRET,
+    env.OP_FINALIZE_DISPATCH_SECRET,
   );
 
   if (!unitId || !dispatchUrl || !dispatchSecret) {
@@ -92,12 +89,12 @@ export async function runGeneratorStackDispatchSmoke({
 }
 
 if (isExecutedDirectly()) {
+  const env = loadWebScriptEnv({ env: process.env });
   const result = await runGeneratorStackDispatchSmoke({
     argv: process.argv,
-    env: process.env,
+    env,
     fetchImpl: globalThis.fetch,
     logger: console,
-    processImpl: process,
   });
 
   process.exit(result.exitCode);

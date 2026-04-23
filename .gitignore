@@ -10,6 +10,9 @@
 generator/artifacts
 generator/assets/datasets
 generator/assets/demo-tiles
+generator/assets/archives
+generator/.cache
+generator/.venv
 
 # Env
 **/.env
@@ -19,6 +22,8 @@ generator/assets/demo-tiles
 # Logs & OS
 *.log
 .DS_Store
+*.pyc
+**/__pycache__
 
 # Playwright / E2E
 **/e2e/reports
