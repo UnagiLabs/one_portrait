@@ -6,6 +6,7 @@ import {
   WalletProvider,
 } from "@mysten/dapp-kit";
 import { isEnokiNetwork, registerEnokiWallets } from "@mysten/enoki";
+import { appMeta } from "@one-portrait/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createContext,
@@ -107,7 +108,14 @@ export function AppWalletProvider({
           networks={networks}
         >
           <EnokiWalletRegistrar state={state} />
-          <WalletProvider autoConnect>{children}</WalletProvider>
+          <WalletProvider
+            autoConnect
+            slushWallet={{
+              name: appMeta.name,
+            }}
+          >
+            {children}
+          </WalletProvider>
         </SuiClientProvider>
       </QueryClientProvider>
     </EnokiConfigContext.Provider>
