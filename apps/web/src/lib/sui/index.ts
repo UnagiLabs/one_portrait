@@ -59,8 +59,10 @@ export {
   listOwnedKakera,
 } from "./kakera";
 export {
+  getActiveHomeUnits,
   getCurrentUnitIdForAthlete,
   getRegistryObject,
+  listRegistryAthletes,
   RegistryNotFoundError,
 } from "./registry";
 export type {
@@ -71,10 +73,13 @@ export type {
 } from "./submission-execution";
 export { checkSubmissionExecution } from "./submission-execution";
 export type {
+  ActiveHomeUnitView,
+  AthleteMetadataView,
   AthleteProgressView,
   GalleryEntryView,
   MasterPlacementLookupView,
   MasterPlacementView,
+  RegistryAthleteView,
   RegistryView,
   UnitStatus,
 } from "./types";

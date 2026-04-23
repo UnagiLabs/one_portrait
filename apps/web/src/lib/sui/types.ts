@@ -24,7 +24,27 @@ import type { AthletePublicId } from "../catalog/types";
  */
 export type RegistryView = {
   readonly objectId: string;
+  readonly athleteMetadataTableId: string;
   readonly currentUnitsTableId: string;
+};
+
+export type AthleteMetadataView = {
+  readonly athletePublicId: AthletePublicId;
+  readonly displayName: string;
+  readonly slug: string;
+  readonly thumbnailUrl: string;
+};
+
+export type RegistryAthleteView = {
+  readonly athletePublicId: AthletePublicId;
+  readonly currentUnitId: string | null;
+  readonly metadata: AthleteMetadataView | null;
+};
+
+export type ActiveHomeUnitView = AthleteMetadataView & {
+  readonly maxSlots: number;
+  readonly submittedCount: number;
+  readonly unitId: string;
 };
 
 /**

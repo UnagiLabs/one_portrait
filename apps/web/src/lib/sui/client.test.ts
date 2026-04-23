@@ -40,6 +40,7 @@ describe("createSuiClient", () => {
   it("returns a client typed as SuiReadClient", () => {
     const client: SuiReadClient = createSuiClient({ network: "mainnet" });
 
+    expect(typeof client.getDynamicFields).toBe("function");
     expect(typeof client.getObject).toBe("function");
     expect(typeof client.getDynamicFieldObject).toBe("function");
   });

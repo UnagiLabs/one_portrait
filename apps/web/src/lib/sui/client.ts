@@ -34,6 +34,7 @@ export type SuiReadClient = {
    * lets stubs use a literal string.
    */
   readonly network: string;
+  getDynamicFields: SuiJsonRpcClient["getDynamicFields"];
   getObject: SuiJsonRpcClient["getObject"];
   getDynamicFieldObject: SuiJsonRpcClient["getDynamicFieldObject"];
 };

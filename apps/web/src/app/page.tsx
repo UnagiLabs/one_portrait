@@ -1,21 +1,3 @@
-/**
- * Home — lists every athlete in the off-chain catalog and, for each, shows
- * the current on-chain unit progress (from the `Registry` → `Unit` lookup).
- *
- * Server Component:
- *   - `getAthleteCatalog()` is the single off-chain source of truth for
- *     display metadata (name, slug, thumbnail).
- *   - `getCurrentUnitIdForAthlete()` + `getUnitProgress()` fetch the on-chain
- *     progress. Both are wrapped in try/catch so an env miss or a slow
- *     fullnode degrades the card to a waiting state instead of crashing the
- *     whole page.
- *
- * Hook points (kept as comments so reviewers can find the intended seams
- * without dead code):
- *   - Per-card submit CTA (zkLogin + Enoki Sponsored Tx) → later issue.
- *   - Catalog → CMS / signed JSON manifest swap → out of scope.
- */
-
 import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
@@ -25,25 +7,7 @@ import {
   getDemoUnitProgress,
   isDemoModeEnabled,
 } from "../lib/demo";
-import { loadPublicEnv } from "../lib/env";
-import { getCurrentUnitIdForAthlete, getUnitProgress } from "../lib/sui";
-
-type CardProgress =
-  | {
-      readonly kind: "active";
-      readonly unitId: string;
-      readonly submittedCount: number;
-      readonly maxSlots: number;
-    }
-  | { readonly kind: "waiting" }
-  | {
-      readonly kind: "unavailable";
-      readonly unitId?: string;
-    };
-
-type ResolvedEnv = {
-  readonly registryObjectId: string;
-};
+import { getActiveHomeUnits } from "../lib/sui";
 
 type HomePageProps = {
   readonly searchParams?: Promise<{
@@ -51,35 +15,26 @@ type HomePageProps = {
   }>;
 };
 
+type HomeEntry = {
+  readonly athletePublicId: string;
+  readonly displayName: string;
+  readonly maxSlots: number;
+  readonly slug: string;
+  readonly submittedCount: number;
+  readonly thumbnailUrl: string;
+  readonly unitId: string;
+};
+
 export default async function HomePage(
   props: HomePageProps = {},
 ): Promise<React.ReactElement> {
-  const catalog = await getAthleteCatalog();
-  const env = safeLoadEnv();
   const demoMode = isDemoModeEnabled(process.env);
   const searchParams = (await props.searchParams) ?? {};
-
-  const entries = await Promise.all(
-    catalog.map(async (athlete) => {
-      const e2eProgress = resolveE2ECardProgress(
-        athlete.athletePublicId,
-        searchParams.op_e2e_home_card_state,
-      );
-
-      if (e2eProgress) {
-        return { athlete, progress: e2eProgress };
-      }
-
-      return {
-        athlete,
-        progress: demoMode
-          ? resolveDemoProgress(athlete.athletePublicId)
-          : env
-            ? await resolveProgress(athlete.athletePublicId, env)
-            : ({ kind: "unavailable" } as CardProgress),
-      };
-    }),
-  );
+  const useDemoEntries =
+    demoMode || process.env.NEXT_PUBLIC_E2E_STUB_WALLET === "1";
+  const entries = useDemoEntries
+    ? await loadDemoEntries(searchParams.op_e2e_home_card_state)
+    : await loadChainEntries();
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#15366d,_#071120_55%,_#02060d)] px-6 py-16 text-slate-50">
@@ -106,12 +61,20 @@ export default async function HomePage(
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">
-          {entries.map(({ athlete, progress }) => (
-            <AthleteCard
-              key={athlete.athletePublicId}
-              athlete={athlete}
-              progress={progress}
-            />
+          {entries.length === 0 ? (
+            <article className="grid gap-2 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 text-slate-200 md:col-span-2">
+              <h2 className="font-serif text-2xl text-white">
+                現在表示できる開催中ユニットはありません
+              </h2>
+              <p className="text-sm leading-6">
+                metadata 登録済みで `pending` な current unit が作成されると、
+                ここに自動で表示されます。
+              </p>
+            </article>
+          ) : null}
+
+          {entries.map((athlete) => (
+            <AthleteCard athlete={athlete} key={athlete.athletePublicId} />
           ))}
         </section>
       </div>
@@ -119,138 +82,74 @@ export default async function HomePage(
   );
 }
 
-type AthleteCardProps = {
-  readonly athlete: {
-    readonly athletePublicId: string;
-    readonly slug: string;
-    readonly displayName: string;
-    readonly thumbnailUrl: string;
-  };
-  readonly progress: CardProgress;
-};
-
 function AthleteCard({
   athlete,
-  progress,
-}: AthleteCardProps): React.ReactElement {
-  const href =
-    progress.kind === "waiting"
-      ? null
-      : progress.unitId
-        ? buildWaitingRoomHref(progress.unitId, athlete.displayName)
-        : null;
-  const body = (
-    <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
-      {/* External placeholder URL — keeping <img> over next/image so no
-          remotePatterns config is needed for the demo. */}
-      {/* biome-ignore lint: placeholder CDN, intentional use of <img>. */}
-      <img
-        alt={athlete.displayName}
-        className="h-40 w-40 self-center rounded-2xl border border-white/10 object-cover"
-        src={athlete.thumbnailUrl}
-      />
-      <div className="grid gap-1 text-center">
-        <h2 className="font-serif text-2xl text-white">
-          {athlete.displayName}
-        </h2>
-        <p className="font-mono text-xs text-slate-400">{athlete.slug}</p>
-      </div>
-      <ProgressLabel progress={progress} />
-    </article>
-  );
-
-  if (href) {
-    return (
-      <Link className="contents" href={href}>
-        {body}
-      </Link>
-    );
-  }
-  return body;
-}
-
-function ProgressLabel({
-  progress,
 }: {
-  readonly progress: CardProgress;
+  readonly athlete: HomeEntry;
 }): React.ReactElement {
-  if (progress.kind === "active") {
-    return (
-      <p className="font-mono text-lg tabular-nums text-white">
-        {progress.submittedCount} / {progress.maxSlots}
-      </p>
-    );
-  }
-  if (progress.kind === "waiting") {
-    return (
-      <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
-        待機中 / No active unit
-      </p>
-    );
-  }
   return (
-    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-      進捗を一時取得できません / Progress temporarily unavailable
-    </p>
+    <Link
+      className="contents"
+      href={buildWaitingRoomHref(athlete.unitId, athlete.displayName)}
+    >
+      <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
+        {/* biome-ignore lint/performance/noImgElement: operator card */}
+        <img
+          alt={athlete.displayName}
+          className="h-40 w-40 self-center rounded-2xl border border-white/10 object-cover"
+          src={athlete.thumbnailUrl}
+        />
+        <div className="grid gap-1 text-center">
+          <h2 className="font-serif text-2xl text-white">
+            {athlete.displayName}
+          </h2>
+          <p className="font-mono text-xs text-slate-400">{athlete.slug}</p>
+        </div>
+        <p className="font-mono text-lg tabular-nums text-white">
+          {athlete.submittedCount} / {athlete.maxSlots}
+        </p>
+      </article>
+    </Link>
   );
 }
 
-function safeLoadEnv(): ResolvedEnv | null {
+async function loadChainEntries(): Promise<readonly HomeEntry[]> {
   try {
-    const env = loadPublicEnv(process.env);
-    return { registryObjectId: env.registryObjectId };
-  } catch {
-    return null;
+    return await getActiveHomeUnits();
+  } catch (error) {
+    console.error("Failed to load active home units", error);
+    return [];
   }
 }
 
-function resolveDemoProgress(athletePublicId: string): CardProgress {
-  const unitId = getDemoCurrentUnitIdForAthlete(athletePublicId);
-  if (!unitId) {
-    return { kind: "waiting" };
-  }
+async function loadDemoEntries(
+  rawOverride: string | undefined,
+): Promise<readonly HomeEntry[]> {
+  const catalog = await getAthleteCatalog();
+  return catalog.flatMap((athlete) => {
+    if (resolveE2ECardOverride(athlete.athletePublicId, rawOverride) === "skip") {
+      return [];
+    }
 
-  const progress = getDemoUnitProgress(unitId);
-  if (!progress) {
-    return { kind: "unavailable", unitId };
-  }
-
-  return {
-    kind: "active",
-    unitId,
-    submittedCount: progress.submittedCount,
-    maxSlots: progress.maxSlots,
-  };
-}
-
-async function resolveProgress(
-  athletePublicId: string,
-  env: ResolvedEnv,
-): Promise<CardProgress> {
-  try {
-    const unitId = await getCurrentUnitIdForAthlete(athletePublicId, {
-      registryObjectId: env.registryObjectId,
-    });
+    const unitId = getDemoCurrentUnitIdForAthlete(athlete.athletePublicId);
     if (!unitId) {
-      return { kind: "waiting" };
+      return [];
     }
-    try {
-      const view = await getUnitProgress(unitId);
-      return {
-        kind: "active",
-        unitId,
-        submittedCount: view.submittedCount,
-        maxSlots: view.maxSlots,
-      };
-    } catch {
-      return {
-        kind: "unavailable",
-        unitId,
-      };
+
+    const progress = getDemoUnitProgress(unitId);
+    if (!progress) {
+      return [];
     }
-  } catch {
-    return { kind: "unavailable" };
-  }
+
+    return [
+      {
+        ...athlete,
+        maxSlots: progress.maxSlots,
+        submittedCount: progress.submittedCount,
+        unitId,
+      },
+    ];
+  });
 }
 
 function buildWaitingRoomHref(unitId: string, athleteName: string): string {
@@ -258,10 +157,10 @@ function buildWaitingRoomHref(unitId: string, athleteName: string): string {
   return `/units/${unitId}?${params.toString()}`;
 }
 
-function resolveE2ECardProgress(
+function resolveE2ECardOverride(
   athletePublicId: string,
   rawOverride: string | undefined,
-): CardProgress | null {
+): "skip" | null {
   if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET !== "1" || !rawOverride) {
     return null;
   }
@@ -277,12 +176,8 @@ function resolveE2ECardProgress(
       continue;
     }
 
-    if (kind === "waiting") {
-      return { kind: "waiting" };
-    }
-
-    if (kind === "unavailable") {
-      return { kind: "unavailable" };
+    if (kind === "waiting" || kind === "unavailable") {
+      return "skip";
     }
   }
 

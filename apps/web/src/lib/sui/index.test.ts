@@ -11,6 +11,8 @@ describe("sui barrel", () => {
   it("re-exports the registry helpers", () => {
     expect(typeof suiPublicApi.getRegistryObject).toBe("function");
     expect(typeof suiPublicApi.getCurrentUnitIdForAthlete).toBe("function");
+    expect(typeof suiPublicApi.listRegistryAthletes).toBe("function");
+    expect(typeof suiPublicApi.getActiveHomeUnits).toBe("function");
   });
 
   it("re-exports the unit helper", () => {
