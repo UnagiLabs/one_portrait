@@ -33,6 +33,10 @@ import {
   getRemainingSlotsCount,
 } from "../../../lib/sui/types";
 
+function formatProgressCount(value: number): string {
+  return String(value);
+}
+
 export type LiveProgressProps = {
   readonly displayMaxSlots?: number;
   readonly eventSubscriptionEnabled?: boolean;
@@ -101,8 +105,10 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     <div className="grid gap-5">
       <p
         aria-live="polite"
+        aria-label={`${formatProgressCount(displayedSubmittedCount)} / ${formatProgressCount(effectiveDisplayMaxSlots)}`}
         className="op-big-counter tabular-nums"
         data-testid="live-progress-counter"
+        role="status"
       >
         <span className="num">{displayedSubmittedCount.toLocaleString()}</span>
         <span className="slash">/</span>

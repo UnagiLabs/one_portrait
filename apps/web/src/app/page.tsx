@@ -9,8 +9,12 @@ import {
   getDemoUnitProgress,
   isDemoModeEnabled,
 } from "../lib/demo";
-import { getActiveHomeUnits } from "../lib/sui";
+import { getActiveHomeUnits, RegistrySchemaError } from "../lib/sui";
 import { getDisplayedSubmittedCount } from "../lib/sui/types";
+
+function formatProgressCount(value: number): string {
+  return String(value);
+}
 
 type HomePageProps = {
   readonly searchParams?: Promise<{
@@ -376,6 +380,14 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
       },
     }));
   } catch (error) {
+    if (error instanceof RegistrySchemaError) {
+      console.error(
+        `Configured NEXT_PUBLIC_REGISTRY_OBJECT_ID ${error.objectId} does not match the current contract schema.`,
+        error,
+      );
+      return [];
+    }
+
     console.error("Failed to load active home units", error);
     return [];
   }
@@ -487,6 +499,9 @@ function ProgressLabel({
       <>
         <div className="flex items-baseline justify-between font-mono-op text-[11px] text-[var(--ink-dim)]">
           <div>
+            <span className="sr-only">
+              {`${formatProgressCount(progress.submittedCount)} / ${formatProgressCount(progress.maxSlots)}`}
+            </span>
             <span className="font-display text-[22px] text-[var(--ink)]">
               {getDisplayedSubmittedCount(progress).toLocaleString()}
             </span>

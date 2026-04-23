@@ -112,7 +112,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
             type="button"
           >
             <GoogleGlyph />
-            <span className="ml-2">Sign In</span>
+            <span className="ml-2">ログイン</span>
           </button>
 
           {open ? (
@@ -234,8 +234,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
 
 function GoogleGlyph(): React.ReactElement {
   return (
-    <svg height={14} viewBox="0 0 18 18" width={14}>
-      <title>Google</title>
+    <svg aria-hidden="true" height={14} viewBox="0 0 18 18" width={14}>
       <path
         d="M17.64 9.2c0-.63-.06-1.25-.17-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
         fill="#FFC107"

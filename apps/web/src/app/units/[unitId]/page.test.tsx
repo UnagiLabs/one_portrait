@@ -148,7 +148,7 @@ describe("UnitPage", () => {
       `72 / ${unitTileCount}`,
     );
     expect(
-      screen.getByRole("heading", { name: "Demo Athlete One" }),
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
     ).toBeTruthy();
   });
 
@@ -449,7 +449,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Demo Athlete One" }),
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
     ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
@@ -475,7 +475,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Demo Athlete One" }),
+      screen.getByRole("heading", { level: 1, name: "Demo Athlete One" }),
     ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
       "347 /",

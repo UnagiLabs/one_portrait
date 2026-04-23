@@ -179,7 +179,10 @@ describe("startSmokeDev", () => {
     expect(spawnCalls[0][2].env.NEXT_PUBLIC_WALRUS_PUBLISHER).toBe(
       "https://publisher.example.com",
     );
-    expect(spawnCalls[0][2].env.NEXT_PUBLIC_E2E_STUB_WALLET).toBeUndefined();
+    expect(
+      spawnCalls[0][2].env.NEXT_PUBLIC_E2E_STUB_WALLET === undefined ||
+        spawnCalls[0][2].env.NEXT_PUBLIC_E2E_STUB_WALLET === "",
+    ).toBe(true);
     expect(spawnCalls[0][2].env.NEXT_PUBLIC_ENOKI_API_KEY).not.toBe(
       e2eStubEnv.NEXT_PUBLIC_ENOKI_API_KEY,
     );

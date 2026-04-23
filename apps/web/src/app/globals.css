@@ -95,6 +95,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: 18px 32px;
   border-bottom: 1px solid var(--rule);
   background: linear-gradient(180deg, rgba(5, 3, 2, 0.9), rgba(5, 3, 2, 0.4));
@@ -104,6 +105,8 @@ a {
 .op-chrome-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 18px;
 }
 .op-brand {
@@ -140,6 +143,7 @@ a {
 }
 .op-chrome-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 22px;
   font-size: 12px;
   letter-spacing: 0.14em;
@@ -155,6 +159,9 @@ a {
 .op-chrome-right {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
   gap: 16px;
   font-size: 12px;
 }
@@ -493,4 +500,41 @@ a {
   background: rgba(20, 184, 138, 0.08);
   color: #8deac4;
   padding: 14px 18px;
+}
+
+@media (max-width: 720px) {
+  .op-chrome {
+    padding: 14px 16px;
+    align-items: flex-start;
+  }
+
+  .op-chrome-left,
+  .op-chrome-right {
+    width: 100%;
+  }
+
+  .op-chrome-right {
+    justify-content: space-between;
+  }
+
+  .op-brand {
+    min-width: 0;
+  }
+
+  .op-brand-name {
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+  }
+
+  .op-brand-name em {
+    font-size: 14px;
+  }
+
+  .op-chrome-nav {
+    gap: 14px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
 }
