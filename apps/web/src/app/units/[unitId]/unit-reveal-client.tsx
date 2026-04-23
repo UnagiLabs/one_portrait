@@ -4,6 +4,7 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
 
 import type { MasterPlacementView } from "../../../lib/sui";
+import { useEnokiConfigState } from "../../../lib/enoki/provider";
 import {
   findOwnedKakeraForUnit,
   getGalleryEntry,
@@ -29,10 +30,39 @@ type RevealState = {
   readonly placement: MasterPlacementView | null;
 };
 
+type UnitRevealClientCoreProps = UnitRevealClientProps & {
+  readonly currentAccountAddress: string | null;
+};
+
 const EMPTY_WALRUS_BLOB_ID = "";
 
 export function UnitRevealClient(
   props: UnitRevealClientProps,
+): React.ReactElement {
+  const state = useEnokiConfigState();
+
+  if (!state.walletProviderAvailable) {
+    return <UnitRevealClientCore {...props} currentAccountAddress={null} />;
+  }
+
+  return <UnitRevealClientWithWallet {...props} />;
+}
+
+function UnitRevealClientWithWallet(
+  props: UnitRevealClientProps,
+): React.ReactElement {
+  const currentAccount = useCurrentAccount();
+
+  return (
+    <UnitRevealClientCore
+      {...props}
+      currentAccountAddress={currentAccount?.address ?? null}
+    />
+  );
+}
+
+function UnitRevealClientCore(
+  props: UnitRevealClientCoreProps,
 ): React.ReactElement {
   const {
     displayName,
@@ -41,9 +71,9 @@ export function UnitRevealClient(
     initialSubmittedCount,
     maxSlots,
     initialMasterId,
+    currentAccountAddress,
   } = props;
 
-  const currentAccount = useCurrentAccount();
   const [reveal, setReveal] = useState<RevealState | null>(
     initialMasterId
       ? {
@@ -70,10 +100,10 @@ export function UnitRevealClient(
       let placement = revealPlacement;
       let ownedWalrusBlobId: string | null = null;
 
-      if (currentAccount?.address && packageId) {
+      if (currentAccountAddress && packageId) {
         try {
           const kakera = await findOwnedKakeraForUnit({
-            ownerAddress: currentAccount.address,
+            ownerAddress: currentAccountAddress,
             packageId,
             suiClient,
             unitId,
@@ -150,7 +180,7 @@ export function UnitRevealClient(
       cancelled = true;
     };
   }, [
-    currentAccount?.address,
+    currentAccountAddress,
     packageId,
     revealBlobId,
     revealMasterId,

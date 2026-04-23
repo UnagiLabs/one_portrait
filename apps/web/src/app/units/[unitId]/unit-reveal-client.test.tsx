@@ -7,17 +7,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GalleryEntryView, OwnedKakera } from "../../../lib/sui";
 
 const {
+  useEnokiConfigStateMock,
   useCurrentAccountMock,
   findOwnedKakeraForUnitMock,
   getGalleryEntryMock,
   getMasterPlacementMock,
   getSuiClientMock,
 } = vi.hoisted(() => ({
+  useEnokiConfigStateMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
   findOwnedKakeraForUnitMock: vi.fn(),
   getGalleryEntryMock: vi.fn(),
   getMasterPlacementMock: vi.fn(),
   getSuiClientMock: vi.fn(),
+}));
+
+vi.mock("../../../lib/enoki/provider", () => ({
+  useEnokiConfigState: () => useEnokiConfigStateMock(),
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
@@ -111,6 +117,16 @@ function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
 
 beforeEach(() => {
   process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
+  useEnokiConfigStateMock.mockReturnValue({
+    submitEnabled: true,
+    walletProviderAvailable: true,
+    config: {
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      enokiApiKey: "public-key",
+      googleClientId: "google-client-id",
+    },
+  });
   useCurrentAccountMock.mockReturnValue(null);
   getSuiClientMock.mockReturnValue({ network: "testnet" });
   findOwnedKakeraForUnitMock.mockResolvedValue(null);
@@ -129,6 +145,7 @@ afterEach(() => {
   getGalleryEntryMock.mockReset();
   getMasterPlacementMock.mockReset();
   getSuiClientMock.mockReset();
+  useEnokiConfigStateMock.mockReset();
 });
 
 describe("UnitRevealClient", () => {
@@ -240,6 +257,40 @@ describe("UnitRevealClient", () => {
     await waitFor(() => {
       expect(screen.getByTestId("reveal-image").getAttribute("src")).toContain(
         "/v1/blobs/mosaic-revisit-blob",
+      );
+    });
+    expect(screen.queryByTestId("placement-highlight")).toBeNull();
+  });
+
+  it("shows the completed mosaic on revisit without reading wallet hooks when the provider is absent", async () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: false,
+      walletProviderAvailable: false,
+      reason: "wallet-provider-disabled",
+    });
+    useCurrentAccountMock.mockImplementation(() => {
+      throw new Error("wallet hook should not be read when the provider is absent");
+    });
+    getMasterPlacementMock.mockResolvedValue({
+      masterId: "0xmaster-1",
+      mosaicWalrusBlobId: "mosaic-missing-env-blob",
+      placement: null,
+    });
+
+    render(
+      <UnitRevealClient
+        displayName="Demo Athlete One"
+        initialMasterId="0xmaster-1"
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId=""
+        unitId="0xunit-1"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("reveal-image").getAttribute("src")).toContain(
+        "/v1/blobs/mosaic-missing-env-blob",
       );
     });
     expect(screen.queryByTestId("placement-highlight")).toBeNull();
