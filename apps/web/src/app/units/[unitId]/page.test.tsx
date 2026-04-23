@@ -672,4 +672,39 @@ describe("UnitPage", () => {
         .getAttribute("data-startup-enabled"),
     ).toBe("false");
   });
+
+  it("disables reveal and event startup when the network env is invalid", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    process.env.NEXT_PUBLIC_SUI_NETWORK = "bogus";
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(
+      screen
+        .getByTestId("unit-reveal-client")
+        .getAttribute("data-startup-enabled"),
+    ).toBe("false");
+    expect(
+      screen
+        .getByTestId("unit-reveal-client")
+        .getAttribute("data-event-subscription-enabled"),
+    ).toBe("false");
+  });
 });

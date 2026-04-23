@@ -124,6 +124,26 @@ test("cloudflare build passes when every public build variable is present in pro
   });
 });
 
+test("cloudflare build fails when NEXT_PUBLIC_SUI_NETWORK is invalid", () => {
+  const cwd = createTempDir();
+
+  assert.throws(() => {
+    checkBuildPublicEnv({
+      cwd,
+      env: {
+        NEXT_PUBLIC_SUI_NETWORK: "bogus",
+        NEXT_PUBLIC_PACKAGE_ID: "0xpkg",
+        NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg",
+        NEXT_PUBLIC_ENOKI_API_KEY: "enoki-public",
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-client-id",
+        NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+        NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+      },
+      mode: "cloudflare",
+    });
+  }, /Expected one of: mainnet, testnet, devnet, localnet/);
+});
+
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "one-portrait-build-env-"));
 }

@@ -42,6 +42,12 @@ type ResolvedProgress = {
 };
 
 const FALLBACK_MAX_SLOTS = unitTileCount;
+const VALID_SUI_NETWORKS = new Set([
+  "mainnet",
+  "testnet",
+  "devnet",
+  "localnet",
+]);
 
 export default async function UnitPage(
   props: UnitPageProps,
@@ -54,9 +60,7 @@ export default async function UnitPage(
     searchParams.op_e2e_unit_progress,
   );
 
-  const startupEnabled =
-    readOptionalPublicValue("NEXT_PUBLIC_SUI_NETWORK") !== null &&
-    readOptionalPublicValue("NEXT_PUBLIC_REGISTRY_OBJECT_ID") !== null;
+  const startupEnabled = hasValidStartupEnv();
   const packageId = readOptionalPublicValue("NEXT_PUBLIC_PACKAGE_ID");
   const walrusEnv = readWalrusEnv();
   const aggregatorBase = readOptionalPublicValue(
@@ -210,6 +214,19 @@ function readWalrusEnv(): WalrusEnv {
     NEXT_PUBLIC_WALRUS_AGGREGATOR:
       readOptionalPublicValue("NEXT_PUBLIC_WALRUS_AGGREGATOR") ?? undefined,
   };
+}
+
+function hasValidStartupEnv(): boolean {
+  const suiNetwork = readOptionalPublicValue("NEXT_PUBLIC_SUI_NETWORK");
+  const registryObjectId = readOptionalPublicValue(
+    "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
+  );
+
+  return (
+    suiNetwork !== null &&
+    VALID_SUI_NETWORKS.has(suiNetwork) &&
+    registryObjectId !== null
+  );
 }
 
 function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptPath = fileURLToPath(import.meta.url);
+const validSuiNetworks = new Set(["mainnet", "testnet", "devnet", "localnet"]);
 
 export const buildPublicEnvKeys = {
   local: ["NEXT_PUBLIC_SUI_NETWORK", "NEXT_PUBLIC_REGISTRY_OBJECT_ID"],
@@ -49,6 +50,17 @@ export function checkBuildPublicEnv({
     throw new MissingBuildPublicEnvError(normalizedMode, missing);
   }
 
+  const invalidSuiNetwork = normalizeRequiredValue(
+    source.NEXT_PUBLIC_SUI_NETWORK,
+  );
+  if (invalidSuiNetwork && !validSuiNetworks.has(invalidSuiNetwork)) {
+    throw new InvalidBuildPublicEnvError(
+      normalizedMode,
+      "NEXT_PUBLIC_SUI_NETWORK",
+      invalidSuiNetwork,
+    );
+  }
+
   return source;
 }
 
@@ -58,6 +70,16 @@ export class MissingBuildPublicEnvError extends Error {
     this.name = "MissingBuildPublicEnvError";
     this.mode = mode;
     this.missing = missing;
+  }
+}
+
+export class InvalidBuildPublicEnvError extends Error {
+  constructor(mode, key, value) {
+    super(buildInvalidMessage(mode, key, value));
+    this.name = "InvalidBuildPublicEnvError";
+    this.mode = mode;
+    this.key = key;
+    this.value = value;
   }
 }
 
@@ -126,6 +148,14 @@ function buildMissingMessage(mode, missing) {
   ].join("\n");
 }
 
+function buildInvalidMessage(mode, key, value) {
+  return [
+    `Invalid public env variable for ${mode} build:`,
+    `${key}=${value}`,
+    `Expected one of: ${Array.from(validSuiNetworks).join(", ")}.`,
+  ].join("\n");
+}
+
 function readLocalBuildEnvFiles(cwd) {
   const merged = {};
 
@@ -190,6 +220,10 @@ function stripWrappingQuotes(value) {
 
 function isMissingValue(value) {
   return typeof value !== "string" || value.trim().length === 0;
+}
+
+function normalizeRequiredValue(value) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function isExecutedDirectly() {
