@@ -7,6 +7,7 @@ import {
   useWallets,
 } from "@mysten/dapp-kit";
 import { isGoogleWallet } from "@mysten/enoki";
+import { unitTileGrid } from "@one-portrait/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -508,14 +509,26 @@ function GalleryCard({
               Mosaic
             </p>
             {completedMosaicUrl ? (
-              // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
-              <img
-                alt={`${displayName} completed mosaic`}
-                className="w-full border border-[rgba(20,184,138,0.3)] bg-[rgba(5,3,2,0.6)]"
-                src={completedMosaicUrl}
-              />
+              <div
+                className="w-full overflow-hidden border border-[rgba(20,184,138,0.3)] bg-[rgba(5,3,2,0.6)]"
+                style={{
+                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+                }}
+              >
+                {/* biome-ignore lint: Walrus aggregator image is a dynamic external URL. */}
+                <img
+                  alt={`${displayName} completed mosaic`}
+                  className="block h-full w-full object-cover"
+                  src={completedMosaicUrl}
+                />
+              </div>
             ) : (
-              <div className="border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] px-4 py-10 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+              <div
+                className="grid w-full place-items-center border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] p-4 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
+                style={{
+                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+                }}
+              >
                 Completed mosaic unavailable
               </div>
             )}

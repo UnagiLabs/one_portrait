@@ -34,11 +34,16 @@ export function RevealPanel({
         </div>
       </div>
 
-      <div className="op-reveal-surface relative">
+      <div
+        className="op-reveal-surface relative"
+        style={{
+          aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+        }}
+      >
         {/* biome-ignore lint: remote Walrus aggregator image, next/image not configured for it yet. */}
         <img
           alt={`${displayName} completed mosaic`}
-          className="block h-auto w-full"
+          className="block h-full w-full object-cover"
           data-testid="reveal-image"
           src={mosaicUrl}
         />

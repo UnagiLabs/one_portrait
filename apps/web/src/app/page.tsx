@@ -1,5 +1,7 @@
-import { unitTileCount } from "@one-portrait/shared";
+import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
 import Link from "next/link";
+
+const mosaicAspectRatio = `${unitTileGrid.cols} / ${unitTileGrid.rows}`;
 
 import { getAthleteCatalog } from "../lib/catalog";
 import {
@@ -236,7 +238,10 @@ function TeaserPanel({
     | null;
 }): React.ReactElement {
   return (
-    <div className="relative aspect-[4/5] w-[78%]">
+    <div
+      className="relative w-[78%]"
+      style={{ aspectRatio: mosaicAspectRatio }}
+    >
       <div className="absolute -top-7 left-0 flex items-center gap-2.5 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
         <span
           className="h-1.5 w-1.5 rounded-full bg-[var(--ember)]"
