@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ConnectModal,
   useConnectWallet,
   useCurrentAccount,
   useCurrentWallet,
@@ -35,6 +34,7 @@ import {
   WalrusPutError,
   type WalrusPutResult,
 } from "../../../lib/walrus/put";
+import { SuiWalletConnectModal } from "../../sui-wallet-connect-modal";
 
 /**
  * Waiting-room submission access.
@@ -647,7 +647,7 @@ function ParticipationAccessEnabled({
                   ? "Google zkLogin をやり直す"
                   : "Google zkLogin"}
             </button>
-            <ConnectModal
+            <SuiWalletConnectModal
               trigger={
                 <button
                   className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
@@ -656,7 +656,6 @@ function ParticipationAccessEnabled({
                   Sui wallet
                 </button>
               }
-              walletFilter={(wallet) => !isGoogleWallet(wallet)}
             />
           </div>
         </>
