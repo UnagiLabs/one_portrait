@@ -96,7 +96,7 @@ describe("AdminClient", () => {
       />,
     );
 
-    const input = screen.getByLabelText(/target image/i) as HTMLInputElement;
+    const input = screen.getByLabelText(/対象画像/) as HTMLInputElement;
     const file = new File(["target"], "target.jpg", { type: "image/jpeg" });
 
     fireEvent.change(input, {
@@ -108,7 +108,9 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("target-blob-9")).toBeTruthy();
     });
-    expect(screen.getByAltText("Uploaded target preview")).toBeTruthy();
+    expect(
+      screen.getByAltText("アップロードした対象画像のプレビュー"),
+    ).toBeTruthy();
   });
 
   it("submits create-unit and records the latest action", async () => {
@@ -188,14 +190,14 @@ describe("AdminClient", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/target blob id/i), {
+    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
       target: { value: "target-blob-1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /create unit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("Create unit completed")).toBeTruthy();
+      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
     });
-    expect(screen.getByText(/digest: 0xcreate/)).toBeTruthy();
+    expect(screen.getByText(/ダイジェスト: 0xcreate/)).toBeTruthy();
   });
 });

@@ -71,7 +71,7 @@ export function AdminClient({
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "Refresh failed",
+        summary: "状態の更新に失敗しました",
       });
     } finally {
       setIsRefreshing(false);
@@ -104,12 +104,12 @@ export function AdminClient({
       setTargetBlobId(uploaded.blobId);
       setLastAction({
         detail: uploaded.blobId,
-        summary: "Target uploaded",
+        summary: "対象画像をアップロードしました",
       });
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "Target upload failed",
+        summary: "対象画像のアップロードに失敗しました",
       });
     } finally {
       setIsUploading(false);
@@ -135,13 +135,13 @@ export function AdminClient({
 
       setLastAction({
         detail: formatActionDetail(payload),
-        summary: "Create unit completed",
+        summary: "ユニットを作成しました",
       });
       await refreshAll();
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "Create unit failed",
+        summary: "ユニットの作成に失敗しました",
       });
     } finally {
       setPendingAction(null);
@@ -160,13 +160,13 @@ export function AdminClient({
 
       setLastAction({
         detail: formatActionDetail(payload),
-        summary: "Rotate unit completed",
+        summary: "ユニットを切り替えました",
       });
       await refreshAll();
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "Rotate unit failed",
+        summary: "ユニットの切り替えに失敗しました",
       });
     } finally {
       setPendingAction(null);
@@ -181,13 +181,13 @@ export function AdminClient({
 
       setLastAction({
         detail: formatActionDetail(payload),
-        summary: "Finalize retry completed",
+        summary: "finalize を再試行しました",
       });
       await refreshAll();
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "Finalize retry failed",
+        summary: "finalize の再試行に失敗しました",
       });
     } finally {
       setPendingAction(null);
@@ -203,17 +203,17 @@ export function AdminClient({
           onClick={() => void refreshAll()}
           type="button"
         >
-          {isRefreshing ? "Refreshing..." : "Refresh status"}
+          {isRefreshing ? "更新中..." : "状態を更新"}
         </button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <HealthCard
-          label="Generator readiness"
+          label="ジェネレーター準備状態"
           value={health.generatorReadiness.status}
         />
         <HealthCard
-          label="Dispatch authorization"
+          label="ディスパッチ認可"
           value={health.dispatchAuthorization.status}
         />
       </div>
@@ -221,7 +221,7 @@ export function AdminClient({
       {lastAction ? (
         <section className="grid gap-2 rounded-[1.5rem] border border-emerald-200/20 bg-emerald-300/10 p-5">
           <h2 className="text-sm uppercase tracking-[0.25em] text-emerald-200/80">
-            Last action
+            直近の操作
           </h2>
           <p className="text-xl font-semibold text-white">
             {lastAction.summary}
@@ -235,10 +235,10 @@ export function AdminClient({
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">Create next unit</h2>
+            <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
             <p className="text-sm leading-6 text-stone-300">
-              Upload the target portrait, confirm the blob id, and create a new
-              unit for the selected athlete.
+              対象ポートレートをアップロードして blob ID を確認し、選択した
+              選手向けの新しいユニットを作成します。
             </p>
           </div>
 
@@ -247,7 +247,7 @@ export function AdminClient({
             onSubmit={(event) => void handleCreateUnit(event)}
           >
             <label className="grid gap-2 text-sm text-stone-200">
-              Athlete
+              選手
               <select
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
                 onChange={(event) => setSelectedAthleteId(event.target.value)}
@@ -265,7 +265,7 @@ export function AdminClient({
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
-              Target image
+              対象画像
               <input
                 accept="image/*"
                 className="rounded-2xl border border-dashed border-white/20 bg-stone-900 px-4 py-3"
@@ -277,24 +277,24 @@ export function AdminClient({
             {targetPreviewUrl ? (
               // biome-ignore lint/performance/noImgElement: operator preview
               <img
-                alt="Uploaded target preview"
+                alt="アップロードした対象画像のプレビュー"
                 className="h-48 w-full rounded-2xl border border-white/10 object-cover"
                 src={targetPreviewUrl}
               />
             ) : null}
 
             <label className="grid gap-2 text-sm text-stone-200">
-              Target blob id
+              対象 blob ID
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
                 onChange={(event) => setTargetBlobId(event.target.value)}
-                placeholder="Upload first or paste a blob id manually"
+                placeholder="先にアップロードするか、blob ID を直接入力してください"
                 value={targetBlobId}
               />
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
-              Max slots
+              最大スロット数
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
                 inputMode="numeric"
@@ -314,10 +314,10 @@ export function AdminClient({
               type="submit"
             >
               {isUploading
-                ? "Uploading target..."
+                ? "対象画像をアップロード中..."
                 : pendingAction === "create"
-                  ? "Creating..."
-                  : "Create unit"}
+                  ? "作成中..."
+                  : "ユニットを作成"}
             </button>
           </form>
         </section>
@@ -325,11 +325,11 @@ export function AdminClient({
         <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
           <div className="grid gap-1">
             <h2 className="font-serif text-2xl text-white">
-              Rotate current unit
+              ユニットを切り替え
             </h2>
             <p className="text-sm leading-6 text-stone-300">
-              Switch the active unit for the selected athlete. The last created
-              unit id is copied here automatically.
+              選択した選手の現在ユニットを切り替えます。直前に作成した unit ID
+              は自動でここに反映されます。
             </p>
           </div>
 
@@ -338,7 +338,7 @@ export function AdminClient({
             onSubmit={(event) => void handleRotateUnit(event)}
           >
             <label className="grid gap-2 text-sm text-stone-200">
-              Athlete
+              選手
               <select
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
                 onChange={(event) => setRotateAthleteId(event.target.value)}
@@ -356,7 +356,7 @@ export function AdminClient({
             </label>
 
             <label className="grid gap-2 text-sm text-stone-200">
-              Next unit id
+              次のユニット ID
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
                 onChange={(event) => setRotateUnitId(event.target.value)}
@@ -375,8 +375,8 @@ export function AdminClient({
               type="submit"
             >
               {pendingAction === "rotate"
-                ? "Rotating..."
-                : "Rotate current unit"}
+                ? "切り替え中..."
+                : "ユニットを切り替え"}
             </button>
           </form>
         </section>
@@ -384,12 +384,10 @@ export function AdminClient({
 
       <section className="grid gap-4">
         <div className="grid gap-1">
-          <h2 className="font-serif text-2xl text-white">
-            Current unit status
-          </h2>
+          <h2 className="font-serif text-2xl text-white">現在の状態</h2>
           <p className="text-sm leading-6 text-stone-300">
-            Check the live unit state for each athlete and retry finalize when a
-            filled unit stalls.
+            各選手の現在ユニット状態を確認し、filled のまま停止した ユニットで
+            finalize を再試行できます。
           </p>
         </div>
 
@@ -473,16 +471,13 @@ function AdminAthleteCard({
       {currentUnit ? (
         <>
           <dl className="grid gap-2 text-sm text-stone-200">
-            <InfoRow label="Unit id" value={currentUnit.unitId} />
+            <InfoRow label="ユニット ID" value={currentUnit.unitId} />
             <InfoRow
-              label="Progress"
+              label="進行状況"
               value={`${currentUnit.submittedCount} / ${currentUnit.maxSlots}`}
             />
-            <InfoRow label="Status" value={currentUnit.status} />
-            <InfoRow
-              label="Target blob"
-              value={currentUnit.targetWalrusBlobId}
-            />
+            <InfoRow label="ステータス" value={currentUnit.status} />
+            <InfoRow label="対象 blob" value={currentUnit.targetWalrusBlobId} />
           </dl>
           <button
             className="rounded-full border border-emerald-200/30 bg-emerald-300/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -491,15 +486,15 @@ function AdminAthleteCard({
             type="button"
           >
             {pendingAction === `finalize:${currentUnit.unitId}`
-              ? "Retrying..."
-              : "Retry finalize"}
+              ? "再試行中..."
+              : "finalize を再試行"}
           </button>
         </>
       ) : (
         <p className="text-sm leading-6 text-stone-300">
           {athlete.lookupState === "missing"
-            ? "No current unit is registered for this athlete yet."
-            : "Current unit state is temporarily unavailable."}
+            ? "この選手にはまだ現在ユニットが登録されていません。"
+            : "現在ユニットの状態を一時的に取得できません。"}
         </p>
       )}
     </article>
@@ -523,7 +518,9 @@ async function postJson(
 
   if (!response.ok) {
     throw new Error(
-      typeof json.message === "string" ? json.message : "Request failed.",
+      typeof json.message === "string"
+        ? json.message
+        : "リクエストに失敗しました。",
     );
   }
 
@@ -532,11 +529,13 @@ async function postJson(
 
 function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
-    typeof payload.status === "string" ? `status: ${payload.status}` : null,
-    typeof payload.digest === "string" ? `digest: ${payload.digest}` : null,
-    typeof payload.unitId === "string" ? `unitId: ${payload.unitId}` : null,
+    typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
+    typeof payload.digest === "string"
+      ? `ダイジェスト: ${payload.digest}`
+      : null,
+    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.mosaicBlobId === "string"
-      ? `mosaicBlobId: ${payload.mosaicBlobId}`
+      ? `モザイク Blob ID: ${payload.mosaicBlobId}`
       : null,
   ].filter((value): value is string => value !== null);
 

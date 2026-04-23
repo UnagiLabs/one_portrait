@@ -76,7 +76,7 @@ describe("AdminPage", () => {
     const ui = await AdminPage();
     render(ui);
 
-    expect(screen.getByText(/demo admin console/i)).toBeTruthy();
+    expect(screen.getByText(/デモ管理コンソール/)).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();

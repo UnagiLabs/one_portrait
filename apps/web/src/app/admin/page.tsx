@@ -27,20 +27,20 @@ export default async function AdminPage(): Promise<React.ReactElement> {
             className="text-sm uppercase tracking-[0.3em] text-amber-200/80 hover:text-amber-100"
             href="/"
           >
-            ← Demo home
+            ← デモホームへ
           </Link>
         </nav>
 
         <header className="grid gap-4 rounded-[2rem] border border-white/10 bg-white/6 p-8 shadow-2xl shadow-black/30 backdrop-blur">
           <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
-            Operator
+            管理者
           </p>
           <h1 className="font-serif text-4xl text-white md:text-5xl">
-            Demo admin console
+            デモ管理コンソール
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
-            Upload the target image, create the next unit, rotate the current
-            unit, and retry finalize from one page.
+            対象画像のアップロード、次のユニット作成、現在ユニットの切り替え、
+            finalize の再試行をこの 1 ページで操作できます。
           </p>
         </header>
 
