@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { resolveScriptGeneratorRuntime } from "./generator-runtime.mjs";
 import { loadWebScriptEnv } from "./run-local-generator.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,23 +9,29 @@ const DEFAULT_DISPATCH_PATH = "/dispatch";
 const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 
 export async function runGeneratorStackDispatchSmoke({
+  appRootPath,
   argv = process.argv,
   env = process.env,
   fetchImpl = globalThis.fetch,
   logger = console,
 } = {}) {
   const unitId = parseUnitId(argv);
-  const dispatchUrl = normalizeRequiredValue(env.OP_FINALIZE_DISPATCH_URL);
   const dispatchSecret = normalizeRequiredValue(
     env.OP_FINALIZE_DISPATCH_SECRET,
   );
+  const runtime = resolveScriptGeneratorRuntime({ appRootPath, env });
+  const dispatchUrl = runtime.status === "ok" ? runtime.url : null;
 
-  if (!unitId || !dispatchUrl || !dispatchSecret) {
+  if (!unitId || !dispatchUrl || !dispatchSecret || runtime.status !== "ok") {
     const marker = "[generator-stack][smoke][invalid-input]";
     logger?.error?.(
       `${marker} missing ${[
         !unitId ? "unitId" : null,
-        !dispatchUrl ? "OP_FINALIZE_DISPATCH_URL" : null,
+        runtime.status !== "ok"
+          ? "generator runtime"
+          : !dispatchUrl
+            ? "OP_FINALIZE_DISPATCH_URL"
+            : null,
         !dispatchSecret ? "OP_FINALIZE_DISPATCH_SECRET" : null,
       ]
         .filter(Boolean)

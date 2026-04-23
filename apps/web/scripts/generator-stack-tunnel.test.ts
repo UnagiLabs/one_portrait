@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -17,8 +20,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -135,8 +140,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -173,8 +180,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -227,8 +236,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -297,8 +308,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -347,8 +360,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -394,8 +409,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -448,8 +465,10 @@ describe("runGeneratorStackTunnel", () => {
       exitCode: 0,
       localPort: 8080,
       ok: true,
+      publicBaseUrl: "https://generator.example",
       publicHostname: "generator.example",
       tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
     });
     const startLocalGenerator = vi.fn().mockResolvedValue({
       child: generatorChild,
@@ -489,16 +508,194 @@ describe("runGeneratorStackTunnel", () => {
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
     expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
+
+  it("captures a quick tunnel URL, writes runtime state, and probes external health through it", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-quick-tunnel-"),
+    );
+    const runtimeStatePath = path.join(
+      appRootPath,
+      ".cache",
+      "generator-runtime.json",
+    );
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      tunnelMode: "quick",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      appRootPath,
+      env: {},
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    localHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][local][ready]",
+      ok: true,
+    });
+    await settle();
+
+    expect(spawnImpl).toHaveBeenCalledWith(
+      "cloudflared",
+      ["tunnel", "--url", "http://127.0.0.1:8080"],
+      expect.objectContaining({
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
+    );
+
+    try {
+      tunnelChild.stdout.emit("data", "Quick Tunnel ready: https://fresh-");
+      tunnelChild.stdout.emit("data", "runtime.trycloudflare.com\n");
+      await settle();
+
+      expect(waitForHealth).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          label: "external",
+          url: "https://fresh-runtime.trycloudflare.com/health",
+        }),
+      );
+      expect(fs.existsSync(runtimeStatePath)).toBe(true);
+
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+
+      expect(logger.info).toHaveBeenCalledWith("[generator-stack][ready]");
+
+      tunnelChild.emit("exit", 1, null);
+
+      await expect(runPromise).resolves.toEqual({
+        exitCode: 1,
+        marker: "[generator-stack][child-exit][tunnel]",
+        ok: false,
+      });
+      expect(fs.existsSync(runtimeStatePath)).toBe(false);
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
+  });
+
+  it("respects a custom runtime state path from merged env", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-quick-tunnel-custom-"),
+    );
+    const runtimeStatePath = path.join(appRootPath, "tmp", "runtime.json");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      tunnelMode: "quick",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    try {
+      const runPromise = runGeneratorStackTunnel({
+        appRootPath,
+        env: {
+          OP_GENERATOR_RUNTIME_STATE_PATH: runtimeStatePath,
+        },
+        logger,
+        preflight,
+        processImpl,
+        spawnImpl,
+        startLocalGenerator,
+        waitForHealth,
+      });
+
+      await settle();
+      localHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      });
+      await settle();
+
+      tunnelChild.stdout.emit(
+        "data",
+        "Quick Tunnel ready: https://custom-runtime.trycloudflare.com\n",
+      );
+      await settle();
+
+      expect(fs.existsSync(runtimeStatePath)).toBe(true);
+
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+      tunnelChild.emit("exit", 1, null);
+      await runPromise;
+
+      expect(fs.existsSync(runtimeStatePath)).toBe(false);
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
+  });
 });
 
 function createChildProcess(name: string) {
   const child = new EventEmitter() as EventEmitter & {
     kill: ReturnType<typeof vi.fn>;
     readonly name: string;
+    pid: number;
+    stderr: EventEmitter;
+    stdout: EventEmitter;
   };
   let exited = false;
 
   child.name = name;
+  child.pid = 31337;
+  child.stderr = new EventEmitter();
+  child.stdout = new EventEmitter();
   child.kill = vi.fn((signal = "SIGTERM") => {
     if (exited) {
       return true;

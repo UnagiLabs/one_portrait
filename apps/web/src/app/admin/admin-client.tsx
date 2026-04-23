@@ -275,6 +275,20 @@ export function AdminClient({
         />
       </div>
 
+      <section className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/6 p-5">
+        <h2 className="text-xs uppercase tracking-[0.25em] text-stone-300">
+          現在の generator 接続先
+        </h2>
+        <dl className="grid gap-3 md:grid-cols-3">
+          <InfoRow
+            label="current URL"
+            value={health.currentUrl ?? "not resolved"}
+          />
+          <InfoRow label="source" value={health.source} />
+          <InfoRow label="resolution" value={health.resolutionStatus} />
+        </dl>
+      </section>
+
       {lastAction ? (
         <section className="grid gap-2 rounded-[1.5rem] border border-emerald-200/20 bg-emerald-300/10 p-5">
           <h2 className="text-sm uppercase tracking-[0.25em] text-emerald-200/80">

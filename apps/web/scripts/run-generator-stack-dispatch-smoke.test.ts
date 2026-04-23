@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { runGeneratorStackDispatchSmoke } from "./run-generator-stack-dispatch-smoke.mjs";
@@ -72,9 +75,15 @@ describe("runGeneratorStackDispatchSmoke", () => {
     }
   });
 
-  it("fails fast when the dispatch URL is missing", async () => {
+  it("falls back to the local generator URL when the dispatch URL is missing", async () => {
     const logger = createLogger();
-    const fetchImpl = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        status: "ignored_finalized",
+        unitId: VALID_UNIT_ID,
+      }),
+      status: 200,
+    });
 
     const result = await runGeneratorStackDispatchSmoke({
       argv: ["node", "script.mjs", VALID_UNIT_ID],
@@ -86,14 +95,67 @@ describe("runGeneratorStackDispatchSmoke", () => {
     });
 
     expect(result).toEqual({
-      exitCode: 1,
-      marker: "[generator-stack][smoke][invalid-input]",
-      ok: false,
+      exitCode: 0,
+      marker: "[generator-stack][smoke][ok]",
+      ok: true,
+      resultStatus: "ignored_finalized",
     });
-    expect(fetchImpl).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining("[generator-stack][smoke][invalid-input]"),
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL("/dispatch", "http://127.0.0.1:8080/"),
+      expect.any(Object),
     );
+  });
+
+  it("reads the runtime state file before legacy env", async () => {
+    const logger = createLogger();
+    const fetchImpl = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        status: "ignored_finalized",
+        unitId: VALID_UNIT_ID,
+      }),
+      status: 200,
+    });
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-smoke-"),
+    );
+    const cacheDir = path.join(appRootPath, ".cache");
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(cacheDir, "generator-runtime.json"),
+      JSON.stringify({
+        mode: "quick",
+        pid: process.pid,
+        updatedAt: new Date().toISOString(),
+        url: "https://runtime-state.example.com",
+        version: 1,
+      }),
+    );
+
+    try {
+      const result = await runGeneratorStackDispatchSmoke({
+        appRootPath,
+        argv: ["node", "script.mjs", VALID_UNIT_ID],
+        env: {
+          OP_FINALIZE_DISPATCH_SECRET: VALID_ENV.OP_FINALIZE_DISPATCH_SECRET,
+          OP_FINALIZE_DISPATCH_URL: "https://legacy-env.example.com",
+        },
+        fetchImpl,
+        logger,
+      });
+
+      expect(result).toEqual({
+        exitCode: 0,
+        marker: "[generator-stack][smoke][ok]",
+        ok: true,
+        resultStatus: "ignored_finalized",
+      });
+      expect(fetchImpl).toHaveBeenCalledWith(
+        new URL("/dispatch", "https://runtime-state.example.com/"),
+        expect.any(Object),
+      );
+    } finally {
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
   });
 
   it("fails fast when the dispatch secret is missing", async () => {

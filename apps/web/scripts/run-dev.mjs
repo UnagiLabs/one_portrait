@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertNormalDevEnvironment } from "./dev-mode.mjs";
+import { loadWebScriptEnv } from "./run-local-generator.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,27 +12,48 @@ const webRoot = path.resolve(__dirname, "..");
 const lockPath = path.join(webRoot, ".next", "dev", "lock");
 const nextBin = path.join(webRoot, "node_modules", ".bin", "next");
 
-cleanupStaleNextDevLock(lockPath);
-assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
+export function startDev({
+  cwd = webRoot,
+  env = process.env,
+  nextDevBin = path.join(cwd, "node_modules", ".bin", "next"),
+  spawnImpl = spawn,
+}) {
+  const mergedEnv = loadWebScriptEnv({ env });
 
-const child = spawn(nextBin, ["dev"], {
-  cwd: webRoot,
-  env: {
-    ...process.env,
-    OP_FINALIZE_DISPATCH_URL:
-      process.env.OP_FINALIZE_DISPATCH_URL ?? "http://127.0.0.1:8080",
-  },
-  stdio: "inherit",
-});
+  return spawnImpl(nextDevBin, ["dev"], {
+    cwd,
+    env: {
+      ...env,
+      ...mergedEnv,
+      OP_LOCAL_GENERATOR_RUNTIME: mergedEnv.OP_LOCAL_GENERATOR_RUNTIME ?? "1",
+      OP_GENERATOR_RUNTIME_STATE_PATH:
+        mergedEnv.OP_GENERATOR_RUNTIME_STATE_PATH ??
+        path.join(cwd, ".cache", "generator-runtime.json"),
+    },
+    stdio: "inherit",
+  });
+}
 
-child.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
+if (isExecutedDirectly()) {
+  cleanupStaleNextDevLock(lockPath);
+  assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
 
-  process.exit(code ?? 0);
-});
+  const child = startDev({
+    cwd: webRoot,
+    env: process.env,
+    nextDevBin: nextBin,
+    spawnImpl: spawn,
+  });
+
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+
+    process.exit(code ?? 0);
+  });
+}
 
 function cleanupStaleNextDevLock(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -57,6 +79,20 @@ function isProcessAlive(pid) {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return error?.code === "EPERM";
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "EPERM"
+    );
   }
+}
+
+function isExecutedDirectly() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+
+  return path.resolve(entry) === __filename;
 }
