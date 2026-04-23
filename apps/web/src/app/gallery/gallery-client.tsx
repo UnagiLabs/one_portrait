@@ -621,13 +621,20 @@ function findAthlete(
   );
 }
 
+const demoBlobAssetMap: Record<string, string> = {
+  "demo-mosaic-one": "/demo/demo_mozaiku.png",
+};
+
 function buildWalrusAggregatorUrl(blobId: string | null): string | null {
   if (!blobId) {
     return null;
   }
 
   if (isDemoModeEnabled(getDemoModeSource())) {
-    return `https://placehold.co/960x540/png?text=${encodeURIComponent(blobId)}`;
+    return (
+      demoBlobAssetMap[blobId] ??
+      `https://placehold.co/960x540/png?text=${encodeURIComponent(blobId)}`
+    );
   }
 
   const aggregator = process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR?.trim().replace(

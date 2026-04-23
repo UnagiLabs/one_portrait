@@ -108,7 +108,7 @@ export default async function HomePage(
               "radial-gradient(circle at 50% 40%, rgba(255, 122, 26, 0.18), transparent 70%)",
           }}
         >
-          <TeaserPanel firstActive={firstActive ?? null} />
+          <TeaserPanel />
         </div>
       </section>
 
@@ -228,15 +228,7 @@ function HeroFoot({
   );
 }
 
-function TeaserPanel({
-  firstActive,
-}: {
-  readonly firstActive:
-    | (HomeEntry & {
-        readonly progress: { readonly kind: "active" } & HomeEntry["progress"];
-      })
-    | null;
-}): React.ReactElement {
+function TeaserPanel(): React.ReactElement {
   return (
     <div
       className="relative w-[78%]"
@@ -255,24 +247,23 @@ function TeaserPanel({
         <i className="bl" />
         <i className="br" />
       </div>
-      <div
-        className="h-full w-full"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(255,122,26,0.18), rgba(212,50,14,0.12) 45%, rgba(10,6,4,0.9)), repeating-linear-gradient(45deg, rgba(255,122,26,0.08) 0 14px, transparent 14px 28px)",
-          filter: "blur(1.5px) saturate(1.1)",
-        }}
-      >
-        {firstActive && firstActive.thumbnailUrl ? (
-          // biome-ignore lint/performance/noImgElement: placeholder teaser
-          <img
-            alt=""
-            aria-hidden
-            className="h-full w-full object-cover opacity-40 mix-blend-screen"
-            src={firstActive.thumbnailUrl}
-            style={{ filter: "blur(22px) saturate(1.4) brightness(1.2)" }}
-          />
-        ) : null}
+      <div className="relative h-full w-full overflow-hidden">
+        {/* biome-ignore lint/performance/noImgElement: demo teaser asset */}
+        <img
+          alt=""
+          aria-hidden
+          className="h-full w-full object-cover"
+          src="/demo/demo_mozaiku.png"
+          style={{ filter: "blur(18px) saturate(1.2) brightness(0.9)" }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(255,122,26,0.25), rgba(212,50,14,0.18) 45%, rgba(10,6,4,0.55))",
+            mixBlendMode: "multiply",
+          }}
+        />
       </div>
     </div>
   );
