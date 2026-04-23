@@ -176,6 +176,44 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
       `[generator-stack][health][${label}][timeout]`,
     );
   });
+
+  it("times out when fetch never resolves and aborts each attempt", async () => {
+    const logger = createLogger();
+    const clock = createClock();
+    const signals: AbortSignal[] = [];
+    const fetchImpl = vi.fn(
+      (requestUrl: URL | string, options?: RequestInit) => {
+        void requestUrl;
+        if (options?.signal) {
+          signals.push(options.signal);
+        }
+
+        return new Promise(() => {});
+      },
+    );
+
+    const result = await waitForGeneratorStackHealth({
+      createAbortController: () => new AbortController(),
+      fetchImpl,
+      label,
+      logger,
+      now: clock.now,
+      sleep: clock.sleep,
+      url:
+        label === "local"
+          ? "http://127.0.0.1:8080/health"
+          : "https://generator.example/health",
+      waitForAttemptTimeout: vi.fn(async () => {}),
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      exitCode: 1,
+      marker: `[generator-stack][health][${label}][timeout]`,
+    });
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
+  });
 });
 
 function createClock() {

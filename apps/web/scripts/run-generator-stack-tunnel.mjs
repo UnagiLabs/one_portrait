@@ -243,9 +243,32 @@ function trackChild(child) {
     exitResolve = resolve;
   });
 
-  child.once("exit", (code, signal) => {
+  const settleExit = (result) => {
+    if (exited) {
+      return;
+    }
+
     exited = true;
-    exitResolve({
+    exitResolve(result);
+  };
+
+  child.once("error", (error) => {
+    settleExit({
+      code: null,
+      error,
+      signal: null,
+    });
+  });
+
+  child.once("exit", (code, signal) => {
+    settleExit({
+      code: typeof code === "number" ? code : null,
+      signal: typeof signal === "string" ? signal : null,
+    });
+  });
+
+  child.once("close", (code, signal) => {
+    settleExit({
       code: typeof code === "number" ? code : null,
       signal: typeof signal === "string" ? signal : null,
     });
@@ -260,7 +283,15 @@ function trackChild(child) {
       }
 
       stopping = true;
-      child.kill(signal);
+      try {
+        child.kill(signal);
+      } catch (error) {
+        settleExit({
+          code: null,
+          error,
+          signal: null,
+        });
+      }
       await exitPromise;
     },
   };

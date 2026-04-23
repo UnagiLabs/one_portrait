@@ -51,13 +51,32 @@ if (isExecutedDirectly()) {
     spawnImpl: spawn,
   });
 
-  child.on("exit", (code, signal) => {
+  let handled = false;
+  const finalize = ({ code = null, signal = null } = {}) => {
+    if (handled) {
+      return;
+    }
+
+    handled = true;
     if (signal) {
       process.kill(process.pid, signal);
       return;
     }
 
-    process.exit(code ?? 0);
+    process.exit(typeof code === "number" && code >= 0 ? code : 1);
+  };
+
+  child.once("error", (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    finalize({ code: 1 });
+  });
+
+  child.once("exit", (code, signal) => {
+    finalize({ code, signal });
+  });
+
+  child.once("close", (code, signal) => {
+    finalize({ code, signal });
   });
 }
 

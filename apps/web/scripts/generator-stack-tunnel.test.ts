@@ -337,6 +337,106 @@ describe("runGeneratorStackTunnel", () => {
     expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
+  it("handles generator spawn errors as a terminal failure", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const localHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn();
+    const waitForHealth = vi.fn().mockReturnValue(localHealth.promise);
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+      },
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    generatorChild.emit(
+      "error",
+      Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" }),
+    );
+
+    await expect(runPromise).resolves.toEqual({
+      exitCode: 1,
+      marker: "[generator-stack][child-exit][generator]",
+      ok: false,
+    });
+    expect(spawnImpl).not.toHaveBeenCalled();
+  });
+
+  it("handles tunnel spawn errors as a terminal failure", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi
+      .fn()
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      })
+      .mockReturnValueOnce(externalHealth.promise);
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+      },
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    tunnelChild.emit(
+      "error",
+      Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" }),
+    );
+
+    await expect(runPromise).resolves.toEqual({
+      exitCode: 1,
+      marker: "[generator-stack][child-exit][tunnel]",
+      ok: false,
+    });
+    expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
+  });
+
   it("stops both children and returns the same signal when interrupted", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
