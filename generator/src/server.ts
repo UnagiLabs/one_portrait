@@ -12,9 +12,9 @@ import {
   createCreateUnitTransactionExecutor,
   createFinalizeTransactionExecutor,
   createRotateCurrentUnitTransactionExecutor,
-  createUpsertAthleteMetadataTransactionExecutor,
   createSuiClient,
   createUnitSnapshotLoader,
+  createUpsertAthleteMetadataTransactionExecutor,
 } from "./sui";
 
 export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
@@ -220,19 +220,20 @@ export async function handleRequest(
     }
 
     try {
-      const input = parseUpsertAthleteMetadataInput(await readJsonBody(request));
+      const input = parseUpsertAthleteMetadataInput(
+        await readJsonBody(request),
+      );
       const env = loadGeneratorRuntimeEnv(process.env);
       const client = createSuiClient({
         network: env.suiNetwork,
       });
-      const executeUpsertMetadata = createUpsertAthleteMetadataTransactionExecutor(
-        {
+      const executeUpsertMetadata =
+        createUpsertAthleteMetadataTransactionExecutor({
           adminCapId: env.adminCapId,
           client,
           packageId: env.packageId,
           privateKey: env.adminPrivateKey,
-        },
-      );
+        });
       const result = await executeUpsertMetadata(input);
 
       writeJson(response, 200, {
@@ -382,7 +383,9 @@ function parseAthleteId(value: unknown): number {
         : NaN;
 
   if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
-    throw new InvalidPayloadError("Payload requires athleteId as a u16 integer.");
+    throw new InvalidPayloadError(
+      "Payload requires athleteId as a u16 integer.",
+    );
   }
 
   return athleteId;
@@ -433,10 +436,10 @@ function writeJson(
   payload:
     | FinalizeRunResult
     | {
-      readonly digest: string;
-      readonly status: "created" | "rotated";
-      readonly unitId: string;
-    }
+        readonly digest: string;
+        readonly status: "created" | "rotated";
+        readonly unitId: string;
+      }
     | {
         readonly athleteId: number;
         readonly digest: string;

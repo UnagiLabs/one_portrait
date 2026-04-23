@@ -34,7 +34,8 @@ export default async function AdminPage(): Promise<React.ReactElement> {
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
             先に athlete metadata を on-chain 登録し、その後にユニット作成、
-            current unit の切り替え、finalize の再試行をこの 1 ページで操作します。
+            current unit の切り替え、finalize の再試行をこの 1
+            ページで操作します。
           </p>
         </header>
 

@@ -184,7 +184,12 @@ describe("AdminClient", () => {
       />,
     );
 
-    fireEvent.change(screen.getAllByLabelText(/^athlete ID$/i)[0]!, {
+    const athleteIdInput = screen.getAllByLabelText(/^athlete ID$/i)[0];
+    if (!athleteIdInput) {
+      throw new Error("metadata athlete ID input not found");
+    }
+
+    fireEvent.change(athleteIdInput, {
       target: { value: "7" },
     });
     fireEvent.change(screen.getByLabelText(/displayName/), {

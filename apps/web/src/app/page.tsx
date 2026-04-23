@@ -127,7 +127,9 @@ async function loadDemoEntries(
 ): Promise<readonly HomeEntry[]> {
   const catalog = await getAthleteCatalog();
   return catalog.flatMap((athlete) => {
-    if (resolveE2ECardOverride(athlete.athletePublicId, rawOverride) === "skip") {
+    if (
+      resolveE2ECardOverride(athlete.athletePublicId, rawOverride) === "skip"
+    ) {
       return [];
     }
 

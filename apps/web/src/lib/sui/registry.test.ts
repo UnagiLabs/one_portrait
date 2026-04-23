@@ -211,7 +211,9 @@ describe("listRegistryAthletes", () => {
           nextCursor: null,
         };
       }) as unknown as SuiReadClient["getDynamicFields"],
-      getObject: vi.fn(async () => registryObject()) as unknown as SuiReadClient["getObject"],
+      getObject: vi.fn(async () =>
+        registryObject(),
+      ) as unknown as SuiReadClient["getObject"],
     });
 
     const athletes = await listRegistryAthletes({
@@ -275,7 +277,12 @@ describe("getActiveHomeUnits", () => {
                 { objectId: "0xfield-1", name: { type: "u16", value: 1 } },
                 { objectId: "0xfield-2", name: { type: "u16", value: 2 } },
               ]
-            : [{ objectId: "0xfield-1-metadata", name: { type: "u16", value: 1 } }],
+            : [
+                {
+                  objectId: "0xfield-1-metadata",
+                  name: { type: "u16", value: 1 },
+                },
+              ],
         hasNextPage: false,
         nextCursor: null,
       })) as unknown as SuiReadClient["getDynamicFields"],

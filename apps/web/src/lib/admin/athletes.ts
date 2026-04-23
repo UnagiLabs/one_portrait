@@ -1,6 +1,6 @@
 import {
-  getAdminUnitSnapshot,
   type AdminUnitSnapshot,
+  getAdminUnitSnapshot,
   listRegistryAthletes,
 } from "../sui";
 

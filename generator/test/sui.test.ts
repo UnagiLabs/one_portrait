@@ -5,7 +5,10 @@ import {
   createSeedingSnapshotLoader,
   createUpsertAthleteMetadataTransactionExecutor,
 } from "../src";
-import type { GeneratorSuiReadClient, GeneratorSuiWriteClient } from "../src/sui";
+import type {
+  GeneratorSuiReadClient,
+  GeneratorSuiWriteClient,
+} from "../src/sui";
 
 describe("createSeedingSnapshotLoader", () => {
   it("derives submittedCount, maxSlots, status, and submitter addresses from the unit object", async () => {

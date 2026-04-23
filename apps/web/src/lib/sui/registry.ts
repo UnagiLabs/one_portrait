@@ -77,12 +77,13 @@ export async function getCurrentUnitIdForAthlete(
   return extractDynamicFieldIdValue(data.content);
 }
 
-export async function listRegistryAthletes(options: {
-  client?: SuiReadClient;
-  registryObjectId?: string;
-} = {}): Promise<readonly RegistryAthleteView[]> {
+export async function listRegistryAthletes(
+  options: { client?: SuiReadClient; registryObjectId?: string } = {},
+): Promise<readonly RegistryAthleteView[]> {
   const client = options.client ?? getSuiClient();
-  const registry = await getRegistryObject(options.registryObjectId, { client });
+  const registry = await getRegistryObject(options.registryObjectId, {
+    client,
+  });
   const [currentUnitKeys, metadataKeys] = await Promise.all([
     listAthleteKeys(registry.currentUnitsTableId, client),
     listAthleteKeys(registry.athleteMetadataTableId, client),
@@ -128,10 +129,9 @@ export async function listRegistryAthletes(options: {
   }));
 }
 
-export async function getActiveHomeUnits(options: {
-  client?: SuiReadClient;
-  registryObjectId?: string;
-} = {}): Promise<readonly ActiveHomeUnitView[]> {
+export async function getActiveHomeUnits(
+  options: { client?: SuiReadClient; registryObjectId?: string } = {},
+): Promise<readonly ActiveHomeUnitView[]> {
   const client = options.client ?? getSuiClient();
   const athletes = await listRegistryAthletes(options);
   const entries = await Promise.all(
@@ -148,7 +148,9 @@ export async function getActiveHomeUnits(options: {
       }
 
       try {
-        const progress = await getUnitProgress(athlete.currentUnitId, { client });
+        const progress = await getUnitProgress(athlete.currentUnitId, {
+          client,
+        });
         if (progress.status !== "pending" || progress.masterId !== null) {
           return null;
         }

@@ -32,7 +32,9 @@ export function AdminClient({
       : "",
   );
   const [metadataSlug, setMetadataSlug] = useState(
-    initialAthletes[0]?.metadataState === "ready" ? initialAthletes[0].slug : "",
+    initialAthletes[0]?.metadataState === "ready"
+      ? initialAthletes[0].slug
+      : "",
   );
   const [metadataThumbnailUrl, setMetadataThumbnailUrl] = useState(
     initialAthletes[0]?.metadataState === "ready"
@@ -86,7 +88,9 @@ export function AdminClient({
   }
 
   function loadMetadataDraft(athleteId: string): void {
-    const athlete = athletes.find((entry) => entry.athletePublicId === athleteId);
+    const athlete = athletes.find(
+      (entry) => entry.athletePublicId === athleteId,
+    );
     setMetadataAthleteId(athleteId);
     setMetadataDisplayName(
       athlete?.metadataState === "ready" ? athlete.displayName : "",
@@ -386,7 +390,8 @@ export function AdminClient({
           <div className="grid gap-1">
             <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
             <p className="text-sm leading-6 text-stone-300">
-              metadata 登録済みの athlete ID を指定して、新しい unit を作成します。
+              metadata 登録済みの athlete ID を指定して、新しい unit
+              を作成します。
             </p>
           </div>
 
