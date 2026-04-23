@@ -43,20 +43,24 @@ export function startLocalGenerator({
     imageTag,
   });
 
-  const child = spawnImpl("docker", buildDockerRunArgs({
-    containerName: `one-portrait-generator-${localPort}`,
-    imageTag,
-    runtimeEnv: buildGeneratorContainerEnv(mergedEnv),
-    localPort,
-  }), {
-    cwd,
-    env: {
-      ...process.env,
-      ...env,
-      ...mergedEnv,
+  const child = spawnImpl(
+    "docker",
+    buildDockerRunArgs({
+      containerName: `one-portrait-generator-${localPort}`,
+      imageTag,
+      runtimeEnv: buildGeneratorContainerEnv(mergedEnv),
+      localPort,
+    }),
+    {
+      cwd,
+      env: {
+        ...process.env,
+        ...env,
+        ...mergedEnv,
+      },
+      stdio: "inherit",
     },
-    stdio: "inherit",
-  });
+  );
 
   return { child };
 }
@@ -142,7 +146,12 @@ function normalizePortEnvValue(value) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function buildDockerRunArgs({ containerName, imageTag, localPort, runtimeEnv }) {
+function buildDockerRunArgs({
+  containerName,
+  imageTag,
+  localPort,
+  runtimeEnv,
+}) {
   return [
     "run",
     "--rm",
@@ -157,7 +166,9 @@ function buildDockerRunArgs({ containerName, imageTag, localPort, runtimeEnv }) 
 
 function buildDockerEnvArgs(runtimeEnv) {
   return Object.entries(runtimeEnv).flatMap(([key, value]) =>
-    typeof value === "string" && value.length > 0 ? ["--env", `${key}=${value}`] : [],
+    typeof value === "string" && value.length > 0
+      ? ["--env", `${key}=${value}`]
+      : [],
   );
 }
 
@@ -187,9 +198,7 @@ function defaultRunDockerBuild({ contextPath, dockerfilePath, imageTag }) {
   );
 
   if (result.status !== 0) {
-    throw new Error(
-      `docker build failed with exit code ${result.status ?? 1}`,
-    );
+    throw new Error(`docker build failed with exit code ${result.status ?? 1}`);
   }
 }
 

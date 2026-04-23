@@ -106,14 +106,10 @@ export async function writeRemoteGeneratorRuntime({
 }
 
 async function runWranglerKvCommand({ args, cwd, env, runCommand }) {
-  return runCommand(
-    "corepack",
-    ["pnpm", "exec", "wrangler", "kv", ...args],
-    {
-      cwd,
-      env,
-    },
-  );
+  return runCommand("corepack", ["pnpm", "exec", "wrangler", "kv", ...args], {
+    cwd,
+    env,
+  });
 }
 
 async function defaultRunCommand(command, args, options = {}) {

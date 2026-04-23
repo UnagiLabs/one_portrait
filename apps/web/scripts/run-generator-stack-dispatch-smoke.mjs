@@ -125,7 +125,9 @@ async function resolveSmokeGeneratorRuntime({
   logger,
   readRemoteRuntime,
 }) {
-  const overrideUrl = normalizeOptionalUrl(env.OP_GENERATOR_RUNTIME_URL_OVERRIDE);
+  const overrideUrl = normalizeOptionalUrl(
+    env.OP_GENERATOR_RUNTIME_URL_OVERRIDE,
+  );
   if (overrideUrl !== null) {
     return {
       source: "override",

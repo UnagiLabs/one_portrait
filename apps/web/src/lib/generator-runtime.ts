@@ -37,10 +37,7 @@ export type GeneratorRuntimeKvState = {
 };
 
 export type GeneratorRuntimeKvNamespace = {
-  get(
-    key: string,
-    type: "json",
-  ): Promise<Record<string, unknown> | null>;
+  get(key: string, type: "json"): Promise<Record<string, unknown> | null>;
 };
 
 export type GeneratorRuntimeCloudflareEnv = RuntimeEnvSource & {
@@ -257,8 +254,12 @@ export async function resolveCloudflareGeneratorRuntime({
   };
 }
 
-function resolveLegacyRuntimeUrl(env: RuntimeEnvSource): LegacyRuntimeResolution {
-  const generatorBaseUrl = normalizeUrl(readEnvString(env.OP_GENERATOR_BASE_URL));
+function resolveLegacyRuntimeUrl(
+  env: RuntimeEnvSource,
+): LegacyRuntimeResolution {
+  const generatorBaseUrl = normalizeUrl(
+    readEnvString(env.OP_GENERATOR_BASE_URL),
+  );
   const finalizeDispatchUrl = normalizeUrl(
     readEnvString(env.OP_FINALIZE_DISPATCH_URL),
   );
@@ -334,7 +335,9 @@ function normalizeRuntimeState(input: unknown): GeneratorRuntimeState | null {
   };
 }
 
-function normalizeRuntimeKvState(input: unknown): GeneratorRuntimeKvState | null {
+function normalizeRuntimeKvState(
+  input: unknown,
+): GeneratorRuntimeKvState | null {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return null;
   }

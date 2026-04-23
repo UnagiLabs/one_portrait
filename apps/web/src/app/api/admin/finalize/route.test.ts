@@ -8,10 +8,10 @@ const {
   getFinalizeUnitSnapshotMock,
   getRequestCloudflareEnvMock,
 } = vi.hoisted(() => ({
-    dispatchFinalizeMock: vi.fn(),
-    getFinalizeUnitSnapshotMock: vi.fn(),
-    getRequestCloudflareEnvMock: vi.fn(),
-  }));
+  dispatchFinalizeMock: vi.fn(),
+  getFinalizeUnitSnapshotMock: vi.fn(),
+  getRequestCloudflareEnvMock: vi.fn(),
+}));
 
 vi.mock("../../../../lib/finalize/dispatch", () => ({
   dispatchFinalize: dispatchFinalizeMock,

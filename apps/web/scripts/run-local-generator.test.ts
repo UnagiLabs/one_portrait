@@ -102,10 +102,7 @@ describe("startLocalGenerator", () => {
 
     expect(spawnImpl).toHaveBeenCalledWith(
       "docker",
-      expect.arrayContaining([
-        "--publish",
-        "127.0.0.1:9090:8080",
-      ]),
+      expect.arrayContaining(["--publish", "127.0.0.1:9090:8080"]),
       expect.any(Object),
     );
   });
@@ -125,10 +122,7 @@ describe("startLocalGenerator", () => {
 
     expect(spawnImpl).toHaveBeenCalledWith(
       "docker",
-      expect.arrayContaining([
-        "--publish",
-        "127.0.0.1:7070:8080",
-      ]),
+      expect.arrayContaining(["--publish", "127.0.0.1:7070:8080"]),
       expect.any(Object),
     );
   });
