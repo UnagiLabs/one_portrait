@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   connectModalMock,
+  connectModalWalletSelectMock,
   useEnokiConfigStateMock,
   useWalletsMock,
   useCurrentAccountMock,
@@ -19,6 +20,7 @@ const {
   useDisconnectWalletMock,
 } = vi.hoisted(() => ({
   connectModalMock: vi.fn(),
+  connectModalWalletSelectMock: vi.fn(),
   useEnokiConfigStateMock: vi.fn(),
   useWalletsMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
@@ -32,9 +34,30 @@ vi.mock("../lib/enoki/provider", () => ({
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
-  ConnectModal: (props: { readonly trigger: React.ReactNode }) => {
+  ConnectModal: (props: {
+    readonly onOpenChange?: (open: boolean) => void;
+    readonly open?: boolean;
+    readonly trigger: React.ReactNode;
+    readonly walletFilter?: (wallet: { id?: string }) => boolean;
+  }) => {
     connectModalMock(props);
-    return <>{props.trigger}</>;
+    return (
+      <>
+        {props.trigger}
+        {props.open ? (
+          <div aria-label="Connect a Wallet" role="dialog">
+            <button
+              onClick={() => {
+                connectModalWalletSelectMock();
+              }}
+              type="button"
+            >
+              ONE Portrait E2E Sui Stub
+            </button>
+          </div>
+        ) : null}
+      </>
+    );
   },
   useWallets: () => useWalletsMock(),
   useCurrentAccount: () => useCurrentAccountMock(),
@@ -75,6 +98,7 @@ beforeEach(() => {
 
 afterEach(() => {
   connectModalMock.mockReset();
+  connectModalWalletSelectMock.mockReset();
   useEnokiConfigStateMock.mockReset();
   useWalletsMock.mockReset();
   useCurrentAccountMock.mockReset();
@@ -138,6 +162,41 @@ describe("GlobalWalletEntry", () => {
         wallet: { id: "google-wallet" },
       });
     });
+  });
+
+  it("closes the login menu and keeps the Sui wallet modal open", () => {
+    render(<GlobalWalletEntry />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sui wallet" }));
+
+    expect(screen.queryByRole("button", { name: "Google zkLogin" })).toBeNull();
+    expect(
+      screen.getByRole("dialog", { name: "Connect a Wallet" }),
+    ).toBeTruthy();
+  });
+
+  it("keeps the Sui wallet modal mounted through wallet selection pointer flow", () => {
+    render(<GlobalWalletEntry />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sui wallet" }));
+
+    const walletOption = screen.getByRole("button", {
+      name: "ONE Portrait E2E Sui Stub",
+    });
+
+    fireEvent.mouseDown(walletOption);
+    expect(
+      screen.getByRole("dialog", { name: "Connect a Wallet" }),
+    ).toBeTruthy();
+
+    fireEvent.click(walletOption);
+
+    expect(connectModalWalletSelectMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("dialog", { name: "Connect a Wallet" }),
+    ).toBeTruthy();
   });
 
   it("shows copy, explorer, and disconnect actions after connection", async () => {

@@ -49,6 +49,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
   const connectWallet = useConnectWallet();
   const disconnectWallet = useDisconnectWallet();
   const [open, setOpen] = useState(false);
+  const [suiWalletModalOpen, setSuiWalletModalOpen] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -105,54 +106,61 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
 
   if (!currentAccount) {
     return (
-      <div className="relative" ref={containerRef}>
-        <button
-          className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-200 hover:text-white"
-          onClick={() => {
-            setOpen((current) => !current);
-          }}
-          type="button"
-        >
-          ログイン
-        </button>
+      <>
+        <div className="relative" ref={containerRef}>
+          <button
+            className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:border-cyan-200 hover:text-white"
+            onClick={() => {
+              setOpen((current) => !current);
+            }}
+            type="button"
+          >
+            ログイン
+          </button>
 
-        {open ? (
-          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-56 gap-3 rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-              Connect
-            </p>
-            <button
-              className="rounded-2xl bg-cyan-300 px-4 py-3 text-left text-sm font-medium text-slate-950 transition hover:bg-cyan-200"
-              onClick={() => {
-                void handleGoogleLogin();
-              }}
-              type="button"
-            >
-              Google zkLogin
-            </button>
-            <SuiWalletConnectModal
-              trigger={
-                <button
-                  className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:border-cyan-200/60"
-                  type="button"
-                >
-                  Sui wallet
-                </button>
-              }
-            />
-
-            {connectError ? (
-              <p
-                aria-live="polite"
-                className="rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100"
-                role="alert"
-              >
-                {connectError}
+          {open ? (
+            <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 grid min-w-56 gap-3 rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Connect
               </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              <button
+                className="rounded-2xl bg-cyan-300 px-4 py-3 text-left text-sm font-medium text-slate-950 transition hover:bg-cyan-200"
+                onClick={() => {
+                  void handleGoogleLogin();
+                }}
+                type="button"
+              >
+                Google zkLogin
+              </button>
+              <button
+                className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:border-cyan-200/60"
+                onClick={() => {
+                  setConnectError(null);
+                  setOpen(false);
+                  setSuiWalletModalOpen(true);
+                }}
+                type="button"
+              >
+                Sui wallet
+              </button>
+
+              {connectError ? (
+                <p
+                  aria-live="polite"
+                  className="rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100"
+                  role="alert"
+                >
+                  {connectError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <SuiWalletConnectModal
+          onOpenChange={setSuiWalletModalOpen}
+          open={suiWalletModalOpen}
+        />
+      </>
     );
   }
 

@@ -186,6 +186,7 @@ function ParticipationAccessEnabled({
 
   const [connectError, setConnectError] = useState<string | null>(null);
   const [consented, setConsented] = useState(false);
+  const [suiWalletModalOpen, setSuiWalletModalOpen] = useState(false);
   const [phase, setPhase] = useState<UploadPhase>({ kind: "ready" });
 
   // Tracks every object URL we have handed out so we can reliably
@@ -648,6 +649,8 @@ function ParticipationAccessEnabled({
                   : "Google zkLogin"}
             </button>
             <SuiWalletConnectModal
+              onOpenChange={setSuiWalletModalOpen}
+              open={suiWalletModalOpen}
               trigger={
                 <button
                   className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
