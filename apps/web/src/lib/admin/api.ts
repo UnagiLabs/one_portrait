@@ -31,6 +31,13 @@ export type RotateUnitRouteInput = {
   readonly unitId: string;
 };
 
+export type UpsertAthleteMetadataRouteInput = {
+  readonly athleteId: number;
+  readonly displayName: string;
+  readonly slug: string;
+  readonly thumbnailUrl: string;
+};
+
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
   assertExactKeys(record, ["athleteId", "blobId", "maxSlots"]);
@@ -49,6 +56,23 @@ export function parseRotateUnitInput(input: unknown): RotateUnitRouteInput {
   return {
     athleteId: parseAthleteId(record.athleteId),
     unitId: parseObjectId(record.unitId, "unitId"),
+  };
+}
+
+export function parseUpsertAthleteMetadataInput(
+  input: unknown,
+): UpsertAthleteMetadataRouteInput {
+  const record = asRecord(input);
+  assertExactKeys(record, ["athleteId", "displayName", "slug", "thumbnailUrl"]);
+
+  return {
+    athleteId: parseAthleteId(record.athleteId),
+    displayName: parseNonEmptyTrimmedString(record.displayName, "displayName"),
+    slug: parseNonEmptyTrimmedString(record.slug, "slug"),
+    thumbnailUrl: parseNonEmptyTrimmedString(
+      record.thumbnailUrl,
+      "thumbnailUrl",
+    ),
   };
 }
 
@@ -145,6 +169,18 @@ function parseBlobId(value: unknown): string {
     );
   }
   return blobId;
+}
+
+function parseNonEmptyTrimmedString(value: unknown, fieldName: string): string {
+  const parsed = typeof value === "string" ? value.trim() : "";
+  if (parsed.length === 0) {
+    throw new AdminApiError(
+      400,
+      "invalid_args",
+      `\`${fieldName}\` は空でない文字列で送ってください。`,
+    );
+  }
+  return parsed;
 }
 
 function parseMaxSlots(value: unknown): number {

@@ -109,6 +109,7 @@ export {
   createCreateUnitTransactionExecutor,
   createFinalizeTransactionExecutor,
   createRotateCurrentUnitTransactionExecutor,
+  createUpsertAthleteMetadataTransactionExecutor,
   createSeedingDigestStatusChecker,
   createSeedingSnapshotLoader,
   createSubmitPhotoTransactionExecutor,
@@ -119,6 +120,7 @@ export {
   type GeneratorSeedingSnapshotLoader,
   type GeneratorUnitSnapshotLoader,
   type RotateCurrentUnitTransactionResult,
+  type UpsertAthleteMetadataTransactionResult,
   readTransactionBlockStatus,
   type SubmitPhotoTransactionResult,
 } from "./sui";

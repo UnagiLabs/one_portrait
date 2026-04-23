@@ -43,6 +43,11 @@ export type RotateCurrentUnitTransactionResult = {
   readonly unitId: string;
 };
 
+export type UpsertAthleteMetadataTransactionResult = {
+  readonly athleteId: number;
+  readonly digest: string;
+};
+
 export type GeneratorSuiReadClient = Pick<SuiJsonRpcClient, "getObject">;
 
 export type GeneratorSuiTransactionBlockClient = Pick<
@@ -284,6 +289,71 @@ export function createRotateCurrentUnitTransactionExecutor(input: {
     return {
       digest: execution.digest,
       unitId: args.unitId,
+    };
+  };
+}
+
+export function createUpsertAthleteMetadataTransactionExecutor(input: {
+  readonly adminCapId: string;
+  readonly client: GeneratorSuiWriteClient;
+  readonly packageId: string;
+  readonly privateKey: string;
+}): (args: {
+  readonly athleteId: number;
+  readonly displayName: string;
+  readonly registryObjectId: string;
+  readonly slug: string;
+  readonly thumbnailUrl: string;
+}) => Promise<UpsertAthleteMetadataTransactionResult> {
+  const signer = Ed25519Keypair.fromSecretKey(input.privateKey);
+
+  return async (args) => {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${input.packageId}::admin_api::upsert_athlete_metadata`,
+      arguments: [
+        tx.object(input.adminCapId),
+        tx.object(args.registryObjectId),
+        tx.pure(bcs.u16().serialize(args.athleteId)),
+        tx.pure.vector(
+          "u8",
+          Array.from(new TextEncoder().encode(args.displayName)),
+        ),
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(args.slug))),
+        tx.pure.vector(
+          "u8",
+          Array.from(new TextEncoder().encode(args.thumbnailUrl)),
+        ),
+      ],
+    });
+
+    const execution = await input.client.signAndExecuteTransaction({
+      signer,
+      transaction: tx,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    const status = execution.effects?.status.status;
+    if (status !== "success") {
+      throw new Error(
+        execution.effects?.status.error ??
+          "Upsert athlete metadata transaction failed.",
+      );
+    }
+
+    await input.client.waitForTransaction({
+      digest: execution.digest,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    return {
+      athleteId: args.athleteId,
+      digest: execution.digest,
     };
   };
 }
