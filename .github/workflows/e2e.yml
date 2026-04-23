@@ -10,6 +10,9 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/e2e.yml"
 
+permissions:
+  contents: read
+
 jobs:
   playwright:
     runs-on: ubuntu-latest
@@ -17,15 +20,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10.33.0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
@@ -47,7 +50,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: apps/web/playwright-report/
@@ -56,7 +59,7 @@ jobs:
 
       - name: Upload test-results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results
           path: apps/web/test-results/
