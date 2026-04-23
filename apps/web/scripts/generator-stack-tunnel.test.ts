@@ -150,7 +150,7 @@ describe("runGeneratorStackTunnel", () => {
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
-  it("kills the generator when local health times out before the tunnel starts", async () => {
+  it("keeps waiting on local health timeouts until interrupted by SIGINT", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
     const generatorChild = createChildProcess("generator");
@@ -159,6 +159,8 @@ describe("runGeneratorStackTunnel", () => {
       marker: "[generator-stack][health][local][timeout]",
       ok: false,
     };
+    const localHealth = createDeferred();
+    let localHealthAttempts = 0;
 
     const preflight = vi.fn().mockResolvedValue({
       exitCode: 0,
@@ -173,9 +175,18 @@ describe("runGeneratorStackTunnel", () => {
       child: generatorChild,
     });
     const spawnImpl = vi.fn();
-    const waitForHealth = vi.fn().mockResolvedValue(timeoutResult);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label !== "local") {
+        throw new Error(`unexpected health probe for ${label}`);
+      }
 
-    const result = await runGeneratorStackTunnel({
+      localHealthAttempts += 1;
+      return localHealthAttempts === 1
+        ? Promise.resolve(timeoutResult)
+        : localHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
       env: {
         OP_FINALIZE_DISPATCH_URL: "https://generator.example",
         OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
@@ -188,17 +199,33 @@ describe("runGeneratorStackTunnel", () => {
       waitForHealth,
     });
 
-    expect(result).toEqual(timeoutResult);
+    await settle();
+
     expect(startLocalGenerator).toHaveBeenCalledTimes(1);
     expect(spawnImpl).not.toHaveBeenCalled();
+    expect(waitForHealth).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[generator-stack][health][local][still-waiting]",
+    );
+
+    processImpl.emit("SIGINT");
+
+    await expect(runPromise).resolves.toEqual({
+      exitCode: 1,
+      marker: "[generator-stack][signal][SIGINT]",
+      ok: false,
+      signal: "SIGINT",
+    });
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
-  it("kills both children when external health times out after the tunnel starts", async () => {
+  it("keeps waiting on external health timeouts until the tunnel exits", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
     const generatorChild = createChildProcess("generator");
     const tunnelChild = createChildProcess("tunnel");
+    const externalHealth = createDeferred();
+    let externalHealthAttempts = 0;
 
     const preflight = vi.fn().mockResolvedValue({
       exitCode: 0,
@@ -213,20 +240,26 @@ describe("runGeneratorStackTunnel", () => {
       child: generatorChild,
     });
     const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
-    const waitForHealth = vi
-      .fn()
-      .mockResolvedValueOnce({
-        exitCode: 0,
-        marker: "[generator-stack][health][local][ready]",
-        ok: true,
-      })
-      .mockResolvedValueOnce({
-        exitCode: 1,
-        marker: "[generator-stack][health][external][timeout]",
-        ok: false,
-      });
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return Promise.resolve({
+          exitCode: 0,
+          marker: "[generator-stack][health][local][ready]",
+          ok: true,
+        });
+      }
 
-    const result = await runGeneratorStackTunnel({
+      externalHealthAttempts += 1;
+      return externalHealthAttempts === 1
+        ? Promise.resolve({
+            exitCode: 1,
+            marker: "[generator-stack][health][external][timeout]",
+            ok: false,
+          })
+        : externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
       env: {
         OP_FINALIZE_DISPATCH_URL: "https://generator.example",
         OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
@@ -239,13 +272,22 @@ describe("runGeneratorStackTunnel", () => {
       waitForHealth,
     });
 
-    expect(result).toEqual({
+    await settle();
+
+    expect(spawnImpl).toHaveBeenCalledTimes(1);
+    expect(waitForHealth).toHaveBeenCalledTimes(3);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "[generator-stack][health][external][still-waiting]",
+    );
+
+    tunnelChild.emit("exit", 1, null);
+
+    await expect(runPromise).resolves.toEqual({
       exitCode: 1,
-      marker: "[generator-stack][health][external][timeout]",
+      marker: "[generator-stack][child-exit][tunnel]",
       ok: false,
     });
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
-    expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
   it("passes OP_LOCAL_TUNNEL_CONFIG_PATH to cloudflared tunnel run", async () => {
