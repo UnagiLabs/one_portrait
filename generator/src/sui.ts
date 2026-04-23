@@ -33,6 +33,16 @@ export type FinalizeTransactionResult = {
   readonly digest: string;
 };
 
+export type CreateUnitTransactionResult = {
+  readonly digest: string;
+  readonly unitId: string;
+};
+
+export type RotateCurrentUnitTransactionResult = {
+  readonly digest: string;
+  readonly unitId: string;
+};
+
 export type GeneratorSuiReadClient = Pick<SuiJsonRpcClient, "getObject">;
 
 export type GeneratorSuiTransactionBlockClient = Pick<
@@ -154,6 +164,129 @@ export function createFinalizeTransactionExecutor(input: {
 
     return {
       digest: execution.digest,
+    };
+  };
+}
+
+export function createCreateUnitTransactionExecutor(input: {
+  readonly adminCapId: string;
+  readonly client: GeneratorSuiWriteClient;
+  readonly packageId: string;
+  readonly privateKey: string;
+}): (args: {
+  readonly athleteId: number;
+  readonly blobId: string;
+  readonly maxSlots: number;
+  readonly registryObjectId: string;
+}) => Promise<CreateUnitTransactionResult> {
+  const signer = Ed25519Keypair.fromSecretKey(input.privateKey);
+
+  return async (args) => {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${input.packageId}::admin_api::create_unit`,
+      arguments: [
+        tx.object(input.adminCapId),
+        tx.object(args.registryObjectId),
+        tx.pure(bcs.u16().serialize(args.athleteId)),
+        tx.pure.vector(
+          "u8",
+          Array.from(new TextEncoder().encode(args.blobId)),
+        ),
+        tx.pure(bcs.u64().serialize(args.maxSlots)),
+      ],
+    });
+
+    const execution = await input.client.signAndExecuteTransaction({
+      signer,
+      transaction: tx,
+      options: {
+        showEffects: true,
+        showObjectChanges: true,
+      },
+    });
+
+    const status = execution.effects?.status.status;
+    if (status !== "success") {
+      throw new Error(
+        execution.effects?.status.error ?? "Create unit transaction failed.",
+      );
+    }
+
+    const confirmed = await input.client.waitForTransaction({
+      digest: execution.digest,
+      options: {
+        showEffects: true,
+        showObjectChanges: true,
+      },
+    });
+
+    const unitId =
+      extractCreatedUnitId(execution.objectChanges) ??
+      extractCreatedUnitId(confirmed.objectChanges);
+    if (!unitId) {
+      throw new Error("Create unit transaction did not return a unit id.");
+    }
+
+    return {
+      digest: execution.digest,
+      unitId,
+    };
+  };
+}
+
+export function createRotateCurrentUnitTransactionExecutor(input: {
+  readonly adminCapId: string;
+  readonly client: GeneratorSuiWriteClient;
+  readonly packageId: string;
+  readonly privateKey: string;
+}): (args: {
+  readonly athleteId: number;
+  readonly registryObjectId: string;
+  readonly unitId: string;
+}) => Promise<RotateCurrentUnitTransactionResult> {
+  const signer = Ed25519Keypair.fromSecretKey(input.privateKey);
+
+  return async (args) => {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${input.packageId}::admin_api::rotate_current_unit`,
+      arguments: [
+        tx.object(input.adminCapId),
+        tx.object(args.registryObjectId),
+        tx.pure(bcs.u16().serialize(args.athleteId)),
+        tx.object(args.unitId),
+      ],
+    });
+
+    const execution = await input.client.signAndExecuteTransaction({
+      signer,
+      transaction: tx,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    const status = execution.effects?.status.status;
+    if (status !== "success") {
+      throw new Error(
+        execution.effects?.status.error ??
+          "Rotate current unit transaction failed.",
+      );
+    }
+
+    await input.client.waitForTransaction({
+      digest: execution.digest,
+      options: {
+        showEffects: true,
+      },
+    });
+
+    return {
+      digest: execution.digest,
+      unitId: args.unitId,
     };
   };
 }
@@ -417,6 +550,34 @@ function extractOptionalId(value: unknown): string | null {
 
   if (Array.isArray(vec) && vec.length > 0 && typeof vec[0] === "string") {
     return vec[0];
+  }
+
+  return null;
+}
+
+function extractCreatedUnitId(
+  objectChanges:
+    | readonly {
+        readonly objectId?: string;
+        readonly objectType?: string;
+        readonly type?: string;
+      }[]
+    | null
+    | undefined,
+): string | null {
+  if (!Array.isArray(objectChanges)) {
+    return null;
+  }
+
+  for (const change of objectChanges) {
+    if (
+      change?.type === "created" &&
+      typeof change.objectId === "string" &&
+      typeof change.objectType === "string" &&
+      change.objectType.endsWith("::unit::Unit")
+    ) {
+      return change.objectId;
+    }
   }
 
   return null;

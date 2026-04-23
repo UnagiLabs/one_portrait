@@ -9,7 +9,9 @@ import {
   type FinalizeRunResult,
 } from "./runtime";
 import {
+  createCreateUnitTransactionExecutor,
   createFinalizeTransactionExecutor,
+  createRotateCurrentUnitTransactionExecutor,
   createSuiClient,
   createUnitSnapshotLoader,
 } from "./sui";
@@ -82,6 +84,86 @@ export async function handleRequest(
     }
   }
 
+  if (request.method === "POST" && request.url === "/admin/create-unit") {
+    const authorizationError = validateDispatchAuthorization(request);
+    if (authorizationError !== null) {
+      writeJson(
+        response,
+        authorizationError.status,
+        authorizationError.payload,
+      );
+      return;
+    }
+
+    try {
+      const input = parseCreateUnitInput(await readJsonBody(request));
+      const env = loadGeneratorRuntimeEnv(process.env);
+      const client = createSuiClient({
+        network: env.suiNetwork,
+      });
+      const executeCreateUnit = createCreateUnitTransactionExecutor({
+        adminCapId: env.adminCapId,
+        client,
+        packageId: env.packageId,
+        privateKey: env.adminPrivateKey,
+      });
+      const result = await executeCreateUnit(input);
+
+      writeJson(response, 200, {
+        digest: result.digest,
+        status: "created",
+        unitId: result.unitId,
+      });
+      return;
+    } catch (error) {
+      writeJson(response, 500, {
+        error: "create_unit_failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+  }
+
+  if (request.method === "POST" && request.url === "/admin/rotate-unit") {
+    const authorizationError = validateDispatchAuthorization(request);
+    if (authorizationError !== null) {
+      writeJson(
+        response,
+        authorizationError.status,
+        authorizationError.payload,
+      );
+      return;
+    }
+
+    try {
+      const input = parseRotateUnitInput(await readJsonBody(request));
+      const env = loadGeneratorRuntimeEnv(process.env);
+      const client = createSuiClient({
+        network: env.suiNetwork,
+      });
+      const executeRotateUnit = createRotateCurrentUnitTransactionExecutor({
+        adminCapId: env.adminCapId,
+        client,
+        packageId: env.packageId,
+        privateKey: env.adminPrivateKey,
+      });
+      const result = await executeRotateUnit(input);
+
+      writeJson(response, 200, {
+        digest: result.digest,
+        status: "rotated",
+        unitId: result.unitId,
+      });
+      return;
+    } catch (error) {
+      writeJson(response, 500, {
+        error: "rotate_unit_failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+  }
+
   writeJson(response, 404, {
     error: "not_found",
     message: "Unknown route.",
@@ -132,11 +214,104 @@ function parseDispatchInput(input: unknown): { readonly unitId: string } {
   };
 }
 
+function parseCreateUnitInput(input: unknown): {
+  readonly athleteId: number;
+  readonly blobId: string;
+  readonly maxSlots: number;
+  readonly registryObjectId: string;
+} {
+  const record = parseJsonRecord(input);
+
+  return {
+    athleteId: parseAthleteId(record.athleteId),
+    blobId: parseNonEmptyString(record.blobId, "blobId"),
+    maxSlots: parsePositiveInteger(record.maxSlots, "maxSlots"),
+    registryObjectId: parseObjectId(record.registryObjectId, "registryObjectId"),
+  };
+}
+
+function parseRotateUnitInput(input: unknown): {
+  readonly athleteId: number;
+  readonly registryObjectId: string;
+  readonly unitId: string;
+} {
+  const record = parseJsonRecord(input);
+
+  return {
+    athleteId: parseAthleteId(record.athleteId),
+    registryObjectId: parseObjectId(record.registryObjectId, "registryObjectId"),
+    unitId: parseObjectId(record.unitId, "unitId"),
+  };
+}
+
+function parseJsonRecord(input: unknown): Record<string, unknown> {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error("Payload must be an object.");
+  }
+
+  return input as Record<string, unknown>;
+}
+
+function parseAthleteId(value: unknown): number {
+  const athleteId =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && /^[0-9]+$/.test(value)
+        ? Number(value)
+        : NaN;
+
+  if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
+    throw new Error("Payload requires athleteId as a u16 integer.");
+  }
+
+  return athleteId;
+}
+
+function parsePositiveInteger(value: unknown, fieldName: string): number {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && /^[0-9]+$/.test(value)
+        ? Number(value)
+        : NaN;
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Payload requires ${fieldName} as a positive integer.`);
+  }
+
+  return parsed;
+}
+
+function parseNonEmptyString(value: unknown, fieldName: string): string {
+  const parsed = typeof value === "string" ? value.trim() : "";
+
+  if (parsed.length === 0) {
+    throw new Error(`Payload requires ${fieldName} as a non-empty string.`);
+  }
+
+  return parsed;
+}
+
+function parseObjectId(value: unknown, fieldName: string): string {
+  const parsed = typeof value === "string" ? value.trim() : "";
+
+  if (!isValidSuiObjectId(parsed)) {
+    throw new Error(`Payload requires a valid ${fieldName}.`);
+  }
+
+  return parsed;
+}
+
 function writeJson(
   response: http.ServerResponse,
   status: number,
   payload:
     | FinalizeRunResult
+    | {
+        readonly digest: string;
+        readonly status: "created" | "rotated";
+        readonly unitId: string;
+      }
     | { readonly error: string; readonly message: string },
 ): void {
   response.writeHead(status, {

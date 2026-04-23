@@ -25,6 +25,14 @@ const runMock = vi.fn(async () => ({
   status: "ignored_finalized" as const,
   unitId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 }));
+const createUnitMock = vi.fn(async () => ({
+  digest: "0xcreate",
+  unitId: VALID_UNIT_ID,
+}));
+const rotateUnitMock = vi.fn(async () => ({
+  digest: "0xrotate",
+  unitId: VALID_UNIT_ID,
+}));
 
 vi.mock("../src/runtime", () => ({
   createFinalizeRunnerFromEndpoints: vi.fn(() => ({
@@ -33,7 +41,9 @@ vi.mock("../src/runtime", () => ({
 }));
 
 vi.mock("../src/sui", () => ({
+  createCreateUnitTransactionExecutor: vi.fn(() => createUnitMock),
   createFinalizeTransactionExecutor: vi.fn(() => vi.fn()),
+  createRotateCurrentUnitTransactionExecutor: vi.fn(() => rotateUnitMock),
   createSuiClient: vi.fn(() => ({ mocked: true })),
   createUnitSnapshotLoader: vi.fn(() => vi.fn()),
 }));
@@ -42,6 +52,8 @@ import { createGeneratorServer, DISPATCH_SECRET_HEADER } from "../src/server";
 
 const VALID_UNIT_ID =
   "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+const VALID_REGISTRY_ID =
+  "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 
 afterEach(() => {
   for (const key of [
@@ -56,6 +68,8 @@ afterEach(() => {
     delete process.env[key];
   }
   runMock.mockClear();
+  createUnitMock.mockClear();
+  rotateUnitMock.mockClear();
 });
 
 describe("generator server", () => {
@@ -125,6 +139,80 @@ describe("generator server", () => {
         unitId: VALID_UNIT_ID,
       });
       expect(runMock).toHaveBeenCalledWith(VALID_UNIT_ID);
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("accepts /admin/create-unit when the payload is valid", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/create-unit`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          athleteId: 12,
+          blobId: "target-blob-12",
+          maxSlots: 980,
+          registryObjectId: VALID_REGISTRY_ID,
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        digest: "0xcreate",
+        status: "created",
+        unitId: VALID_UNIT_ID,
+      });
+      expect(createUnitMock).toHaveBeenCalledWith({
+        athleteId: 12,
+        blobId: "target-blob-12",
+        maxSlots: 980,
+        registryObjectId: VALID_REGISTRY_ID,
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("accepts /admin/rotate-unit when the payload is valid", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/rotate-unit`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          athleteId: 12,
+          registryObjectId: VALID_REGISTRY_ID,
+          unitId: VALID_UNIT_ID,
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        digest: "0xrotate",
+        status: "rotated",
+        unitId: VALID_UNIT_ID,
+      });
+      expect(rotateUnitMock).toHaveBeenCalledWith({
+        athleteId: 12,
+        registryObjectId: VALID_REGISTRY_ID,
+        unitId: VALID_UNIT_ID,
+      });
     } finally {
       await close(server);
     }
