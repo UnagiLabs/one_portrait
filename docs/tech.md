@@ -218,8 +218,9 @@ one_portrait/
 常駐 Listener・Cron・Queue なし。参加者ブラウザの検知を起点に Worker を HTTP 呼び出し、Worker が external generator を叩く。
 
 - **Finalize Worker:** `/api/finalize` で冪等チェック → `OP_FINALIZE_DISPATCH_URL` の `/dispatch` を呼ぶ。
+- **Admin UI Relay:** `/admin` は Basic Auth で閉じ、web の `/api/admin/*` は入力検証だけを行って `OP_GENERATOR_BASE_URL` の admin endpoint へ relay する。admin key は web に置かない。
 - **External Mosaic Generator:** `manji` PC 上で Node/TypeScript サーバーを常駐起動する。処理は `Unit.submissions` 読み出し → 980枚取得 → 平均色再算出 → 配置決定 → sharp 合成 → Walrus PUT → `finalize` Tx 送信。
-- **Cloudflare Tunnel:** named tunnel で `http://localhost:8080` を外部公開する。`/dispatch` は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。
+- **Cloudflare Tunnel:** named tunnel で `http://localhost:8080` を外部公開する。`/dispatch` と admin endpoint は `OP_FINALIZE_DISPATCH_SECRET` の共有 secret で保護する。疎通確認は `GET /dispatch-auth-probe` を使い、probe 自体は finalize を実行しない。
 
 ### 7.2 シークレット
 - `ADMIN_SUI_PRIVATE_KEY` は `manji` PC 上の generator にだけ置く。
@@ -273,8 +274,8 @@ one_portrait/
 - **zkLogin salt:** Enoki 管理、クライアント保存なし。
 - **Walrus 匿名書込:** 誰でも書ける前提（MVPは事前モデレーションなし、将来は署名付きアップロードへ）。
 - **原画像公開性:** `walrus_blob_id` は on-chain に載るため private ではない。投稿前に明示同意を必須にする。
-- **Admin キー:** `finalize` 専用、`manji` PC 上の generator 環境変数にだけ置き、ローテート手順を用意。
-- **Dispatch secret:** `OP_FINALIZE_DISPATCH_SECRET` を Worker と generator で共有し、Tunnel 越しの `/dispatch` を保護する。
+- **Admin キー:** create / rotate / finalize を送る運営鍵で、`manji` PC 上の generator 環境変数にだけ置き、ローテート手順を用意する。
+- **Dispatch secret:** `OP_FINALIZE_DISPATCH_SECRET` を web / Worker と generator で共有し、Tunnel 越しの `/dispatch` と admin endpoint を保護する。
 - **CSP:** `img-src` に Walrus Aggregator、`connect-src` に Sui Full Node WebSocket を許可。
 - **EXIF除去:** クライアント前処理で GPS 等を必ず削除。
 
@@ -284,7 +285,7 @@ one_portrait/
 
 - **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
 - **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。
-- **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
+- **設定反映:** `NEXT_PUBLIC_PACKAGE_ID` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` は `apps/web/.env.local` へ入れる。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_ADMIN_BASIC_AUTH_USERNAME`、`OP_ADMIN_BASIC_AUTH_PASSWORD`、`OP_GENERATOR_BASE_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。finalize Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で OpenNext build のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。deploy 実行端末にも Docker CLI と daemon が必要。
 - **運用手順:** `manji` PC 上の generator 起動、Cloudflare Tunnel、復旧順は `docs/finalize-generator-runbook.md` を正本とする。
 - **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test --test` を回す。`e2e` は Playwright の mock 経路を確認する。
