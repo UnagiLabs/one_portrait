@@ -2,9 +2,8 @@
 
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
-
-import type { MasterPlacementView } from "../../../lib/sui";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
+import type { MasterPlacementView } from "../../../lib/sui";
 import {
   findOwnedKakeraForUnit,
   getGalleryEntry,

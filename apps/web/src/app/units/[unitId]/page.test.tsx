@@ -53,9 +53,7 @@ vi.mock("./unit-reveal-client", () => ({
     return (
       <div
         data-aggregator-base={props.aggregatorBase ?? ""}
-        data-event-subscription-enabled={String(
-          props.eventSubscriptionEnabled,
-        )}
+        data-event-subscription-enabled={String(props.eventSubscriptionEnabled)}
         data-master-id={props.initialMasterId ?? ""}
         data-package-id={props.packageId ?? ""}
         data-startup-enabled={String(props.startupEnabled)}
@@ -659,7 +657,9 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByTestId("unit-reveal-client").getAttribute("data-startup-enabled"),
+      screen
+        .getByTestId("unit-reveal-client")
+        .getAttribute("data-startup-enabled"),
     ).toBe("false");
     expect(
       screen
@@ -667,7 +667,9 @@ describe("UnitPage", () => {
         .getAttribute("data-event-subscription-enabled"),
     ).toBe("false");
     expect(
-      screen.getByTestId("participation-access").getAttribute("data-startup-enabled"),
+      screen
+        .getByTestId("participation-access")
+        .getAttribute("data-startup-enabled"),
     ).toBe("false");
   });
 });

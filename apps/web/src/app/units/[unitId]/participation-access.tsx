@@ -404,7 +404,14 @@ function ParticipationAccessEnabled({
         clearTimeout(pending);
       }
     };
-  }, [packageId, phase, recoveryMaxAttempts, recoveryRetryIntervalMs, unitId]);
+  }, [
+    packageId,
+    phase,
+    recoveryMaxAttempts,
+    recoveryRetryIntervalMs,
+    startupEnabled,
+    unitId,
+  ]);
 
   const isProcessing = phase.kind === "processing";
   const isUploading = phase.kind === "uploading";

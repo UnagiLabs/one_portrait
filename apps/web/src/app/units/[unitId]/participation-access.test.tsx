@@ -175,12 +175,7 @@ describe("ParticipationAccess", () => {
   it("uses the server-provided packageId for Kakera lookup", () => {
     setupSignedInEnv();
 
-    render(
-      <ParticipationAccess
-        packageId="0xserver-pkg"
-        unitId="0xunit-1"
-      />,
-    );
+    render(<ParticipationAccess packageId="0xserver-pkg" unitId="0xunit-1" />);
 
     expect(useOwnedKakeraMock).toHaveBeenCalledWith(
       expect.objectContaining({

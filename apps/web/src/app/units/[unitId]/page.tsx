@@ -59,7 +59,9 @@ export default async function UnitPage(
     readOptionalPublicValue("NEXT_PUBLIC_REGISTRY_OBJECT_ID") !== null;
   const packageId = readOptionalPublicValue("NEXT_PUBLIC_PACKAGE_ID");
   const walrusEnv = readWalrusEnv();
-  const aggregatorBase = readOptionalPublicValue("NEXT_PUBLIC_WALRUS_AGGREGATOR");
+  const aggregatorBase = readOptionalPublicValue(
+    "NEXT_PUBLIC_WALRUS_AGGREGATOR",
+  );
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
     : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
@@ -203,12 +205,10 @@ function readOptionalPublicValue(key: string): string | null {
 
 function readWalrusEnv(): WalrusEnv {
   return {
-    NEXT_PUBLIC_WALRUS_PUBLISHER: readOptionalPublicValue(
-      "NEXT_PUBLIC_WALRUS_PUBLISHER",
-    ) ?? undefined,
-    NEXT_PUBLIC_WALRUS_AGGREGATOR: readOptionalPublicValue(
-      "NEXT_PUBLIC_WALRUS_AGGREGATOR",
-    ) ?? undefined,
+    NEXT_PUBLIC_WALRUS_PUBLISHER:
+      readOptionalPublicValue("NEXT_PUBLIC_WALRUS_PUBLISHER") ?? undefined,
+    NEXT_PUBLIC_WALRUS_AGGREGATOR:
+      readOptionalPublicValue("NEXT_PUBLIC_WALRUS_AGGREGATOR") ?? undefined,
   };
 }
 

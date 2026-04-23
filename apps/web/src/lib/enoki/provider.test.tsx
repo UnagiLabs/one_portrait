@@ -100,9 +100,9 @@ describe("AppWalletProvider", () => {
         },
       }),
     );
-    expect(screen.getByTestId("enoki-state").getAttribute("data-wallet-provider")).toBe(
-      "true",
-    );
+    expect(
+      screen.getByTestId("enoki-state").getAttribute("data-wallet-provider"),
+    ).toBe("true");
   });
 
   it("keeps the provider mounted without registering wallets when submit env is missing", () => {
@@ -122,12 +122,12 @@ describe("AppWalletProvider", () => {
     expect(suiClientProviderMock).toHaveBeenCalled();
     expect(walletProviderMock).toHaveBeenCalled();
     expect(registerEnokiWalletsMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId("enoki-state").getAttribute("data-submit-enabled")).toBe(
-      "false",
-    );
-    expect(screen.getByTestId("enoki-state").getAttribute("data-wallet-provider")).toBe(
-      "true",
-    );
+    expect(
+      screen.getByTestId("enoki-state").getAttribute("data-submit-enabled"),
+    ).toBe("false");
+    expect(
+      screen.getByTestId("enoki-state").getAttribute("data-wallet-provider"),
+    ).toBe("true");
   });
 
   it("skips the wallet provider when public env is missing", () => {
@@ -146,11 +146,11 @@ describe("AppWalletProvider", () => {
     expect(queryClientProviderMock).not.toHaveBeenCalled();
     expect(suiClientProviderMock).not.toHaveBeenCalled();
     expect(walletProviderMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId("enoki-state").getAttribute("data-submit-enabled")).toBe(
-      "false",
-    );
-    expect(screen.getByTestId("enoki-state").getAttribute("data-wallet-provider")).toBe(
-      "false",
-    );
+    expect(
+      screen.getByTestId("enoki-state").getAttribute("data-submit-enabled"),
+    ).toBe("false");
+    expect(
+      screen.getByTestId("enoki-state").getAttribute("data-wallet-provider"),
+    ).toBe("false");
   });
 });

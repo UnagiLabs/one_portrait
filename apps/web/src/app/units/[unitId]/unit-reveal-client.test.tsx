@@ -273,7 +273,9 @@ describe("UnitRevealClient", () => {
       reason: "wallet-provider-disabled",
     });
     useCurrentAccountMock.mockImplementation(() => {
-      throw new Error("wallet hook should not be read when the provider is absent");
+      throw new Error(
+        "wallet hook should not be read when the provider is absent",
+      );
     });
     getMasterPlacementMock.mockResolvedValue({
       masterId: "0xmaster-1",

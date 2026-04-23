@@ -87,7 +87,9 @@ describe("UnitRevealClient with missing public env", () => {
       </AppWalletProvider>,
     );
 
-    expect(screen.getByText(new RegExp(`42\\s*\\/\\s*${unitTileCount}`))).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`42\\s*\\/\\s*${unitTileCount}`)),
+    ).toBeTruthy();
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
   });
 
