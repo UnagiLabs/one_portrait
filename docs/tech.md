@@ -113,6 +113,23 @@ one_portrait/
 └── docs/{spec,tech}.md
 ```
 
+### 3.1 `generator/` の住み分け
+
+- `generator/src/`
+  finalize 本流の実装。runtime、Sui/Walrus 連携、配置決定、合成処理を置く。
+- `generator/src/core.ts`
+  画像生成コアだけを使いたい呼び出し元向けの barrel。Sui 依存は含めない。
+- `generator/src/integration.ts`
+  finalize / seeding 向けの接続層 barrel。Sui/Walrus 連携はここから辿れるようにする。
+- `generator/scripts/`
+  デモ運用で使う実行スクリプトを置く。現時点では `seed-demo-submissions.ts` が主対象。
+- `generator/experiments/`
+  モザイク品質検証、データセット収集、MediaPipe 解析などの研究用スクリプトを置く。本番 finalize パスには含めない。
+- `generator/assets/*`, `generator/artifacts/`
+  実験で生成するローカルデータ置き場。Git 管理対象にはしない。
+
+後から見た人が迷わないよう、workspace 内の詳細な案内は `generator/README.md` と `generator/experiments/README.md` を正本とする。
+
 ---
 
 ## 4. スマートコントラクト (Move)

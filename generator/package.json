@@ -10,13 +10,14 @@
     "vitest": "^4.1.4"
   },
   "scripts": {
-    "analyze:target": "python3 scripts/analyze_target.py",
-    "experiment:improved-counts": "tsx scripts/evaluate-improved-mosaic-counts.ts",
+    "experiment:analyze-target": "python3 experiments/analyze_target.py",
+    "experiment:counts": "tsx experiments/evaluate-improved-mosaic-counts.ts",
+    "experiment:improved-counts": "pnpm run experiment:counts",
+    "experiment:render-mosaic": "tsx experiments/render-mosaic.ts",
+    "experiment:sync-demo-tiles": "tsx experiments/sync-demo-tiles.ts",
+    "experiment:sync-face-close-tiles": "tsx experiments/sync-face-close-tiles.ts",
+    "experiment:sync-free-portrait-tiles": "tsx experiments/sync-free-portrait-tiles.ts",
     "seed:demo-submissions": "tsx scripts/seed-demo-submissions.ts",
-    "render:mosaic": "tsx scripts/render-mosaic.ts",
-    "sync:demo-tiles": "tsx scripts/sync-demo-tiles.ts",
-    "sync:face-close-tiles": "tsx scripts/sync-face-close-tiles.ts",
-    "sync:free-portrait-tiles": "tsx scripts/sync-free-portrait-tiles.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

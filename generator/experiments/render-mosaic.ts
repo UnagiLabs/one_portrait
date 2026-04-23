@@ -57,7 +57,7 @@ async function main() {
 
   if (!options.target || options.tilesDirs.length === 0) {
     throw new Error(
-      "Usage: pnpm --filter generator render:mosaic -- --target <image> --tiles-dir <dir> [--tiles-dir <dir2>] [--cols 12 --rows 15 --out output.png]",
+      "Usage: pnpm --filter generator experiment:render-mosaic -- --target <image> --tiles-dir <dir> [--tiles-dir <dir2>] [--cols 12 --rows 15 --out output.png]",
     );
   }
 
@@ -303,7 +303,7 @@ async function runTargetAnalysis(input: {
   rows: number;
   debugPreview?: string;
 }) {
-  const scriptPath = path.resolve("scripts/analyze_target.py");
+  const scriptPath = path.resolve("experiments/analyze_target.py");
   const args = [
     scriptPath,
     "--target",
