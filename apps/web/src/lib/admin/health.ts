@@ -1,5 +1,9 @@
 import { DISPATCH_SECRET_HEADER } from "../finalize/dispatch";
-import { resolveGeneratorRuntime } from "../generator-runtime";
+import {
+  type GeneratorRuntimeCloudflareEnv,
+  resolveCloudflareGeneratorRuntime,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
 
 export type AdminHealthStatus = {
   readonly httpStatus: number | null;
@@ -16,11 +20,22 @@ export type AdminHealthSummary = {
     | "legacy_env"
     | "none"
     | "override"
-    | "runtime_state";
+    | "runtime_state"
+    | "worker_kv";
 };
 
-export async function getAdminHealth(): Promise<AdminHealthSummary> {
-  const runtime = resolveGeneratorRuntime({ env: process.env });
+type GetAdminHealthDeps = {
+  readonly env?: GeneratorRuntimeCloudflareEnv;
+};
+
+export async function getAdminHealth(
+  deps: GetAdminHealthDeps = {},
+): Promise<AdminHealthSummary> {
+  const env = deps.env ?? process.env;
+  const runtime =
+    deps.env === undefined
+      ? resolveGeneratorRuntime({ env: process.env })
+      : await resolveCloudflareGeneratorRuntime({ env });
   if (runtime.status !== "ok") {
     return {
       currentUrl: null,
@@ -38,7 +53,9 @@ export async function getAdminHealth(): Promise<AdminHealthSummary> {
   }
 
   const sharedSecret = normalizeSharedSecret(
-    process.env.OP_FINALIZE_DISPATCH_SECRET,
+    typeof env.OP_FINALIZE_DISPATCH_SECRET === "string"
+      ? env.OP_FINALIZE_DISPATCH_SECRET
+      : undefined,
   );
   const [generatorReadiness, dispatchAuthorization] = await Promise.all([
     fetchGeneratorReadiness(runtime.url),

@@ -4,7 +4,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { resolveGeneratorRuntime } from "./generator-runtime";
+import {
+  resolveCloudflareGeneratorRuntime,
+  resolveGeneratorRuntime,
+} from "./generator-runtime";
 
 const createdDirs: string[] = [];
 
@@ -138,6 +141,93 @@ describe("resolveGeneratorRuntime", () => {
       source: "runtime_state",
       status: "ok",
       url: "https://env-path.example.com",
+    });
+  });
+});
+
+describe("resolveCloudflareGeneratorRuntime", () => {
+  it("prefers the shell override over worker kv and legacy env", async () => {
+    const kvGet = () =>
+      Promise.resolve({
+        mode: "quick",
+        updatedAt: new Date().toISOString(),
+        url: "https://worker-kv.example.com",
+        version: 1,
+      });
+
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_FINALIZE_DISPATCH_URL: "https://legacy.example.com",
+          OP_GENERATOR_RUNTIME_KV: {
+            get: kvGet,
+          },
+          OP_GENERATOR_RUNTIME_URL_OVERRIDE: "https://override.example.com",
+        },
+      }),
+    ).resolves.toEqual({
+      source: "override",
+      status: "ok",
+      url: "https://override.example.com",
+    });
+  });
+
+  it("prefers worker kv over legacy env", async () => {
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_FINALIZE_DISPATCH_URL: "https://legacy.example.com",
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => ({
+              mode: "quick",
+              updatedAt: new Date().toISOString(),
+              url: "https://worker-kv.example.com/",
+              version: 1,
+            }),
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      source: "worker_kv",
+      status: "ok",
+      url: "https://worker-kv.example.com",
+    });
+  });
+
+  it("ignores an invalid worker kv payload and falls back to legacy env", async () => {
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_GENERATOR_BASE_URL: "https://legacy.example.com",
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => ({
+              nope: true,
+            }),
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      source: "legacy_env",
+      status: "ok",
+      url: "https://legacy.example.com",
+    });
+  });
+
+  it("ignores worker kv read failures and falls back to localhost", async () => {
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => {
+              throw new Error("kv offline");
+            },
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      source: "fallback",
+      status: "ok",
+      url: "http://127.0.0.1:8080",
     });
   });
 });

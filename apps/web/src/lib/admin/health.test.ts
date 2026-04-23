@@ -65,4 +65,46 @@ describe("getAdminHealth", () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("reads the current url from worker kv when request env is provided", async () => {
+    fetchMock.mockImplementation(async (request: Request) => {
+      if (request.url === "https://worker-kv.example.com/health") {
+        return new Response("ok", { status: 200 });
+      }
+
+      return new Response(JSON.stringify({ status: "ok" }), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      getAdminHealth({
+        env: {
+          OP_FINALIZE_DISPATCH_SECRET: "shared-secret",
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => ({
+              mode: "quick",
+              updatedAt: new Date().toISOString(),
+              url: "https://worker-kv.example.com/",
+              version: 1,
+            }),
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      currentUrl: "https://worker-kv.example.com",
+      dispatchAuthorization: {
+        httpStatus: 200,
+        status: "ok",
+      },
+      generatorReadiness: {
+        httpStatus: 200,
+        status: "ok",
+      },
+      resolutionStatus: "ok",
+      source: "worker_kv",
+    });
+  });
 });
