@@ -31,8 +31,7 @@ function GlobalHeader({
 }): React.ReactElement {
   const isHome = pathname === "/";
   const isGallery = pathname.startsWith("/gallery");
-  const isArena =
-    pathname.startsWith("/units") || (!isHome && !isGallery);
+  const isArena = pathname.startsWith("/units") || (!isHome && !isGallery);
 
   return (
     <header className="op-chrome">
@@ -82,20 +81,8 @@ function BrandMark(): React.ReactElement {
           y={2}
         />
         <rect fill="#FF7A1A" height={10} width={10} x={8} y={8} />
-        <rect
-          fill="rgba(255,122,26,0.4)"
-          height={10}
-          width={10}
-          x={22}
-          y={8}
-        />
-        <rect
-          fill="rgba(255,122,26,0.4)"
-          height={10}
-          width={10}
-          x={8}
-          y={22}
-        />
+        <rect fill="rgba(255,122,26,0.4)" height={10} width={10} x={22} y={8} />
+        <rect fill="rgba(255,122,26,0.4)" height={10} width={10} x={8} y={22} />
         <rect fill="#FF7A1A" height={10} width={10} x={22} y={22} />
       </svg>
     </div>

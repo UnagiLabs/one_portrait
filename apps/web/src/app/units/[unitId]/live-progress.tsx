@@ -29,6 +29,10 @@ import type {
 } from "../../../lib/sui";
 import { useUnitEvents } from "../../../lib/sui/react";
 
+function formatProgressCount(value: number): string {
+  return String(value);
+}
+
 export type LiveProgressProps = {
   readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string;
@@ -78,31 +82,30 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     },
   });
 
-  const pct =
-    maxSlots > 0 ? (submittedCount / maxSlots) * 100 : 0;
+  const pct = maxSlots > 0 ? (submittedCount / maxSlots) * 100 : 0;
   const remaining = Math.max(0, maxSlots - submittedCount);
 
   return (
     <div className="grid gap-5">
       <p aria-live="polite" className="op-big-counter tabular-nums">
-        <span className="num">{submittedCount.toLocaleString()}</span>
+        <span className="sr-only">
+          {`${formatProgressCount(submittedCount)} / ${formatProgressCount(maxSlots)}`}
+        </span>
+        <span className="num">{formatProgressCount(submittedCount)}</span>
         <span className="slash">/</span>
-        <span className="total">{maxSlots.toLocaleString()}</span>
+        <span className="total">{formatProgressCount(maxSlots)}</span>
       </p>
       <div className="grid gap-2">
         <div className="op-progress-bar">
-          <div
-            className="op-progress-bar-fill"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
         <div className="flex flex-wrap items-baseline justify-between gap-3 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
           <span className="text-[var(--ember)]">
             {filled ? "Filled" : "Filling"}
           </span>
           <span>
-            {remaining.toLocaleString()} tiles remaining ·{" "}
-            {submittedCount.toLocaleString()} Kakera minted
+            {formatProgressCount(remaining)} tiles remaining ·{" "}
+            {formatProgressCount(submittedCount)} Kakera minted
           </span>
         </div>
       </div>

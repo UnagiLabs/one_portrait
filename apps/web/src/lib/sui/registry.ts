@@ -330,10 +330,7 @@ function getRegistryFields(
 
   for (const fieldName of requiredFields) {
     if (!(fieldName in moveObject.fields)) {
-      throw new RegistrySchemaError(
-        objectId,
-        `missing \`${fieldName}\``,
-      );
+      throw new RegistrySchemaError(objectId, `missing \`${fieldName}\``);
     }
   }
 

@@ -153,7 +153,9 @@ export default async function UnitPage(
                 <UnitRevealClient
                   aggregatorBase={aggregatorBase}
                   displayName={displayName}
-                  eventSubscriptionEnabled={startupEnabled && packageId !== null}
+                  eventSubscriptionEnabled={
+                    startupEnabled && packageId !== null
+                  }
                   initialMasterId={progress.masterId}
                   initialSubmittedCount={progress.submittedCount}
                   maxSlots={progress.maxSlots}
