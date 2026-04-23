@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppWalletProvider } from "../lib/enoki/provider";
 import { AppShell } from "./app-shell";
 
+import "@mysten/dapp-kit/dist/index.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

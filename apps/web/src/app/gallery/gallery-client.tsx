@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ConnectModal,
   useConnectWallet,
   useCurrentAccount,
   useCurrentWallet,
@@ -15,6 +14,7 @@ import type { AthleteCatalogEntry } from "../../lib/catalog";
 import { getDemoModeSource, isDemoModeEnabled } from "../../lib/demo";
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 import { getGalleryEntry, getSuiClient, listOwnedKakera } from "../../lib/sui";
+import { SuiWalletConnectModal } from "../sui-wallet-connect-modal";
 
 export type GalleryClientProps = {
   readonly catalog: readonly AthleteCatalogEntry[];
@@ -225,7 +225,7 @@ function ConnectedGalleryClient({
                 ? "Google zkLogin をやり直す"
                 : "Google zkLogin"}
           </button>
-          <ConnectModal
+          <SuiWalletConnectModal
             trigger={
               <button
                 className="rounded-full border border-cyan-300/40 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200 hover:text-white"
@@ -234,7 +234,6 @@ function ConnectedGalleryClient({
                 Sui wallet
               </button>
             }
-            walletFilter={(wallet) => !isGoogleWallet(wallet)}
           />
         </div>
         {connectError ? (

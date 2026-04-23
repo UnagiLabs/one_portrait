@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ConnectModal,
   useConnectWallet,
   useCurrentAccount,
   useCurrentWallet,
@@ -12,6 +11,7 @@ import { isGoogleWallet } from "@mysten/enoki";
 import { useEffect, useRef, useState } from "react";
 
 import { useEnokiConfigState } from "../lib/enoki/provider";
+import { SuiWalletConnectModal } from "./sui-wallet-connect-modal";
 
 function shortenAddress(address: string): string {
   if (address.length <= 12) {
@@ -130,7 +130,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
             >
               Google zkLogin
             </button>
-            <ConnectModal
+            <SuiWalletConnectModal
               trigger={
                 <button
                   className="rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:border-cyan-200/60"
@@ -139,7 +139,6 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
                   Sui wallet
                 </button>
               }
-              walletFilter={(wallet) => !isGoogleWallet(wallet)}
             />
 
             {connectError ? (

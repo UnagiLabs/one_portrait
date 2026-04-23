@@ -14,6 +14,7 @@ import type { SubmittedEvent } from "../../../lib/sui";
 import type { UseUnitEventsArgs } from "../../../lib/sui/react";
 
 const {
+  connectModalMock,
   useEnokiConfigStateMock,
   useSubmitPhotoMock,
   useWalletsMock,
@@ -26,6 +27,7 @@ const {
   useUnitEventsMock,
   checkSubmissionExecutionMock,
 } = vi.hoisted(() => ({
+  connectModalMock: vi.fn(),
   useEnokiConfigStateMock: vi.fn(),
   useSubmitPhotoMock: vi.fn(),
   useWalletsMock: vi.fn(),
@@ -82,9 +84,10 @@ vi.mock("@mysten/enoki", () => ({
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
-  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
-    <>{trigger}</>
-  ),
+  ConnectModal: (props: { readonly trigger: React.ReactNode }) => {
+    connectModalMock(props);
+    return <>{props.trigger}</>;
+  },
   useWallets: () => useWalletsMock(),
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
@@ -147,6 +150,7 @@ function setupSignedInEnv({
 
 afterEach(() => {
   vi.useRealTimers();
+  connectModalMock.mockReset();
   useEnokiConfigStateMock.mockReset();
   useSubmitPhotoMock.mockReset();
   useWalletsMock.mockReset();
@@ -227,6 +231,40 @@ describe("ParticipationAccess", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
+  });
+
+  it("keeps the signed-out Sui wallet modal controlled", async () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: true,
+      config: {},
+    });
+    useWalletsMock.mockReturnValue([
+      { id: "google-wallet" },
+      { id: "sui-wallet" },
+    ]);
+    useCurrentAccountMock.mockReturnValue(null);
+    useCurrentWalletMock.mockReturnValue({
+      connectionStatus: "disconnected",
+    });
+    useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
+    useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
+
+    render(<ParticipationAccess unitId="0xunit-1" />);
+
+    const initialProps = connectModalMock.mock.calls.at(-1)?.[0];
+    expect(initialProps?.open).toBe(false);
+
+    act(() => {
+      initialProps?.onOpenChange(true);
+    });
+
+    await waitFor(() => {
+      expect(connectModalMock.mock.calls.at(-1)?.[0]?.open).toBe(true);
+    });
   });
 
   it("allows a connected Sui wallet to continue into the submit form", () => {

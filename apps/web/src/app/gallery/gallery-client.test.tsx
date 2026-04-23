@@ -1,11 +1,18 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GalleryEntryView, OwnedKakera } from "../../lib/sui";
 
 const {
+  connectModalMock,
   useCurrentAccountMock,
   useCurrentWalletMock,
   useWalletsMock,
@@ -14,6 +21,7 @@ const {
   listOwnedKakeraMock,
   getGalleryEntryMock,
 } = vi.hoisted(() => ({
+  connectModalMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
   useCurrentWalletMock: vi.fn(),
   useWalletsMock: vi.fn(),
@@ -24,9 +32,10 @@ const {
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
-  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
-    <>{trigger}</>
-  ),
+  ConnectModal: (props: { readonly trigger: React.ReactNode }) => {
+    connectModalMock(props);
+    return <>{props.trigger}</>;
+  },
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
   useWallets: () => useWalletsMock(),
@@ -129,6 +138,7 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
+  connectModalMock.mockReset();
   useCurrentAccountMock.mockReset();
   useCurrentWalletMock.mockReset();
   useWalletsMock.mockReset();
@@ -150,6 +160,21 @@ describe("GalleryClient", () => {
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
     expect(listOwnedKakeraMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the signed-out Sui wallet modal controlled", async () => {
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    const initialProps = connectModalMock.mock.calls.at(-1)?.[0];
+    expect(initialProps?.open).toBe(false);
+
+    act(() => {
+      initialProps?.onOpenChange(true);
+    });
+
+    await waitFor(() => {
+      expect(connectModalMock.mock.calls.at(-1)?.[0]?.open).toBe(true);
+    });
   });
 
   it("keeps the signed-out shell until an account becomes available", async () => {

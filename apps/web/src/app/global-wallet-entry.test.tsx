@@ -1,9 +1,16 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  connectModalMock,
   useEnokiConfigStateMock,
   useWalletsMock,
   useCurrentAccountMock,
@@ -11,6 +18,7 @@ const {
   useConnectWalletMock,
   useDisconnectWalletMock,
 } = vi.hoisted(() => ({
+  connectModalMock: vi.fn(),
   useEnokiConfigStateMock: vi.fn(),
   useWalletsMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
@@ -24,9 +32,10 @@ vi.mock("../lib/enoki/provider", () => ({
 }));
 
 vi.mock("@mysten/dapp-kit", () => ({
-  ConnectModal: ({ trigger }: { readonly trigger: React.ReactNode }) => (
-    <>{trigger}</>
-  ),
+  ConnectModal: (props: { readonly trigger: React.ReactNode }) => {
+    connectModalMock(props);
+    return <>{props.trigger}</>;
+  },
   useWallets: () => useWalletsMock(),
   useCurrentAccount: () => useCurrentAccountMock(),
   useCurrentWallet: () => useCurrentWalletMock(),
@@ -65,6 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  connectModalMock.mockReset();
   useEnokiConfigStateMock.mockReset();
   useWalletsMock.mockReset();
   useCurrentAccountMock.mockReset();
@@ -93,6 +103,25 @@ describe("GlobalWalletEntry", () => {
 
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
+  });
+
+  it("keeps the Sui wallet connect modal controlled", async () => {
+    render(<GlobalWalletEntry />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    const initialProps = connectModalMock.mock.calls.at(-1)?.[0];
+    expect(initialProps?.open).toBe(false);
+    expect(initialProps?.walletFilter({ id: "google-wallet" })).toBe(false);
+    expect(initialProps?.walletFilter({ id: "sui-wallet" })).toBe(true);
+
+    act(() => {
+      initialProps?.onOpenChange(true);
+    });
+
+    await waitFor(() => {
+      expect(connectModalMock.mock.calls.at(-1)?.[0]?.open).toBe(true);
+    });
   });
 
   it("starts Google login from the shared menu", async () => {

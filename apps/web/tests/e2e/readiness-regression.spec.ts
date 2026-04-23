@@ -81,6 +81,35 @@ test.describe("readiness regression", () => {
     ).toBeVisible();
   });
 
+  test("keeps the Sui wallet connect dialog inside the gallery viewport", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page, { autoConnectWallet: false });
+
+    await page.goto("/gallery");
+    await page.getByRole("button", { name: "Sui wallet" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Connect a Wallet" });
+    await expect(dialog).toBeVisible();
+
+    const box = await dialog.boundingBox();
+    const viewport = page.viewportSize();
+
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+
+    if (!box || !viewport) {
+      throw new Error(
+        "Connect dialog bounding box or viewport was unavailable",
+      );
+    }
+
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  });
+
   test("keeps the post-submit gallery CTA", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installDefaultMocks(page);
