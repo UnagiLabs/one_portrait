@@ -10,6 +10,7 @@
 generator/artifacts
 generator/assets/datasets
 generator/assets/demo-tiles
+generator/assets/archives
 generator/.cache
 generator/.venv
 
