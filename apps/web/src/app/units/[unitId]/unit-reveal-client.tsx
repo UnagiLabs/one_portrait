@@ -17,7 +17,10 @@ import { RevealPanel } from "./reveal-panel";
 
 type UnitRevealClientProps = {
   readonly displayName: string;
-  readonly packageId: string;
+  readonly aggregatorBase?: string | null;
+  readonly eventSubscriptionEnabled?: boolean;
+  readonly packageId: string | null;
+  readonly startupEnabled?: boolean;
   readonly unitId: string;
   readonly initialSubmittedCount: number;
   readonly maxSlots: number;
@@ -66,7 +69,10 @@ function UnitRevealClientCore(
 ): React.ReactElement {
   const {
     displayName,
+    aggregatorBase,
+    eventSubscriptionEnabled = true,
     packageId,
+    startupEnabled = true,
     unitId,
     initialSubmittedCount,
     maxSlots,
@@ -88,7 +94,7 @@ function UnitRevealClientCore(
   const revealPlacement = reveal?.placement ?? null;
 
   useEffect(() => {
-    if (revealMasterId == null) {
+    if (!startupEnabled || revealMasterId == null) {
       return;
     }
 
@@ -185,16 +191,19 @@ function UnitRevealClientCore(
     revealBlobId,
     revealMasterId,
     revealPlacement,
+    startupEnabled,
     unitId,
   ]);
 
   const mosaicUrl = buildWalrusAggregatorUrl(
     reveal?.mosaicWalrusBlobId ?? null,
+    aggregatorBase,
   );
 
   return (
     <>
       <LiveProgress
+        eventSubscriptionEnabled={eventSubscriptionEnabled}
         initialSubmittedCount={initialSubmittedCount}
         maxSlots={maxSlots}
         onMosaicReady={(event) => {
@@ -204,7 +213,7 @@ function UnitRevealClientCore(
             placement: null,
           });
         }}
-        packageId={packageId}
+        packageId={packageId ?? ""}
         unitId={unitId}
       />
 
@@ -219,16 +228,15 @@ function UnitRevealClientCore(
   );
 }
 
-function buildWalrusAggregatorUrl(blobId: string | null): string | null {
+function buildWalrusAggregatorUrl(
+  blobId: string | null,
+  aggregatorBase: string | null | undefined,
+): string | null {
   if (!blobId) {
     return null;
   }
 
-  const aggregator = process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR?.trim().replace(
-    /\/+$/,
-    "",
-  );
-
+  const aggregator = aggregatorBase?.trim().replace(/\/+$/, "");
   if (!aggregator) {
     return null;
   }

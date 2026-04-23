@@ -20,8 +20,8 @@ import {
   STUB_MASTER_ID,
   STUB_UNIT_ID,
 } from "../../../lib/e2e/stub-data";
-import { loadPublicEnv } from "../../../lib/env";
 import { getUnitProgress } from "../../../lib/sui";
+import type { WalrusEnv } from "../../../lib/walrus/put";
 
 import { ParticipationAccess } from "./participation-access";
 import { UnitRevealClient } from "./unit-reveal-client";
@@ -54,7 +54,12 @@ export default async function UnitPage(
     searchParams.op_e2e_unit_progress,
   );
 
-  const packageId = safePackageId();
+  const startupEnabled =
+    readOptionalPublicValue("NEXT_PUBLIC_SUI_NETWORK") !== null &&
+    readOptionalPublicValue("NEXT_PUBLIC_REGISTRY_OBJECT_ID") !== null;
+  const packageId = readOptionalPublicValue("NEXT_PUBLIC_PACKAGE_ID");
+  const walrusEnv = readWalrusEnv();
+  const aggregatorBase = readOptionalPublicValue("NEXT_PUBLIC_WALRUS_AGGREGATOR");
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
     : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
@@ -120,10 +125,13 @@ export default async function UnitPage(
             <div className="mt-4">
               <UnitRevealClient
                 displayName={displayName}
+                aggregatorBase={aggregatorBase}
+                eventSubscriptionEnabled={startupEnabled && packageId !== null}
                 initialMasterId={progress.masterId}
                 initialSubmittedCount={progress.submittedCount}
                 maxSlots={progress.maxSlots}
-                packageId={packageId ?? ""}
+                packageId={packageId}
+                startupEnabled={startupEnabled}
                 unitId={unitId}
               />
             </div>
@@ -138,7 +146,12 @@ export default async function UnitPage(
         {demoMode ? (
           <DemoParticipationPreview />
         ) : (
-          <ParticipationAccess unitId={unitId} />
+          <ParticipationAccess
+            packageId={packageId}
+            startupEnabled={startupEnabled}
+            unitId={unitId}
+            walrusEnv={walrusEnv}
+          />
         )}
 
         {/*
@@ -182,12 +195,21 @@ function DemoParticipationPreview(): React.ReactElement {
   );
 }
 
-function safePackageId(): string | null {
-  try {
-    return loadPublicEnv(process.env).packageId;
-  } catch {
-    return null;
-  }
+function readOptionalPublicValue(key: string): string | null {
+  const raw = process.env[key];
+  const value = typeof raw === "string" ? raw.trim() : "";
+  return value.length > 0 ? value : null;
+}
+
+function readWalrusEnv(): WalrusEnv {
+  return {
+    NEXT_PUBLIC_WALRUS_PUBLISHER: readOptionalPublicValue(
+      "NEXT_PUBLIC_WALRUS_PUBLISHER",
+    ) ?? undefined,
+    NEXT_PUBLIC_WALRUS_AGGREGATOR: readOptionalPublicValue(
+      "NEXT_PUBLIC_WALRUS_AGGREGATOR",
+    ) ?? undefined,
+  };
 }
 
 function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {

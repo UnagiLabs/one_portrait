@@ -22,6 +22,7 @@ const {
   useConnectWalletMock,
   useDisconnectWalletMock,
   useOwnedKakeraMock,
+  getSuiClientMock,
   useUnitEventsMock,
   checkSubmissionExecutionMock,
 } = vi.hoisted(() => ({
@@ -33,6 +34,7 @@ const {
   useConnectWalletMock: vi.fn(),
   useDisconnectWalletMock: vi.fn(),
   useOwnedKakeraMock: vi.fn(),
+  getSuiClientMock: vi.fn(),
   useUnitEventsMock: vi.fn(),
   checkSubmissionExecutionMock: vi.fn(),
 }));
@@ -96,7 +98,7 @@ vi.mock("../../../lib/sui/react", () => ({
 }));
 
 vi.mock("../../../lib/sui", () => ({
-  getSuiClient: () => ({}),
+  getSuiClient: getSuiClientMock,
   checkSubmissionExecution: (args: unknown) =>
     checkSubmissionExecutionMock(args),
 }));
@@ -153,6 +155,7 @@ afterEach(() => {
   useConnectWalletMock.mockReset();
   useDisconnectWalletMock.mockReset();
   useOwnedKakeraMock.mockReset();
+  getSuiClientMock.mockReset();
   useUnitEventsMock.mockReset();
   checkSubmissionExecutionMock.mockReset();
 });
@@ -167,6 +170,37 @@ describe("ParticipationAccess", () => {
     render(<ParticipationAccess unitId="0xunit-1" />);
 
     expect(screen.getByText(/進捗の確認だけ使えます/)).toBeTruthy();
+  });
+
+  it("uses the server-provided packageId for Kakera lookup", () => {
+    setupSignedInEnv();
+
+    render(
+      <ParticipationAccess
+        packageId="0xserver-pkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(useOwnedKakeraMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packageId: "0xserver-pkg",
+      }),
+    );
+  });
+
+  it("does not start Kakera RPC work when startup is disabled", () => {
+    setupSignedInEnv();
+
+    render(
+      <ParticipationAccess
+        packageId="0xserver-pkg"
+        startupEnabled={false}
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(getSuiClientMock).not.toHaveBeenCalled();
   });
 
   it("shows both wallet choices when the user is not signed in", () => {

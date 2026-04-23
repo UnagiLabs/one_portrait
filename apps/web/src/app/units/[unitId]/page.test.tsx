@@ -2,7 +2,7 @@
 
 import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../../../lib/demo";
 import {
@@ -15,11 +15,13 @@ const {
   getUnitProgressMock,
   getAthleteByPublicIdMock,
   loadPublicEnvMock,
+  participationAccessMock,
   unitRevealClientMock,
 } = vi.hoisted(() => ({
   getUnitProgressMock: vi.fn(),
   getAthleteByPublicIdMock: vi.fn(),
   loadPublicEnvMock: vi.fn(),
+  participationAccessMock: vi.fn(),
   unitRevealClientMock: vi.fn(),
 }));
 
@@ -36,39 +38,81 @@ vi.mock("../../../lib/env", () => ({
 }));
 
 vi.mock("./unit-reveal-client", () => ({
-  UnitRevealClient: ({
-    initialSubmittedCount,
-    maxSlots,
-    initialMasterId,
-  }: {
+  UnitRevealClient: (props: {
+    aggregatorBase?: string | null;
+    eventSubscriptionEnabled?: boolean;
     initialSubmittedCount: number;
-    maxSlots: number;
     initialMasterId: string | null;
-  }) => (
-    <div
-      data-master-id={initialMasterId ?? ""}
-      data-testid="unit-reveal-client"
-      ref={() => {
-        unitRevealClientMock({
-          initialSubmittedCount,
-          maxSlots,
-          initialMasterId,
-        });
-      }}
-    >
-      {initialSubmittedCount} / {maxSlots}
-    </div>
-  ),
+    maxSlots: number;
+    packageId: string | null;
+    startupEnabled?: boolean;
+    unitId: string;
+  }) => {
+    unitRevealClientMock(props);
+
+    return (
+      <div
+        data-aggregator-base={props.aggregatorBase ?? ""}
+        data-event-subscription-enabled={String(
+          props.eventSubscriptionEnabled,
+        )}
+        data-master-id={props.initialMasterId ?? ""}
+        data-package-id={props.packageId ?? ""}
+        data-startup-enabled={String(props.startupEnabled)}
+        data-testid="unit-reveal-client"
+        data-unit-id={props.unitId}
+      >
+        {props.initialSubmittedCount} / {props.maxSlots}
+      </div>
+    );
+  },
+}));
+
+vi.mock("./participation-access", () => ({
+  ParticipationAccess: (props: {
+    packageId?: string | null;
+    startupEnabled?: boolean;
+    unitId: string;
+    walrusEnv?: {
+      readonly NEXT_PUBLIC_WALRUS_AGGREGATOR: string | undefined;
+      readonly NEXT_PUBLIC_WALRUS_PUBLISHER: string | undefined;
+    };
+  }) => {
+    participationAccessMock(props);
+
+    return (
+      <div
+        data-package-id={props.packageId ?? ""}
+        data-startup-enabled={String(props.startupEnabled)}
+        data-testid="participation-access"
+        data-unit-id={props.unitId}
+      />
+    );
+  },
 }));
 
 import UnitPage from "./page";
 
+beforeEach(() => {
+  process.env.NEXT_PUBLIC_SUI_NETWORK = "testnet";
+  process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID = "0xreg";
+  process.env.NEXT_PUBLIC_PACKAGE_ID = "0xpkg";
+  process.env.NEXT_PUBLIC_WALRUS_PUBLISHER = "https://publisher.example.com";
+  process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
+});
+
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
+  delete process.env.NEXT_PUBLIC_SUI_NETWORK;
+  delete process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID;
+  delete process.env.NEXT_PUBLIC_PACKAGE_ID;
+  delete process.env.NEXT_PUBLIC_WALRUS_PUBLISHER;
+  delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   getUnitProgressMock.mockReset();
   getAthleteByPublicIdMock.mockReset();
   loadPublicEnvMock.mockReset();
+  participationAccessMock.mockReset();
   unitRevealClientMock.mockReset();
 });
 
@@ -104,6 +148,55 @@ describe("UnitPage", () => {
       `72 / ${unitTileCount}`,
     );
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+  });
+
+  it("passes the server-derived public props to the waiting-room clients", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 36,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xreg",
+      packageId: "0xignored",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aggregatorBase: "https://aggregator.example.com",
+        eventSubscriptionEnabled: true,
+        packageId: "0xpkg",
+        startupEnabled: true,
+        unitId: "0xunit-1",
+      }),
+    );
+    expect(participationAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packageId: "0xpkg",
+        startupEnabled: true,
+        unitId: "0xunit-1",
+        walrusEnv: {
+          NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+          NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+        },
+      }),
+    );
   });
 
   it("shows the route athleteName when unit progress cannot be fetched", async () => {
@@ -225,6 +318,9 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-package-id"),
+    ).toBe("0xpkg");
   });
 
   it("passes masterId to the client wrapper so completed units can reveal on revisit", async () => {
@@ -419,11 +515,13 @@ describe("UnitPage", () => {
     expect(
       screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
     ).toBe(STUB_MASTER_ID);
-    expect(unitRevealClientMock).toHaveBeenCalledWith({
-      initialSubmittedCount: unitTileCount,
-      maxSlots: unitTileCount,
-      initialMasterId: STUB_MASTER_ID,
-    });
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialSubmittedCount: unitTileCount,
+        initialMasterId: STUB_MASTER_ID,
+        maxSlots: unitTileCount,
+      }),
+    );
     expect(getAthleteByPublicIdMock).toHaveBeenCalledWith(STUB_ATHLETE_ID);
   });
 
@@ -534,5 +632,42 @@ describe("UnitPage", () => {
       screen.getByRole("heading", { name: "Catalog Athlete Name" }),
     ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
+  });
+
+  it("disables reveal and event startup when the network env is unavailable", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 15,
+      maxSlots: unitTileCount,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Catalog Athlete Name",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    delete process.env.NEXT_PUBLIC_SUI_NETWORK;
+    delete process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID;
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-startup-enabled"),
+    ).toBe("false");
+    expect(
+      screen
+        .getByTestId("unit-reveal-client")
+        .getAttribute("data-event-subscription-enabled"),
+    ).toBe("false");
+    expect(
+      screen.getByTestId("participation-access").getAttribute("data-startup-enabled"),
+    ).toBe("false");
   });
 });

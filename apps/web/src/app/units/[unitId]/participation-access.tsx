@@ -19,12 +19,15 @@ import {
   useSubmitPhoto,
 } from "../../../lib/enoki/client-submit";
 import { useEnokiConfigState } from "../../../lib/enoki/provider";
-import { getPublicEnvSource, loadPublicEnv } from "../../../lib/env";
 import {
   preprocessPhoto as defaultPreprocessPhoto,
   type PreprocessedPhoto,
 } from "../../../lib/image/preprocess";
-import { checkSubmissionExecution, getSuiClient } from "../../../lib/sui";
+import {
+  checkSubmissionExecution,
+  getSuiClient,
+  type KakeraOwnedClient,
+} from "../../../lib/sui";
 import { useOwnedKakera } from "../../../lib/sui/react";
 import {
   putBlobToWalrus as defaultPutBlobToWalrus,
@@ -111,6 +114,8 @@ export function ParticipationAccess({
   putBlob,
   recoveryMaxAttempts,
   recoveryRetryIntervalMs,
+  packageId,
+  startupEnabled = true,
   walrusEnv,
 }: {
   readonly unitId: string;
@@ -118,6 +123,8 @@ export function ParticipationAccess({
   readonly putBlob?: PutBlobFn;
   readonly recoveryMaxAttempts?: number;
   readonly recoveryRetryIntervalMs?: number;
+  readonly packageId?: string | null;
+  readonly startupEnabled?: boolean;
   readonly walrusEnv?: WalrusEnv;
 }): React.ReactElement {
   const state = useEnokiConfigState();
@@ -143,8 +150,10 @@ export function ParticipationAccess({
       recoveryRetryIntervalMs={
         recoveryRetryIntervalMs ?? RECOVERY_RETRY_INTERVAL_MS
       }
+      packageId={packageId ?? ""}
+      startupEnabled={startupEnabled}
       unitId={unitId}
-      walrusEnv={walrusEnv ?? readWalrusEnvFromProcess()}
+      walrusEnv={walrusEnv ?? EMPTY_WALRUS_ENV}
     />
   );
 }
@@ -155,6 +164,8 @@ function ParticipationAccessEnabled({
   putBlob,
   recoveryMaxAttempts,
   recoveryRetryIntervalMs,
+  packageId,
+  startupEnabled,
   walrusEnv,
 }: {
   readonly unitId: string;
@@ -162,6 +173,8 @@ function ParticipationAccessEnabled({
   readonly putBlob: PutBlobFn;
   readonly recoveryMaxAttempts: number;
   readonly recoveryRetryIntervalMs: number;
+  readonly packageId: string;
+  readonly startupEnabled: boolean;
   readonly walrusEnv: WalrusEnv;
 }): React.ReactElement {
   const wallets = useWallets();
@@ -226,10 +239,11 @@ function ParticipationAccessEnabled({
   // zkLogin address. The hook stays idle while any of the inputs are
   // missing (`ownerAddress: null` branch inside `useOwnedKakera`).
   const doneBlobId = phase.kind === "done" ? phase.blobId : "";
-  const packageId = safeReadPackageId();
+  const suiClient = startupEnabled ? getSuiClient() : EMPTY_KAKERA_CLIENT;
   const ownedKakera = useOwnedKakera({
-    suiClient: getSuiClient(),
-    ownerAddress: phase.kind === "done" ? phase.result.sender : null,
+    suiClient,
+    ownerAddress:
+      startupEnabled && phase.kind === "done" ? phase.result.sender : null,
     unitId,
     walrusBlobId: doneBlobId,
     packageId: packageId ?? "",
@@ -317,7 +331,7 @@ function ParticipationAccessEnabled({
   }
 
   useEffect(() => {
-    if (phase.kind !== "recovering") {
+    if (!startupEnabled || phase.kind !== "recovering") {
       return;
     }
 
@@ -744,25 +758,6 @@ function toSubmitErrorMessage(error: unknown): string {
   return toMessage(error);
 }
 
-function readWalrusEnvFromProcess(): WalrusEnv {
-  // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time on the client;
-  // on the server the same access pattern works. `putBlobToWalrus` throws a
-  // `config_missing` error if either value is empty, which the UI then
-  // surfaces through {@link classifyWalrusError}.
-  return {
-    NEXT_PUBLIC_WALRUS_PUBLISHER: process.env.NEXT_PUBLIC_WALRUS_PUBLISHER,
-    NEXT_PUBLIC_WALRUS_AGGREGATOR: process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR,
-  };
-}
-
-function safeReadPackageId(): string | null {
-  try {
-    return loadPublicEnv(getPublicEnvSource()).packageId;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * User-facing narration of the Kakera polling state. The `idle` case only
  * appears while we don't yet have an owner + blob id pair, so the card
@@ -786,3 +781,15 @@ function describeKakeraStatus(
 
 const RECOVERY_RETRY_INTERVAL_MS = 1_500;
 const RECOVERY_MAX_ATTEMPTS = 20;
+
+const EMPTY_WALRUS_ENV: WalrusEnv = {
+  NEXT_PUBLIC_WALRUS_PUBLISHER: undefined,
+  NEXT_PUBLIC_WALRUS_AGGREGATOR: undefined,
+};
+
+const EMPTY_KAKERA_CLIENT: KakeraOwnedClient = {
+  getOwnedObjects: async () => ({
+    data: [],
+    hasNextPage: false,
+  }),
+};

@@ -79,6 +79,8 @@ vi.mock("./live-progress", () => ({
 
 import { UnitRevealClient } from "./unit-reveal-client";
 
+const AGGREGATOR_BASE = "https://aggregator.example.com";
+
 function completedEntry(
   overrides: Partial<
     Extract<GalleryEntryView, { status: { kind: "completed" } }>
@@ -116,7 +118,6 @@ function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
 }
 
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
   useEnokiConfigStateMock.mockReturnValue({
     submitEnabled: true,
     walletProviderAvailable: true,
@@ -139,7 +140,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
   findOwnedKakeraForUnitMock.mockReset();
   getGalleryEntryMock.mockReset();
@@ -153,6 +153,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId={null}
         initialSubmittedCount={42}
         maxSlots={unitTileCount}
@@ -176,6 +177,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId={null}
         initialSubmittedCount={unitTileCount}
         maxSlots={unitTileCount}
@@ -216,6 +218,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId={null}
         initialSubmittedCount={unitTileCount}
         maxSlots={unitTileCount}
@@ -246,6 +249,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId="0xmaster-1"
         initialSubmittedCount={unitTileCount}
         maxSlots={unitTileCount}
@@ -280,6 +284,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId="0xmaster-1"
         initialSubmittedCount={unitTileCount}
         maxSlots={unitTileCount}
@@ -296,6 +301,28 @@ describe("UnitRevealClient", () => {
     expect(screen.queryByTestId("placement-highlight")).toBeNull();
   });
 
+  it("does not start reveal RPC work when startup is disabled", () => {
+    getSuiClientMock.mockImplementation(() => {
+      throw new Error("reveal RPC should not start when startup is disabled");
+    });
+
+    render(
+      <UnitRevealClient
+        aggregatorBase={AGGREGATOR_BASE}
+        displayName="Demo Athlete One"
+        initialMasterId="0xmaster-1"
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        startupEnabled={false}
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(getSuiClientMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("reveal-panel")).toBeNull();
+  });
+
   it("still renders the mosaic when placement lookup fails", async () => {
     useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
     findOwnedKakeraForUnitMock.mockResolvedValue(ownedKakera());
@@ -309,6 +336,7 @@ describe("UnitRevealClient", () => {
     render(
       <UnitRevealClient
         displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
         initialMasterId="0xmaster-1"
         initialSubmittedCount={unitTileCount}
         maxSlots={unitTileCount}

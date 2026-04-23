@@ -42,8 +42,9 @@ vi.mock("../../../lib/sui", () => ({
 import { AppWalletProvider } from "../../../lib/enoki/provider";
 import { UnitRevealClient } from "./unit-reveal-client";
 
+const AGGREGATOR_BASE = "https://aggregator.example.com";
+
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
   delete process.env.NEXT_PUBLIC_SUI_NETWORK;
   delete process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID;
   delete process.env.NEXT_PUBLIC_PACKAGE_ID;
@@ -63,7 +64,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReset();
   getMasterPlacementMock.mockReset();
   getSuiClientMock.mockReset();
@@ -76,6 +76,7 @@ describe("UnitRevealClient with missing public env", () => {
     render(
       <AppWalletProvider>
         <UnitRevealClient
+          aggregatorBase={AGGREGATOR_BASE}
           displayName="Demo Athlete One"
           initialMasterId={null}
           initialSubmittedCount={42}
@@ -94,6 +95,7 @@ describe("UnitRevealClient with missing public env", () => {
     render(
       <AppWalletProvider>
         <UnitRevealClient
+          aggregatorBase={AGGREGATOR_BASE}
           displayName="Demo Athlete One"
           initialMasterId="0xmaster-1"
           initialSubmittedCount={unitTileCount}
@@ -110,5 +112,29 @@ describe("UnitRevealClient with missing public env", () => {
       );
     });
     expect(screen.queryByTestId("placement-highlight")).toBeNull();
+  });
+
+  it("does not start reveal RPC work when startup is disabled", () => {
+    getSuiClientMock.mockImplementation(() => {
+      throw new Error("reveal RPC should not start when startup is disabled");
+    });
+
+    render(
+      <AppWalletProvider>
+        <UnitRevealClient
+          aggregatorBase={AGGREGATOR_BASE}
+          displayName="Demo Athlete One"
+          initialMasterId="0xmaster-1"
+          initialSubmittedCount={unitTileCount}
+          maxSlots={unitTileCount}
+          packageId=""
+          startupEnabled={false}
+          unitId="0xunit-1"
+        />
+      </AppWalletProvider>,
+    );
+
+    expect(getSuiClientMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("reveal-panel")).toBeNull();
   });
 });

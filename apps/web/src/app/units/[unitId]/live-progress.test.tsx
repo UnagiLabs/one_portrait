@@ -132,6 +132,25 @@ describe("LiveProgress", () => {
     expect(typeof args.onSubmitted).toBe("function");
   });
 
+  it("disables event startup when subscription is disabled", () => {
+    useUnitEventsMock.mockImplementation(() => undefined);
+
+    render(
+      <LiveProgress
+        eventSubscriptionEnabled={false}
+        initialSubmittedCount={0}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(useUnitEventsMock).toHaveBeenCalled();
+    const args = useUnitEventsMock.mock.calls[0]?.[0] as UseUnitEventsArgs;
+    expect(args.packageId).toBe("");
+    expect(args.unitId).toBe("0xunit-1");
+  });
+
   it("forwards MosaicReadyEvent deliveries through onMosaicReady", () => {
     let capturedOnMosaicReady: ((event: MosaicReadyEvent) => void) | undefined;
     const onMosaicReady = vi.fn();
