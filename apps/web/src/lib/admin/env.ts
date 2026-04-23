@@ -12,7 +12,10 @@ export type AdminRelayEnv = {
   readonly sharedSecret: string;
 };
 
-import { resolveGeneratorRuntime, type GeneratorRuntimeResolution } from "../generator-runtime";
+import {
+  type GeneratorRuntimeResolution,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
 
 type LoadAdminRelayEnvDeps = {
   readonly appRootPath?: string;

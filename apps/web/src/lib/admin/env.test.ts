@@ -36,10 +36,13 @@ describe("loadAdminRelayEnv", () => {
     );
 
     expect(() =>
-      loadAdminRelayEnv({
-        OP_FINALIZE_DISPATCH_SECRET: "shared-secret",
-        OP_GENERATOR_BASE_URL: "https://legacy-env.example.com",
-      }, { appRootPath }),
+      loadAdminRelayEnv(
+        {
+          OP_FINALIZE_DISPATCH_SECRET: "shared-secret",
+          OP_GENERATOR_BASE_URL: "https://legacy-env.example.com",
+        },
+        { appRootPath },
+      ),
     ).not.toThrow();
 
     expect(

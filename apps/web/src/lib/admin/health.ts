@@ -11,7 +11,12 @@ export type AdminHealthSummary = {
   readonly dispatchAuthorization: AdminHealthStatus;
   readonly generatorReadiness: AdminHealthStatus;
   readonly resolutionStatus: "misconfigured" | "ok";
-  readonly source: "fallback" | "legacy_env" | "none" | "override" | "runtime_state";
+  readonly source:
+    | "fallback"
+    | "legacy_env"
+    | "none"
+    | "override"
+    | "runtime_state";
 };
 
 export async function getAdminHealth(): Promise<AdminHealthSummary> {

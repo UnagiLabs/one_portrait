@@ -111,7 +111,9 @@ export function resolveGeneratorRuntime(
   };
 }
 
-export function resolveGeneratorRuntimeStatePath(appRootPath = defaultAppRootPath) {
+export function resolveGeneratorRuntimeStatePath(
+  appRootPath = defaultAppRootPath,
+) {
   return path.join(appRootPath, ".cache", "generator-runtime.json");
 }
 

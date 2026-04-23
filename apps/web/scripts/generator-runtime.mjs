@@ -10,7 +10,9 @@ const DEFAULT_FALLBACK_URL = "http://127.0.0.1:8080";
 const DEFAULT_STATE_MAX_AGE_MS = 15 * 60 * 1000;
 const RUNTIME_STATE_VERSION = 1;
 
-export function resolveGeneratorRuntimeStatePath({ appRootPath = webRoot } = {}) {
+export function resolveGeneratorRuntimeStatePath({
+  appRootPath = webRoot,
+} = {}) {
   return path.join(appRootPath, ".cache", "generator-runtime.json");
 }
 

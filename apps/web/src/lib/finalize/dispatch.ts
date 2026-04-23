@@ -1,5 +1,8 @@
+import {
+  type GeneratorRuntimeResolution,
+  resolveGeneratorRuntime,
+} from "../generator-runtime";
 import { FinalizeApiError } from "./api";
-import { resolveGeneratorRuntime, type GeneratorRuntimeResolution } from "../generator-runtime";
 
 export type FinalizeDispatchRequest = {
   readonly unitId: string;
@@ -38,11 +41,7 @@ export function createFinalizeDispatcher(
   ): Promise<FinalizeDispatchResult> {
     const runtime = deps.resolveRuntime?.() ?? resolveGeneratorRuntime();
     if (runtime.status !== "ok") {
-      throw new FinalizeApiError(
-        503,
-        "finalize_unavailable",
-        runtime.message,
-      );
+      throw new FinalizeApiError(503, "finalize_unavailable", runtime.message);
     }
 
     const dispatchSecret = normalizeDispatchSecret(deps.dispatchSecret);

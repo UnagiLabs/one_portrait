@@ -166,21 +166,13 @@ describe("AdminClient", () => {
         );
       }
 
-      return new Response(
-        JSON.stringify(HEALTH_OK),
-        {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        },
-      );
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
     });
 
-    render(
-      <AdminClient
-        initialAthletes={[]}
-        initialHealth={HEALTH_OK}
-      />,
-    );
+    render(<AdminClient initialAthletes={[]} initialHealth={HEALTH_OK} />);
 
     const athleteIdInput = screen.getAllByLabelText(/^athlete ID$/i)[0];
     if (!athleteIdInput) {
@@ -257,13 +249,10 @@ describe("AdminClient", () => {
         );
       }
 
-      return new Response(
-        JSON.stringify(HEALTH_OK),
-        {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        },
-      );
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
     });
 
     render(

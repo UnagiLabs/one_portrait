@@ -353,13 +353,7 @@ function spawnTunnel({
   if (tunnelMode === "named") {
     return spawnImpl(
       "cloudflared",
-      [
-        "--config",
-        cloudflaredConfigPath,
-        "tunnel",
-        "run",
-        tunnelName,
-      ],
+      ["--config", cloudflaredConfigPath, "tunnel", "run", tunnelName],
       {
         cwd: webRoot,
         env,
