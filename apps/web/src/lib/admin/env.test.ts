@@ -1,32 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { AdminEnvError, loadAdminAuthEnv, loadAdminRelayEnv } from "./env";
-
-describe("loadAdminAuthEnv", () => {
-  it("returns normalized basic auth credentials", () => {
-    expect(
-      loadAdminAuthEnv({
-        OP_ADMIN_BASIC_AUTH_PASSWORD: "  secret-pass  ",
-        OP_ADMIN_BASIC_AUTH_USERNAME: "  demo-admin  ",
-      }),
-    ).toEqual({
-      password: "secret-pass",
-      username: "demo-admin",
-    });
-  });
-
-  it("throws when either basic auth field is missing", () => {
-    expect(() =>
-      loadAdminAuthEnv({
-        OP_ADMIN_BASIC_AUTH_PASSWORD: "secret-pass",
-        OP_ADMIN_BASIC_AUTH_USERNAME: " ",
-      }),
-    ).toThrow(AdminEnvError);
-  });
-});
+import { AdminEnvError, loadAdminRelayEnv } from "./env";
 
 describe("loadAdminRelayEnv", () => {
-  it("returns the generator relay config without requiring admin keys", () => {
+  it("returns the generator relay config", () => {
     expect(
       loadAdminRelayEnv({
         OP_FINALIZE_DISPATCH_SECRET: "  shared-secret  ",
@@ -43,6 +20,15 @@ describe("loadAdminRelayEnv", () => {
       loadAdminRelayEnv({
         OP_FINALIZE_DISPATCH_SECRET: " ",
         OP_GENERATOR_BASE_URL: "https://generator.example.com",
+      }),
+    ).toThrow(AdminEnvError);
+  });
+
+  it("throws when the generator base url is missing", () => {
+    expect(() =>
+      loadAdminRelayEnv({
+        OP_FINALIZE_DISPATCH_SECRET: "shared-secret",
+        OP_GENERATOR_BASE_URL: " ",
       }),
     ).toThrow(AdminEnvError);
   });
