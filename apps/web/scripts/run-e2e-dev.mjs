@@ -42,12 +42,15 @@ export async function startE2EDev({
   }
 
   fs.rmSync(path.join(cwd, ".next"), { force: true, recursive: true });
+  const xdgConfigHome = path.join(cwd, ".e2e-xdg");
+  fs.mkdirSync(xdgConfigHome, { recursive: true });
 
   const child = spawnImpl(nextDevBin, ["dev", "-p", String(port)], {
     cwd,
     env: {
       ...env,
       ...e2eStubEnv,
+      XDG_CONFIG_HOME: env.XDG_CONFIG_HOME ?? xdgConfigHome,
     },
     stdio: "inherit",
   });

@@ -181,10 +181,13 @@ describe("HomePage", () => {
     });
     render(ui);
 
-    expect(screen.queryByText("Demo Athlete One")).toBeNull();
-    expect(screen.queryByText("Demo Athlete Two")).toBeNull();
+    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
+    expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
     expect(
-      screen.getByText(/現在表示できる開催中ユニットはありません/),
+      screen.getByText(/待機中|No active unit/i),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/進捗を一時取得できません|temporarily unavailable/i),
     ).toBeTruthy();
     expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });

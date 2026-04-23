@@ -18,11 +18,23 @@ type HomePageProps = {
 type HomeEntry = {
   readonly athletePublicId: string;
   readonly displayName: string;
-  readonly maxSlots: number;
   readonly slug: string;
-  readonly submittedCount: number;
   readonly thumbnailUrl: string;
-  readonly unitId: string;
+  readonly progress:
+    | {
+        readonly kind: "active";
+        readonly maxSlots: number;
+        readonly submittedCount: number;
+        readonly unitId: string;
+      }
+    | {
+        readonly kind: "waiting";
+        readonly unitId: string | null;
+      }
+    | {
+        readonly kind: "unavailable";
+        readonly unitId: string | null;
+      };
 };
 
 export default async function HomePage(
@@ -87,35 +99,52 @@ function AthleteCard({
 }: {
   readonly athlete: HomeEntry;
 }): React.ReactElement {
+  const href =
+    athlete.progress.unitId !== null
+      ? buildWaitingRoomHref(athlete.progress.unitId, athlete.displayName)
+      : null;
+  const body = (
+    <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
+      {/* biome-ignore lint/performance/noImgElement: operator card */}
+      <img
+        alt={athlete.displayName}
+        className="h-40 w-40 self-center rounded-2xl border border-white/10 object-cover"
+        src={athlete.thumbnailUrl}
+      />
+      <div className="grid gap-1 text-center">
+        <h2 className="font-serif text-2xl text-white">{athlete.displayName}</h2>
+        <p className="font-mono text-xs text-slate-400">{athlete.slug}</p>
+      </div>
+      <ProgressLabel progress={athlete.progress} />
+    </article>
+  );
+
+  if (!href) {
+    return body;
+  }
+
   return (
-    <Link
-      className="contents"
-      href={buildWaitingRoomHref(athlete.unitId, athlete.displayName)}
-    >
-      <article className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-7 transition hover:border-cyan-200/40">
-        {/* biome-ignore lint/performance/noImgElement: operator card */}
-        <img
-          alt={athlete.displayName}
-          className="h-40 w-40 self-center rounded-2xl border border-white/10 object-cover"
-          src={athlete.thumbnailUrl}
-        />
-        <div className="grid gap-1 text-center">
-          <h2 className="font-serif text-2xl text-white">
-            {athlete.displayName}
-          </h2>
-          <p className="font-mono text-xs text-slate-400">{athlete.slug}</p>
-        </div>
-        <p className="font-mono text-lg tabular-nums text-white">
-          {athlete.submittedCount} / {athlete.maxSlots}
-        </p>
-      </article>
+    <Link className="contents" href={href}>
+      {body}
     </Link>
   );
 }
 
 async function loadChainEntries(): Promise<readonly HomeEntry[]> {
   try {
-    return await getActiveHomeUnits();
+    const units = await getActiveHomeUnits();
+    return units.map((unit) => ({
+      athletePublicId: unit.athletePublicId,
+      displayName: unit.displayName,
+      slug: unit.slug,
+      thumbnailUrl: unit.thumbnailUrl,
+      progress: {
+        kind: "active" as const,
+        maxSlots: unit.maxSlots,
+        submittedCount: unit.submittedCount,
+        unitId: unit.unitId,
+      },
+    }));
   } catch (error) {
     console.error("Failed to load active home units", error);
     return [];
@@ -126,32 +155,44 @@ async function loadDemoEntries(
   rawOverride: string | undefined,
 ): Promise<readonly HomeEntry[]> {
   const catalog = await getAthleteCatalog();
-  return catalog.flatMap((athlete) => {
-    if (
-      resolveE2ECardOverride(athlete.athletePublicId, rawOverride) === "skip"
-    ) {
-      return [];
+  const entries: HomeEntry[] = [];
+
+  for (const athlete of catalog) {
+    const unitId = getDemoCurrentUnitIdForAthlete(athlete.athletePublicId);
+    const override = resolveE2ECardOverride(
+      athlete.athletePublicId,
+      rawOverride,
+      unitId,
+    );
+    if (override) {
+      entries.push({
+        ...athlete,
+        progress: override,
+      });
+      continue;
     }
 
-    const unitId = getDemoCurrentUnitIdForAthlete(athlete.athletePublicId);
     if (!unitId) {
-      return [];
+      continue;
     }
 
     const progress = getDemoUnitProgress(unitId);
     if (!progress) {
-      return [];
+      continue;
     }
 
-    return [
-      {
-        ...athlete,
+    entries.push({
+      ...athlete,
+      progress: {
+        kind: "active",
         maxSlots: progress.maxSlots,
         submittedCount: progress.submittedCount,
         unitId,
       },
-    ];
-  });
+    });
+  }
+
+  return entries;
 }
 
 function buildWaitingRoomHref(unitId: string, athleteName: string): string {
@@ -162,7 +203,17 @@ function buildWaitingRoomHref(unitId: string, athleteName: string): string {
 function resolveE2ECardOverride(
   athletePublicId: string,
   rawOverride: string | undefined,
-): "skip" | null {
+  unitId: string | null,
+):
+  | {
+      readonly kind: "waiting";
+      readonly unitId: string | null;
+    }
+  | {
+      readonly kind: "unavailable";
+      readonly unitId: string | null;
+    }
+  | null {
   if (process.env.NEXT_PUBLIC_E2E_STUB_WALLET !== "1" || !rawOverride) {
     return null;
   }
@@ -178,10 +229,42 @@ function resolveE2ECardOverride(
       continue;
     }
 
-    if (kind === "waiting" || kind === "unavailable") {
-      return "skip";
+    if (kind === "waiting") {
+      return { kind: "waiting", unitId };
+    }
+
+    if (kind === "unavailable") {
+      return { kind: "unavailable", unitId };
     }
   }
 
   return null;
+}
+
+function ProgressLabel({
+  progress,
+}: {
+  readonly progress: HomeEntry["progress"];
+}): React.ReactElement {
+  if (progress.kind === "active") {
+    return (
+      <p className="font-mono text-lg tabular-nums text-white">
+        {progress.submittedCount} / {progress.maxSlots}
+      </p>
+    );
+  }
+
+  if (progress.kind === "waiting") {
+    return (
+      <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
+        待機中 / No active unit
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+      進捗を一時取得できません / Progress temporarily unavailable
+    </p>
+  );
 }
