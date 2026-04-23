@@ -14,6 +14,8 @@
  *     documenting the boundary at the import site.
  */
 
+export type { AdminUnitSnapshot } from "./admin-unit";
+export { getAdminUnitSnapshot } from "./admin-unit";
 export type {
   SuiReadClient,
   SuiSubscriptionClient,

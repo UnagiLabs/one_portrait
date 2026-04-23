@@ -105,7 +105,10 @@ export {
   validateUniqueSeedingBlobIds,
 } from "./seeding-upload";
 export {
+  type CreateUnitTransactionResult,
+  createCreateUnitTransactionExecutor,
   createFinalizeTransactionExecutor,
+  createRotateCurrentUnitTransactionExecutor,
   createSeedingDigestStatusChecker,
   createSeedingSnapshotLoader,
   createSubmitPhotoTransactionExecutor,
@@ -115,6 +118,7 @@ export {
   type GeneratorSeedingSnapshot,
   type GeneratorSeedingSnapshotLoader,
   type GeneratorUnitSnapshotLoader,
+  type RotateCurrentUnitTransactionResult,
   readTransactionBlockStatus,
   type SubmitPhotoTransactionResult,
 } from "./sui";

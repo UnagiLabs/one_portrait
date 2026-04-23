@@ -111,6 +111,15 @@ generator や tunnel を起動しません。
 preview Worker の `/api/finalize` proof の代わりにもなりません。
 
 `/api/finalize` の end-to-end proof が必要なときは、`docs/demo-smoke.md` の preview finalize smoke を使います。
+dispatch 用の shared secret 自体を確かめたいときは、次の no-op probe を使います。
+
+```bash
+curl -H "x-op-finalize-dispatch-secret: <secret>" \
+  http://127.0.0.1:8080/dispatch-auth-probe
+```
+
+この probe は secret と接続だけを確認します。
+finalize 本体は実行しません。
 
 ## 値の確認ポイント
 
@@ -133,6 +142,7 @@ preview Worker の `/api/finalize` proof の代わりにもなりません。
 | `local` `/health` が `503` を返す | generator 側の `SUI_NETWORK`、`PACKAGE_ID`、`ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`WALRUS_*`、`OP_FINALIZE_DISPATCH_SECRET`、`OP_LOCAL_GENERATOR_PORT` |
 | `local` `/health` は通るが `external` `/health` が通らない | `cloudflared tunnel run` のログ、DNS、`config.yml`、`OP_LOCAL_TUNNEL_NAME` |
 | `/dispatch` が `401` を返す | Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
+| `/dispatch-auth-probe` が `401` を返す | web / Worker と generator の `OP_FINALIZE_DISPATCH_SECRET` |
 | `/dispatch` が `500` を返す | generator 側の `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`PACKAGE_ID`、`SUI_NETWORK` |
 | Worker から finalize が進まない | `OP_FINALIZE_DISPATCH_URL`、preview Worker 設定、generator ログ |
 
