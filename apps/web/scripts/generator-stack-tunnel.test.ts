@@ -77,7 +77,13 @@ describe("runGeneratorStackTunnel", () => {
     expect(spawnImpl).toHaveBeenCalledTimes(1);
     expect(spawnImpl).toHaveBeenCalledWith(
       "cloudflared",
-      ["tunnel", "run", "one-portrait-generator"],
+      [
+        "--config",
+        expect.stringContaining(".cloudflared/config.yml"),
+        "tunnel",
+        "run",
+        "one-portrait-generator",
+      ],
       expect.objectContaining({
         cwd: expect.any(String),
         env: expect.objectContaining({
@@ -207,6 +213,77 @@ describe("runGeneratorStackTunnel", () => {
     });
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
     expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
+  });
+
+  it("passes OP_LOCAL_TUNNEL_CONFIG_PATH to cloudflared tunnel run", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+        OP_LOCAL_TUNNEL_CONFIG_PATH: "/tmp/custom-cloudflared.yml",
+      },
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    localHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][local][ready]",
+      ok: true,
+    });
+    await settle();
+
+    expect(spawnImpl).toHaveBeenCalledWith(
+      "cloudflared",
+      [
+        "--config",
+        "/tmp/custom-cloudflared.yml",
+        "tunnel",
+        "run",
+        "one-portrait-generator",
+      ],
+      expect.any(Object),
+    );
+
+    externalHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][external][ready]",
+      ok: true,
+    });
+    await settle();
+    tunnelChild.emit("exit", 1, null);
+    await runPromise;
   });
 
   it("stops the tunnel when the generator exits unexpectedly during external health", async () => {

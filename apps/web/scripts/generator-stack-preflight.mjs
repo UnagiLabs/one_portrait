@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 const DEFAULT_LOCAL_PORT = 8080;
 
+export { resolveCloudflaredConfigPath };
+
 export async function runGeneratorStackPreflight({
   env = process.env,
   runCommand = defaultRunCommand,

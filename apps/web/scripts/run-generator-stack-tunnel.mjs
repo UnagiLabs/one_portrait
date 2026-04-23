@@ -2,7 +2,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { waitForGeneratorStackHealth } from "./generator-stack-health.mjs";
-import { runGeneratorStackPreflight } from "./generator-stack-preflight.mjs";
+import {
+  resolveCloudflaredConfigPath,
+  runGeneratorStackPreflight,
+} from "./generator-stack-preflight.mjs";
 import {
   loadWebScriptEnv,
   startLocalGenerator as startLocalGeneratorLauncher,
@@ -26,6 +29,7 @@ export async function runGeneratorStackTunnel({
   let generator = null;
   let tunnel = null;
   const mergedEnv = loadWebScriptEnv({ env });
+  const cloudflaredConfigPath = resolveCloudflaredConfigPath(mergedEnv);
 
   try {
     const preflightResult = await preflight({ env: mergedEnv, logger });
@@ -87,11 +91,21 @@ export async function runGeneratorStackTunnel({
     }
 
     tunnel = trackChild(
-      spawnImpl("cloudflared", ["tunnel", "run", preflightResult.tunnelName], {
-        cwd: webRoot,
-        env: mergedEnv,
-        stdio: "inherit",
-      }),
+      spawnImpl(
+        "cloudflared",
+        [
+          "--config",
+          cloudflaredConfigPath,
+          "tunnel",
+          "run",
+          preflightResult.tunnelName,
+        ],
+        {
+          cwd: webRoot,
+          env: mergedEnv,
+          stdio: "inherit",
+        },
+      ),
     );
 
     if (signalState.value !== null) {
