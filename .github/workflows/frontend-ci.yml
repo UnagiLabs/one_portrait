@@ -21,6 +21,14 @@ jobs:
   static-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUI_NETWORK: "testnet"
+      NEXT_PUBLIC_PACKAGE_ID: "0x3c1a92273f2ad9369f9fa18167b06f6023b2982340c768886c5f85ba4ab8f7a3"
+      NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0x08ba74331f2e7574956c9fdfe3472cdc269513325258452f962e0a36a5d6bcb6"
+      NEXT_PUBLIC_ENOKI_API_KEY: "enoki_public_f6adc0082f791a0a226ac20f81a9f635"
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "317939856639-5m1cu2msauk1s66q6u6jj35ja0ir1mar.apps.googleusercontent.com"
+      NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.walrus-testnet.walrus.space"
+      NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.walrus-testnet.walrus.space"
 
     steps:
       - name: Checkout

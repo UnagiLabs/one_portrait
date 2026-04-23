@@ -33,11 +33,20 @@ function isE2EStubWalletEnabled(): boolean {
 }
 
 export type EnokiConfigState =
-  | { readonly submitEnabled: true; readonly config: SubmitPublicEnv }
-  | { readonly submitEnabled: false; readonly reason: string };
+  | {
+      readonly submitEnabled: true;
+      readonly walletProviderAvailable: true;
+      readonly config: SubmitPublicEnv;
+    }
+  | {
+      readonly submitEnabled: false;
+      readonly walletProviderAvailable: boolean;
+      readonly reason: string;
+    };
 
 const EnokiConfigContext = createContext<EnokiConfigState>({
   submitEnabled: false,
+  walletProviderAvailable: false,
   reason: "wallet-provider-disabled",
 });
 
@@ -51,20 +60,23 @@ export function AppWalletProvider({
   // an empty object after hydration and flips `submitEnabled` to false.
   const envSource = getPublicEnvSource();
   const readEnv = safeLoadPublicEnv(envSource);
+  const walletProviderAvailable = readEnv !== null;
   const [queryClient] = useState(() => new QueryClient());
   const state = useMemo<EnokiConfigState>(() => {
     if (!canEnableSubmit(envSource)) {
       return {
         submitEnabled: false,
+        walletProviderAvailable,
         reason: "submit-env-missing",
       };
     }
 
     return {
       submitEnabled: true,
+      walletProviderAvailable: true,
       config: loadSubmitPublicEnv(envSource),
     };
-  }, [envSource]);
+  }, [envSource, walletProviderAvailable]);
 
   const networks = useMemo(
     () =>

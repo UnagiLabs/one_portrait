@@ -2,7 +2,7 @@
 
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useEffect, useState } from "react";
-
+import { useEnokiConfigState } from "../../../lib/enoki/provider";
 import type { MasterPlacementView } from "../../../lib/sui";
 import {
   findOwnedKakeraForUnit,
@@ -16,7 +16,10 @@ import { RevealPanel } from "./reveal-panel";
 
 type UnitRevealClientProps = {
   readonly displayName: string;
-  readonly packageId: string;
+  readonly aggregatorBase?: string | null;
+  readonly eventSubscriptionEnabled?: boolean;
+  readonly packageId: string | null;
+  readonly startupEnabled?: boolean;
   readonly unitId: string;
   readonly initialSubmittedCount: number;
   readonly maxSlots: number;
@@ -29,21 +32,53 @@ type RevealState = {
   readonly placement: MasterPlacementView | null;
 };
 
+type UnitRevealClientCoreProps = UnitRevealClientProps & {
+  readonly currentAccountAddress: string | null;
+};
+
 const EMPTY_WALRUS_BLOB_ID = "";
 
 export function UnitRevealClient(
   props: UnitRevealClientProps,
 ): React.ReactElement {
+  const state = useEnokiConfigState();
+
+  if (!state.walletProviderAvailable) {
+    return <UnitRevealClientCore {...props} currentAccountAddress={null} />;
+  }
+
+  return <UnitRevealClientWithWallet {...props} />;
+}
+
+function UnitRevealClientWithWallet(
+  props: UnitRevealClientProps,
+): React.ReactElement {
+  const currentAccount = useCurrentAccount();
+
+  return (
+    <UnitRevealClientCore
+      {...props}
+      currentAccountAddress={currentAccount?.address ?? null}
+    />
+  );
+}
+
+function UnitRevealClientCore(
+  props: UnitRevealClientCoreProps,
+): React.ReactElement {
   const {
     displayName,
+    aggregatorBase,
+    eventSubscriptionEnabled = true,
     packageId,
+    startupEnabled = true,
     unitId,
     initialSubmittedCount,
     maxSlots,
     initialMasterId,
+    currentAccountAddress,
   } = props;
 
-  const currentAccount = useCurrentAccount();
   const [reveal, setReveal] = useState<RevealState | null>(
     initialMasterId
       ? {
@@ -58,7 +93,7 @@ export function UnitRevealClient(
   const revealPlacement = reveal?.placement ?? null;
 
   useEffect(() => {
-    if (revealMasterId == null) {
+    if (!startupEnabled || revealMasterId == null) {
       return;
     }
 
@@ -70,10 +105,10 @@ export function UnitRevealClient(
       let placement = revealPlacement;
       let ownedWalrusBlobId: string | null = null;
 
-      if (currentAccount?.address && packageId) {
+      if (currentAccountAddress && packageId) {
         try {
           const kakera = await findOwnedKakeraForUnit({
-            ownerAddress: currentAccount.address,
+            ownerAddress: currentAccountAddress,
             packageId,
             suiClient,
             unitId,
@@ -150,21 +185,24 @@ export function UnitRevealClient(
       cancelled = true;
     };
   }, [
-    currentAccount?.address,
+    currentAccountAddress,
     packageId,
     revealBlobId,
     revealMasterId,
     revealPlacement,
+    startupEnabled,
     unitId,
   ]);
 
   const mosaicUrl = buildWalrusAggregatorUrl(
     reveal?.mosaicWalrusBlobId ?? null,
+    aggregatorBase,
   );
 
   return (
     <>
       <LiveProgress
+        eventSubscriptionEnabled={eventSubscriptionEnabled}
         initialSubmittedCount={initialSubmittedCount}
         maxSlots={maxSlots}
         onMosaicReady={(event) => {
@@ -174,7 +212,7 @@ export function UnitRevealClient(
             placement: null,
           });
         }}
-        packageId={packageId}
+        packageId={packageId ?? ""}
         unitId={unitId}
       />
 
@@ -189,16 +227,15 @@ export function UnitRevealClient(
   );
 }
 
-function buildWalrusAggregatorUrl(blobId: string | null): string | null {
+function buildWalrusAggregatorUrl(
+  blobId: string | null,
+  aggregatorBase: string | null | undefined,
+): string | null {
   if (!blobId) {
     return null;
   }
 
-  const aggregator = process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR?.trim().replace(
-    /\/+$/,
-    "",
-  );
-
+  const aggregator = aggregatorBase?.trim().replace(/\/+$/, "");
   if (!aggregator) {
     return null;
   }

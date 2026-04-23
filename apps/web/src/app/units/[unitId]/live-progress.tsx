@@ -30,6 +30,7 @@ import type {
 import { useUnitEvents } from "../../../lib/sui/react";
 
 export type LiveProgressProps = {
+  readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string;
   readonly unitId: string;
   readonly initialSubmittedCount: number;
@@ -40,6 +41,7 @@ export type LiveProgressProps = {
 
 export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const {
+    eventSubscriptionEnabled = true,
     packageId,
     unitId,
     initialSubmittedCount,
@@ -53,7 +55,7 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const finalizeTriggeredRef = useRef(false);
 
   useUnitEvents({
-    packageId,
+    packageId: eventSubscriptionEnabled ? packageId : "",
     unitId,
     onSubmitted: (event: SubmittedEvent) => {
       // Events can arrive out of order from the RPC poll — guard against
