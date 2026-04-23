@@ -18,6 +18,14 @@ vi.mock("../../lib/walrus/put-target", () => ({
 
 import { AdminClient } from "./admin-client";
 
+const HEALTH_OK = {
+  currentUrl: "https://generator.example.com",
+  dispatchAuthorization: { httpStatus: 200, status: "ok" } as const,
+  generatorReadiness: { httpStatus: 200, status: "ok" } as const,
+  resolutionStatus: "ok" as const,
+  source: "runtime_state" as const,
+};
+
 describe("AdminClient", () => {
   const fetchMock = vi.fn();
 
@@ -50,10 +58,7 @@ describe("AdminClient", () => {
             thumbnailUrl: "https://example.com/1.png",
           },
         ]}
-        initialHealth={{
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }}
+        initialHealth={HEALTH_OK}
       />,
     );
 
@@ -62,7 +67,9 @@ describe("AdminClient", () => {
     ).toBeTruthy();
     expect(screen.getByText(/target-blob-1/)).toBeTruthy();
     expect(screen.getByText(/registered/)).toBeTruthy();
-    expect(screen.getAllByText("ok")).toHaveLength(2);
+    expect(screen.getAllByText("ok")).toHaveLength(3);
+    expect(screen.getByText("https://generator.example.com")).toBeTruthy();
+    expect(screen.getByText("runtime_state")).toBeTruthy();
   });
 
   it("uploads a target image and shows the blob id", async () => {
@@ -92,10 +99,7 @@ describe("AdminClient", () => {
             thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
           },
         ]}
-        initialHealth={{
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }}
+        initialHealth={HEALTH_OK}
       />,
     );
 
@@ -163,10 +167,7 @@ describe("AdminClient", () => {
       }
 
       return new Response(
-        JSON.stringify({
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }),
+        JSON.stringify(HEALTH_OK),
         {
           headers: { "content-type": "application/json" },
           status: 200,
@@ -177,10 +178,7 @@ describe("AdminClient", () => {
     render(
       <AdminClient
         initialAthletes={[]}
-        initialHealth={{
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }}
+        initialHealth={HEALTH_OK}
       />,
     );
 
@@ -260,10 +258,7 @@ describe("AdminClient", () => {
       }
 
       return new Response(
-        JSON.stringify({
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }),
+        JSON.stringify(HEALTH_OK),
         {
           headers: { "content-type": "application/json" },
           status: 200,
@@ -284,10 +279,7 @@ describe("AdminClient", () => {
             thumbnailUrl: "https://example.com/1.png",
           },
         ]}
-        initialHealth={{
-          dispatchAuthorization: { httpStatus: 200, status: "ok" },
-          generatorReadiness: { httpStatus: 200, status: "ok" },
-        }}
+        initialHealth={HEALTH_OK}
       />,
     );
 

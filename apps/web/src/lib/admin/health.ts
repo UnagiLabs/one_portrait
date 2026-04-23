@@ -1,6 +1,5 @@
 import { DISPATCH_SECRET_HEADER } from "../finalize/dispatch";
-
-import { loadAdminRelayEnv } from "./env";
+import { resolveGeneratorRuntime } from "../generator-runtime";
 
 export type AdminHealthStatus = {
   readonly httpStatus: number | null;
@@ -8,25 +7,18 @@ export type AdminHealthStatus = {
 };
 
 export type AdminHealthSummary = {
+  readonly currentUrl: string | null;
   readonly dispatchAuthorization: AdminHealthStatus;
   readonly generatorReadiness: AdminHealthStatus;
+  readonly resolutionStatus: "misconfigured" | "ok";
+  readonly source: "fallback" | "legacy_env" | "none" | "override" | "runtime_state";
 };
 
 export async function getAdminHealth(): Promise<AdminHealthSummary> {
-  try {
-    const relay = loadAdminRelayEnv(process.env);
-
-    const [generatorReadiness, dispatchAuthorization] = await Promise.all([
-      fetchGeneratorReadiness(relay.generatorBaseUrl),
-      fetchDispatchAuthorization(relay.generatorBaseUrl, relay.sharedSecret),
-    ]);
-
+  const runtime = resolveGeneratorRuntime({ env: process.env });
+  if (runtime.status !== "ok") {
     return {
-      dispatchAuthorization,
-      generatorReadiness,
-    };
-  } catch {
-    return {
+      currentUrl: null,
       dispatchAuthorization: {
         httpStatus: null,
         status: "misconfigured",
@@ -35,8 +27,31 @@ export async function getAdminHealth(): Promise<AdminHealthSummary> {
         httpStatus: null,
         status: "misconfigured",
       },
+      resolutionStatus: "misconfigured",
+      source: "none",
     };
   }
+
+  const sharedSecret = normalizeSharedSecret(
+    process.env.OP_FINALIZE_DISPATCH_SECRET,
+  );
+  const [generatorReadiness, dispatchAuthorization] = await Promise.all([
+    fetchGeneratorReadiness(runtime.url),
+    sharedSecret === null
+      ? Promise.resolve({
+          httpStatus: null,
+          status: "misconfigured",
+        } satisfies AdminHealthStatus)
+      : fetchDispatchAuthorization(runtime.url, sharedSecret),
+  ]);
+
+  return {
+    currentUrl: runtime.url,
+    dispatchAuthorization,
+    generatorReadiness,
+    resolutionStatus: "ok",
+    source: runtime.source,
+  };
 }
 
 async function fetchGeneratorReadiness(
@@ -98,4 +113,9 @@ function mapDispatchStatus(httpStatus: number): AdminHealthStatus["status"] {
     return "unauthorized";
   }
   return "unreachable";
+}
+
+function normalizeSharedSecret(value: string | undefined): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized.length > 0 ? normalized : null;
 }
