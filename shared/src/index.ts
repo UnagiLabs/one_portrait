@@ -26,6 +26,7 @@ export type GeneratorSubmissionRef = {
 export type GeneratorUnitSnapshot = {
   readonly athleteId: number;
   readonly displayMaxSlots: number;
+  readonly maxSlots: number;
   readonly submissions: readonly GeneratorSubmissionRef[];
   readonly targetWalrusBlobId: string;
   readonly unitId: string;

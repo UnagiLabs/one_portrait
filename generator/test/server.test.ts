@@ -14,6 +14,7 @@ vi.mock("../src/env", () => ({
   loadGeneratorRuntimeEnv: vi.fn(() => ({
     adminCapId: "0xadmincap",
     adminPrivateKey: "suiprivkey",
+    demoFinalizeManifestPath: null,
     packageId: "0xpkg",
     suiNetwork: "testnet",
     walrusAggregatorBaseUrl: "https://aggregator.example",

@@ -21,8 +21,20 @@ describe("loadGeneratorRuntimeEnv", () => {
       packageId: "0xpkg",
       adminCapId: "0xadmincap",
       adminPrivateKey: "suiprivkey",
+      demoFinalizeManifestPath: null,
       walrusPublisherBaseUrl: "https://publisher.walrus.example",
       walrusAggregatorBaseUrl: "https://aggregator.walrus.example",
+    });
+  });
+
+  it("reads an optional demo finalize manifest path when present", () => {
+    expect(
+      loadGeneratorRuntimeEnv({
+        ...VALID,
+        OP_DEMO_FINALIZE_MANIFEST: "  /tmp/demo-manifest.json  ",
+      }),
+    ).toMatchObject({
+      demoFinalizeManifestPath: "/tmp/demo-manifest.json",
     });
   });
 

@@ -12,6 +12,7 @@ import {
   type PreparedFinalizeInput,
   prepareFinalizeInput,
 } from "./prepare";
+import type { SeedingInputEntry } from "./seeding-input";
 import type {
   FinalizeTransactionResult,
   GeneratorFinalizeSnapshot,
@@ -60,11 +61,16 @@ export type FinalizeRunnerDeps = {
 };
 
 export type DefaultFinalizeRunnerDeps = {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly generateFinalizeMosaic?: (
     prepared: PreparedFinalizeInput,
   ) => Promise<Pick<GeneratedFinalizeMosaic, "image" | "placements">>;
+  readonly loadDemoManifestEntries?: (
+    manifestPath: string,
+  ) => Promise<readonly SeedingInputEntry[]>;
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
+  readonly readDemoFile?: (filePath: string) => Promise<Uint8Array>;
   readonly sampleAverageColor?: AverageColorSampler;
   readonly walrusRead: WalrusReadClient;
   readonly walrusWrite: WalrusWriteClient;
@@ -102,10 +108,11 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         placements,
       });
       const mosaic = await deps.putMosaic(mosaicBytes);
+      const finalizePlacements = selectPlacementsForFinalize(prepared, placements);
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,
-        placements,
+        placements: finalizePlacements,
       });
 
       return {
@@ -113,7 +120,7 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         unitId,
         mosaicBlobId: mosaic.blobId,
         digest: finalized.digest,
-        placementCount: placements.length,
+        placementCount: finalizePlacements.length,
       };
     },
   };
@@ -149,16 +156,23 @@ export function createDefaultFinalizeRunner(
       }
 
       const prepared = await prepareFinalizeInput(snapshot, {
+        demoFinalizeManifestPath: deps.demoFinalizeManifestPath ?? null,
+        loadDemoManifestEntries: deps.loadDemoManifestEntries,
+        readDemoFile: deps.readDemoFile,
         walrus: deps.walrusRead,
         sampleAverageColor:
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
       });
       const mosaicResult = await buildFinalizeMosaic(prepared);
+      const finalizePlacements = selectPlacementsForFinalize(
+        prepared,
+        mosaicResult.placements,
+      );
       const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,
-        placements: mosaicResult.placements,
+        placements: finalizePlacements,
       });
 
       return {
@@ -166,19 +180,21 @@ export function createDefaultFinalizeRunner(
         unitId,
         mosaicBlobId: mosaic.blobId,
         digest: finalized.digest,
-        placementCount: mosaicResult.placements.length,
+        placementCount: finalizePlacements.length,
       };
     },
   };
 }
 
 export function createFinalizeRunnerFromEndpoints(input: {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
   readonly walrusAggregatorBaseUrl: string;
   readonly walrusPublisherBaseUrl: string;
 }): FinalizeRunner {
   return createDefaultFinalizeRunner({
+    demoFinalizeManifestPath: input.demoFinalizeManifestPath ?? null,
     readUnitSnapshot: input.readUnitSnapshot,
     finalizeTransaction: input.finalizeTransaction,
     walrusRead: createWalrusReadClient({
@@ -189,6 +205,15 @@ export function createFinalizeRunnerFromEndpoints(input: {
       aggregatorBaseUrl: input.walrusAggregatorBaseUrl,
     }),
   });
+}
+
+function selectPlacementsForFinalize(
+  prepared: PreparedFinalizeInput,
+  placements: readonly MosaicPlacement[],
+): MosaicPlacement[] {
+  const allowedBlobIds = new Set(prepared.finalizeWalrusBlobIds);
+
+  return placements.filter((placement) => allowedBlobIds.has(placement.walrusBlobId));
 }
 
 export type { GeneratorFinalizeSnapshot };

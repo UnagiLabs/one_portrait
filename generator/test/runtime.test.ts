@@ -177,12 +177,107 @@ describe("createDefaultFinalizeRunner", () => {
       ],
     });
   });
+
+  it("uses demo manifest tiles for image generation but finalizes only actual submissions", async () => {
+    const generateFinalizeMosaic = vi.fn(async (prepared: PreparedFinalizeInput) => ({
+      image: new Uint8Array([7, 8, 9]),
+      placements: prepared.submissions.map((submission, index) => ({
+        walrusBlobId: submission.walrusBlobId,
+        submissionNo: submission.submissionNo,
+        submitter: submission.submitter,
+        targetColor: submission.averageColor,
+        x: index,
+        y: 0,
+      })),
+    }));
+    const putBlob = vi.fn(async () => ({
+      blobId: "mosaic-blob",
+      aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+    }));
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createDefaultFinalizeRunner({
+      demoFinalizeManifestPath: "/tmp/demo-manifest.json",
+      finalizeTransaction,
+      generateFinalizeMosaic,
+      loadDemoManifestEntries: vi.fn(async () => [
+        { imageKey: "mock-a", filePath: "/tmp/mock-a.png" },
+      ]),
+      readDemoFile: vi.fn(async () => new Uint8Array([9, 9, 9])),
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        displayMaxSlots: 2,
+        maxSlots: 1,
+        status: "filled" as const,
+        masterId: null,
+      })),
+      sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+      walrusRead: {
+        getBlob: vi.fn(async (blobId: string) =>
+          new TextEncoder().encode(blobId),
+        ),
+      },
+      walrusWrite: {
+        putBlob,
+      },
+    });
+
+    await expect(runner.run("0xunit-1")).resolves.toEqual({
+      status: "finalized",
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 1,
+    });
+    expect(generateFinalizeMosaic).toHaveBeenCalledTimes(1);
+    expect(generateFinalizeMosaic.mock.calls[0]?.[0].submissions).toHaveLength(2);
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      placements: [
+        expect.objectContaining({
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+        }),
+      ],
+    });
+  });
+
+  it("fails demo finalize clearly when the manifest path is missing", async () => {
+    const runner = createDefaultFinalizeRunner({
+      finalizeTransaction: vi.fn(async () => ({ digest: "0xdigest" })),
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        displayMaxSlots: 2,
+        maxSlots: 1,
+        status: "filled" as const,
+        masterId: null,
+      })),
+      sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+      walrusRead: {
+        getBlob: vi.fn(async (blobId: string) =>
+          new TextEncoder().encode(blobId),
+        ),
+      },
+      walrusWrite: {
+        putBlob: vi.fn(async () => ({
+          blobId: "mosaic-blob",
+          aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+        })),
+      },
+    });
+
+    await expect(runner.run("0xunit-1")).rejects.toThrow(
+      /OP_DEMO_FINALIZE_MANIFEST/,
+    );
+  });
 });
 
 function snapshot() {
   return {
     athleteId: 1,
     displayMaxSlots: 1,
+    maxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [
@@ -199,6 +294,7 @@ function snapshot() {
 function preparedInput(): PreparedFinalizeInput {
   return {
     athleteId: 1,
+    finalizeWalrusBlobIds: ["submission-1"],
     unitId: "0xunit-1",
     targetWalrusBlobId: "target-blob",
     targetImageBytes: new Uint8Array([1, 2, 3]),

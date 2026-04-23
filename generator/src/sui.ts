@@ -93,6 +93,7 @@ export function createUnitSnapshotLoader(
       unitId,
       athleteId: snapshot.athleteId,
       displayMaxSlots: snapshot.displayMaxSlots,
+      maxSlots: snapshot.maxSlots,
       targetWalrusBlobId: snapshot.targetWalrusBlobId,
       submissions: snapshot.submissions,
       status: snapshot.status,

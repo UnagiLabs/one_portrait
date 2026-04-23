@@ -69,6 +69,7 @@ export async function handleRequest(
         network: env.suiNetwork,
       });
       const runner = createFinalizeRunnerFromEndpoints({
+        demoFinalizeManifestPath: env.demoFinalizeManifestPath,
         readUnitSnapshot: createUnitSnapshotLoader(client),
         finalizeTransaction: createFinalizeTransactionExecutor({
           client,
