@@ -217,6 +217,30 @@ describe("generator server", () => {
       await close(server);
     }
   });
+
+  it("accepts /dispatch-auth-probe with the shared secret and does not run finalize", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/dispatch-auth-probe`, {
+        method: "GET",
+        headers: {
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        status: "ok",
+      });
+      expect(runMock).not.toHaveBeenCalled();
+    } finally {
+      await close(server);
+    }
+  });
 });
 
 function setReadyGeneratorEnv(): void {

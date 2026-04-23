@@ -84,6 +84,23 @@ export async function handleRequest(
     }
   }
 
+  if (request.method === "GET" && request.url === "/dispatch-auth-probe") {
+    const authorizationError = validateDispatchAuthorization(request);
+    if (authorizationError !== null) {
+      writeJson(
+        response,
+        authorizationError.status,
+        authorizationError.payload,
+      );
+      return;
+    }
+
+    writeJson(response, 200, {
+      status: "ok",
+    });
+    return;
+  }
+
   if (request.method === "POST" && request.url === "/admin/create-unit") {
     const authorizationError = validateDispatchAuthorization(request);
     if (authorizationError !== null) {
@@ -311,6 +328,9 @@ function writeJson(
         readonly digest: string;
         readonly status: "created" | "rotated";
         readonly unitId: string;
+      }
+    | {
+        readonly status: "ok";
       }
     | { readonly error: string; readonly message: string },
 ): void {
