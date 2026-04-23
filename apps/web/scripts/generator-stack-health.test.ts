@@ -75,6 +75,14 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
       2,
       GENERATOR_STACK_HEALTH_RETRY_INTERVAL_MS,
     );
+    expect(logger.info).toHaveBeenNthCalledWith(
+      1,
+      `[generator-stack][health][${label}][retrying]`,
+    );
+    expect(logger.info).toHaveBeenNthCalledWith(
+      2,
+      `[generator-stack][health][${label}][retrying]`,
+    );
     expect(logger.info).toHaveBeenCalledWith(
       `[generator-stack][health][${label}][ready]`,
     );
@@ -108,6 +116,14 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
     });
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(clock.sleep).toHaveBeenCalledTimes(2);
+    expect(logger.info).toHaveBeenNthCalledWith(
+      1,
+      `[generator-stack][health][${label}][retrying]`,
+    );
+    expect(logger.info).toHaveBeenNthCalledWith(
+      2,
+      `[generator-stack][health][${label}][retrying]`,
+    );
     expect(logger.info).toHaveBeenCalledWith(
       `[generator-stack][health][${label}][ready]`,
     );
@@ -140,9 +156,10 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
       GENERATOR_STACK_HEALTH_TIMEOUT_MS /
         GENERATOR_STACK_HEALTH_RETRY_INTERVAL_MS,
     );
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger.warn).toHaveBeenCalledWith(
       `[generator-stack][health][${label}][timeout]`,
     );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("times out after repeated connection errors", async () => {
@@ -172,9 +189,10 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
       GENERATOR_STACK_HEALTH_TIMEOUT_MS /
         GENERATOR_STACK_HEALTH_RETRY_INTERVAL_MS,
     );
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger.warn).toHaveBeenCalledWith(
       `[generator-stack][health][${label}][timeout]`,
     );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("times out when fetch never resolves and aborts each attempt", async () => {
@@ -213,6 +231,9 @@ describe.each(labels)("waitForGeneratorStackHealth: %s", (label) => {
     });
     expect(signals.length).toBeGreaterThan(0);
     expect(signals.every((signal) => signal.aborted)).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith(
+      `[generator-stack][health][${label}][timeout]`,
+    );
   });
 
   it("does not report ready when the first 200 arrives at the timeout boundary", async () => {

@@ -32,7 +32,7 @@ export async function waitForGeneratorStackHealth({
     const remainingMs = Math.max(0, deadline - now());
     if (remainingMs <= 0) {
       const marker = `[generator-stack][health][${label}][timeout]`;
-      logger?.error?.(marker);
+      logger?.warn?.(marker);
 
       return {
         ok: false,
@@ -62,6 +62,7 @@ export async function waitForGeneratorStackHealth({
       };
     }
 
+    logger?.info?.(`[generator-stack][health][${label}][retrying]`);
     await sleep(Math.min(retryIntervalMs, Math.max(0, deadline - now())));
   }
 }
