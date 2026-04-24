@@ -479,29 +479,49 @@ function readSubmissions(value: unknown): readonly GeneratorSubmissionRef[] {
   }
 
   return value.map((entry, index) => {
-    if (typeof entry !== "object" || entry === null) {
+    const record = unwrapSubmissionRecord(entry);
+
+    if (record === null) {
       throw new Error(`submissions[${index}] is not an object`);
     }
 
     return {
       submissionNo: readIntegerField(
-        (entry as Record<string, unknown>).submission_no,
+        record.submission_no,
         `submissions[${index}].submission_no`,
       ),
       submitter: readAddressField(
-        (entry as Record<string, unknown>).submitter,
+        record.submitter,
         `submissions[${index}].submitter`,
       ),
       submittedAtMs: readIntegerField(
-        (entry as Record<string, unknown>).submitted_at_ms,
+        record.submitted_at_ms,
         `submissions[${index}].submitted_at_ms`,
       ),
       walrusBlobId: readVectorU8AsString(
-        (entry as Record<string, unknown>).walrus_blob_id,
+        record.walrus_blob_id,
         `submissions[${index}].walrus_blob_id`,
       ),
     };
   });
+}
+
+function unwrapSubmissionRecord(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  if ("fields" in value) {
+    const fields = (value as { fields?: unknown }).fields;
+
+    if (typeof fields === "object" && fields !== null) {
+      return fields as Record<string, unknown>;
+    }
+  }
+
+  return value as Record<string, unknown>;
 }
 
 async function readUnitSnapshot(

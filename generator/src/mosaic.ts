@@ -262,7 +262,9 @@ export async function generateFinalizeMosaic(
       id: submission.walrusBlobId,
       image: Buffer.from(submission.imageBytes),
     })),
-    grid: input.grid ?? defaultGrid,
+    grid:
+      input.grid ??
+      deriveFinalizeGridFromSubmissionCount(input.submissions.length),
     tileSize: input.tileSize ?? defaultTileSize,
     colorMix: input.colorMix,
     overlayOpacity: input.overlayOpacity,
@@ -295,6 +297,46 @@ export async function generateFinalizeMosaic(
   };
 }
 
+function deriveFinalizeGridFromSubmissionCount(count: number): MosaicGrid {
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error(
+      `Submission count must be a positive integer (got ${count}).`,
+    );
+  }
+
+  const defaultCount = defaultGrid.cols * defaultGrid.rows;
+  if (count === defaultCount) {
+    return defaultGrid;
+  }
+
+  const targetAspectRatio = defaultGrid.cols / defaultGrid.rows;
+  let bestGrid: MosaicGrid | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let cols = 1; cols <= Math.sqrt(count); cols += 1) {
+    if (count % cols !== 0) {
+      continue;
+    }
+
+    const rows = count / cols;
+    const score = Math.abs(cols / rows - targetAspectRatio);
+
+    if (
+      score < bestScore ||
+      (score === bestScore && bestGrid !== null && rows > bestGrid.rows)
+    ) {
+      bestGrid = { cols, rows };
+      bestScore = score;
+    }
+  }
+
+  if (bestGrid !== null) {
+    return bestGrid;
+  }
+
+  throw new Error(`Could not derive a mosaic grid for ${count} submissions.`);
+}
+
 async function buildTargetCells(
   targetImage: Buffer,
   grid: MosaicGrid,
@@ -309,6 +351,7 @@ async function buildTargetCells(
   const raw = await sharp(targetImage)
     .rotate()
     .resize(grid.cols, grid.rows, { fit: "cover" })
+    .ensureAlpha()
     .raw()
     .toBuffer();
 

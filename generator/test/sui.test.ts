@@ -62,6 +62,40 @@ describe("createSeedingSnapshotLoader", () => {
       submitterAddresses: ["0xsubmitter-a", "0xsubmitter-b"],
     });
   });
+
+  it("accepts submission refs wrapped in nested move-object fields", async () => {
+    const client = {
+      getObject: vi.fn(async () => ({
+        data: unitData({
+          submissions: [
+            {
+              type: "0xpkg::unit::SubmissionRef",
+              fields: submission({
+                submitter: "0xwrapped-submitter",
+                submissionNo: 7,
+                submittedAtMs: 1_700_000_000_123,
+                walrusBlobId: "wrapped-blob",
+              }),
+            },
+          ],
+        }),
+      })),
+    } as unknown as GeneratorSuiReadClient;
+
+    const loader = createSeedingSnapshotLoader(client);
+    const snapshot = await loader(UNIT_ID);
+
+    expect(snapshot.submissions).toEqual([
+      parsedSubmission({
+        submitter: "0xwrapped-submitter",
+        submissionNo: 7,
+        submittedAtMs: 1_700_000_000_123,
+        walrusBlobId: "wrapped-blob",
+      }),
+    ]);
+    expect(snapshot.submittedCount).toBe(1);
+    expect(snapshot.submitterAddresses).toEqual(["0xwrapped-submitter"]);
+  });
 });
 
 describe("createUpsertAthleteMetadataTransactionExecutor", () => {
