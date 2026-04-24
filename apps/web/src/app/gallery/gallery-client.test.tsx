@@ -347,6 +347,26 @@ describe("GalleryClient", () => {
     expect(screen.getByRole("button", { name: "Check again" })).toBeTruthy();
   });
 
+  it("loads owned Kakera with only the provided package id", async () => {
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([]);
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xoriginal-package" />);
+
+    await waitFor(() => {
+      expect(listOwnedKakeraMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(listOwnedKakeraMock).toHaveBeenCalledWith({
+      ownerAddress: "0xviewer",
+      packageId: "0xoriginal-package",
+      suiClient: { network: "testnet" },
+    });
+    expect(
+      listOwnedKakeraMock.mock.calls.map(([args]) => args.packageId),
+    ).toEqual(["0xoriginal-package"]);
+  });
+
   it("shows a fetch failure shell when Kakera loading fails", async () => {
     useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
     listOwnedKakeraMock.mockRejectedValue(new Error("rpc down"));

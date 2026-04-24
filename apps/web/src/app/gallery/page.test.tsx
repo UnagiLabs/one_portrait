@@ -112,6 +112,30 @@ describe("GalleryPage", () => {
     });
   });
 
+  it("passes the original package id to the client when latest and original packages differ", async () => {
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+    getDemoGalleryEntriesMock.mockReturnValue([]);
+    isDemoModeEnabledMock.mockReturnValue(false);
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xregistry",
+      packageId: "0xlatest-package",
+      originalPackageId: "0xoriginal-package",
+    });
+
+    const ui = await GalleryPage();
+    render(ui);
+
+    expect(
+      screen.getByTestId("gallery-client").getAttribute("data-package-id"),
+    ).toBe("0xoriginal-package");
+    expect(galleryPageClientMock).toHaveBeenCalledWith({
+      catalog: CATALOG,
+      demoEntries: undefined,
+      packageId: "0xoriginal-package",
+    });
+  });
+
   it("passes demo entries to the client shell when demo mode is enabled", async () => {
     getAthleteCatalogMock.mockResolvedValue(CATALOG);
     getDemoGalleryEntriesMock.mockReturnValue([
