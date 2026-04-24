@@ -29,6 +29,7 @@ type UnitRevealClientProps = {
 type RevealState = {
   readonly masterId: string;
   readonly mosaicWalrusBlobId: string | null;
+  readonly ownedWalrusBlobId: string | null;
   readonly placement: MasterPlacementView | null;
 };
 
@@ -84,12 +85,14 @@ function UnitRevealClientCore(
       ? {
           masterId: initialMasterId,
           mosaicWalrusBlobId: null,
+          ownedWalrusBlobId: null,
           placement: null,
         }
       : null,
   );
   const revealMasterId = reveal?.masterId ?? null;
   const revealBlobId = reveal?.mosaicWalrusBlobId ?? null;
+  const revealOwnedBlobId = reveal?.ownedWalrusBlobId ?? null;
   const revealPlacement = reveal?.placement ?? null;
 
   useEffect(() => {
@@ -102,8 +105,8 @@ function UnitRevealClientCore(
     const loadReveal = async (): Promise<void> => {
       const suiClient = getSuiClient();
       let mosaicWalrusBlobId = revealBlobId;
+      let ownedWalrusBlobId = revealOwnedBlobId;
       let placement = revealPlacement;
-      let ownedWalrusBlobId: string | null = null;
 
       if (currentAccountAddress && packageId) {
         try {
@@ -166,6 +169,7 @@ function UnitRevealClientCore(
 
         if (
           current.mosaicWalrusBlobId === mosaicWalrusBlobId &&
+          current.ownedWalrusBlobId === ownedWalrusBlobId &&
           samePlacement(current.placement, placement)
         ) {
           return current;
@@ -174,6 +178,7 @@ function UnitRevealClientCore(
         return {
           masterId: current.masterId,
           mosaicWalrusBlobId,
+          ownedWalrusBlobId,
           placement,
         };
       });
@@ -189,6 +194,7 @@ function UnitRevealClientCore(
     packageId,
     revealBlobId,
     revealMasterId,
+    revealOwnedBlobId,
     revealPlacement,
     startupEnabled,
     unitId,
@@ -210,6 +216,7 @@ function UnitRevealClientCore(
           setReveal({
             masterId: event.masterId,
             mosaicWalrusBlobId: decodeByteString(event.mosaicWalrusBlobId),
+            ownedWalrusBlobId: null,
             placement: null,
           });
         }}
@@ -221,6 +228,10 @@ function UnitRevealClientCore(
         <RevealPanel
           displayName={displayName}
           mosaicUrl={mosaicUrl}
+          originalPhotoUrl={buildWalrusAggregatorUrl(
+            reveal.ownedWalrusBlobId,
+            aggregatorBase,
+          )}
           placement={reveal.placement}
         />
       ) : null}
