@@ -5,6 +5,7 @@ import { type ChangeEvent, type FormEvent, useState } from "react";
 
 import type { AdminAthleteEntry } from "../../lib/admin/athletes";
 import type { AdminHealthSummary } from "../../lib/admin/health";
+import type { AthleteCatalogEntry } from "../../lib/catalog";
 import { preprocessPhoto } from "../../lib/image/preprocess";
 import { putTargetBlobToWalrus } from "../../lib/walrus/put-target";
 
@@ -15,6 +16,7 @@ type ActionResult = {
 
 type AdminClientProps = {
   readonly initialAthletes: readonly AdminAthleteEntry[];
+  readonly initialCatalog: readonly AthleteCatalogEntry[];
   readonly initialHealth: AdminHealthSummary;
 };
 
@@ -24,15 +26,13 @@ const DEFAULT_DEMO_REAL_UPLOAD_COUNT = "5";
 
 export function AdminClient({
   initialAthletes,
+  initialCatalog,
   initialHealth,
 }: AdminClientProps): React.ReactElement {
   const [athletes, setAthletes] = useState(initialAthletes);
   const [health, setHealth] = useState(initialHealth);
-  const [createDisplayName, setCreateDisplayName] = useState(
-    initialAthletes[0]?.displayName ?? "",
-  );
-  const [createThumbnailUrl, setCreateThumbnailUrl] = useState(
-    initialAthletes[0]?.thumbnailUrl ?? "",
+  const [selectedAthleteSlug, setSelectedAthleteSlug] = useState(
+    initialCatalog[0]?.slug ?? "",
   );
   const [createMode, setCreateMode] = useState<CreateUnitMode>("normal");
   const [createRealUploadCount, setCreateRealUploadCount] = useState(
@@ -56,6 +56,9 @@ export function AdminClient({
     createMode === "demo"
       ? (parsedDemoRealUploadCount ?? 0)
       : effectiveDisplayMaxSlots;
+  const selectedAthlete =
+    initialCatalog.find((athlete) => athlete.slug === selectedAthleteSlug) ??
+    null;
 
   async function refreshAll(): Promise<void> {
     setIsRefreshing(true);
@@ -86,30 +89,6 @@ export function AdminClient({
     } finally {
       setIsRefreshing(false);
     }
-  }
-
-  function loadCreateDraft(entryKey: string): void {
-    const athlete = athletes.find(
-      (entry) => (entry.entryId ?? entry.currentUnit?.unitId) === entryKey,
-    );
-    if (!athlete) {
-      return;
-    }
-
-    setCreateDisplayName(athlete.displayName);
-    setCreateThumbnailUrl(athlete.thumbnailUrl);
-
-    if (
-      athlete.currentUnit &&
-      athlete.currentUnit.displayMaxSlots > athlete.currentUnit.maxSlots
-    ) {
-      setCreateMode("demo");
-      setCreateRealUploadCount(String(athlete.currentUnit.maxSlots));
-      return;
-    }
-
-    setCreateMode("normal");
-    setCreateRealUploadCount(DEFAULT_DEMO_REAL_UPLOAD_COUNT);
   }
 
   async function handleTargetUpload(
@@ -157,11 +136,10 @@ export function AdminClient({
 
     try {
       const payload = await postJson("/api/admin/create-unit", {
+        athleteSlug: selectedAthleteSlug,
         blobId: targetBlobId,
         displayMaxSlots: effectiveDisplayMaxSlots,
-        displayName: createDisplayName,
         maxSlots: effectiveMaxSlots,
-        thumbnailUrl: createThumbnailUrl,
       });
 
       setLastAction({
@@ -278,52 +256,43 @@ export function AdminClient({
           </p>
         </div>
 
-        {athletes.length > 0 ? (
+        <form
+          className="grid gap-5"
+          onSubmit={(event) => void handleCreateUnit(event)}
+        >
           <label className="grid gap-2 text-sm text-stone-200">
-            Copy inputs from existing unit
+            Athlete
             <select
               className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-              onChange={(event) => loadCreateDraft(event.target.value)}
-              value=""
+              onChange={(event) => setSelectedAthleteSlug(event.target.value)}
+              value={selectedAthleteSlug}
             >
-              <option value="">Select one</option>
-              {athletes.map((athlete) => (
-                <option
-                  key={athlete.entryId ?? athlete.currentUnit?.unitId}
-                  value={athlete.entryId ?? athlete.currentUnit?.unitId}
-                >
+              {initialCatalog.map((athlete) => (
+                <option key={athlete.slug} value={athlete.slug}>
                   {athlete.displayName}
                 </option>
               ))}
             </select>
           </label>
-        ) : null}
 
-        <form
-          className="grid gap-5"
-          onSubmit={(event) => void handleCreateUnit(event)}
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm text-stone-200">
-              displayName
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                onChange={(event) => setCreateDisplayName(event.target.value)}
-                placeholder="Demo Athlete Seven"
-                value={createDisplayName}
+          {selectedAthlete ? (
+            <div className="flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+              {/* biome-ignore lint/performance/noImgElement: operator preview */}
+              <img
+                alt={`${selectedAthlete.displayName} preview`}
+                className="h-14 w-14 rounded-2xl border border-white/10 object-cover"
+                src={selectedAthlete.thumbnailUrl}
               />
-            </label>
-          </div>
-
-          <label className="grid gap-2 text-sm text-stone-200">
-            thumbnail URL
-            <input
-              className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
-              onChange={(event) => setCreateThumbnailUrl(event.target.value)}
-              placeholder="https://example.com/7.png"
-              value={createThumbnailUrl}
-            />
-          </label>
+              <div className="grid gap-1">
+                <p className="text-sm font-medium text-white">
+                  {selectedAthlete.displayName}
+                </p>
+                <p className="font-mono text-xs text-stone-400">
+                  {selectedAthlete.slug}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <fieldset className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
             <legend className="px-2 text-sm font-medium text-stone-100">
@@ -427,8 +396,7 @@ export function AdminClient({
             disabled={
               isUploading ||
               pendingAction === "create" ||
-              createDisplayName.trim().length === 0 ||
-              createThumbnailUrl.trim().length === 0 ||
+              !selectedAthlete ||
               targetBlobId.trim().length === 0 ||
               (createMode === "demo" && !isDemoRealUploadCountValid)
             }

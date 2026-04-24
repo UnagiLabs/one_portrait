@@ -3,9 +3,15 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { getAdminHealthMock, loadAdminAthletesMock } = vi.hoisted(() => ({
-  getAdminHealthMock: vi.fn(),
-  loadAdminAthletesMock: vi.fn(),
+const { getAdminHealthMock, getAthleteCatalogMock, loadAdminAthletesMock } =
+  vi.hoisted(() => ({
+    getAdminHealthMock: vi.fn(),
+    getAthleteCatalogMock: vi.fn(),
+    loadAdminAthletesMock: vi.fn(),
+  }));
+
+vi.mock("../../lib/catalog", () => ({
+  getAthleteCatalog: getAthleteCatalogMock,
 }));
 
 vi.mock("../../lib/admin/athletes", () => ({
@@ -55,6 +61,13 @@ describe("AdminPage", () => {
         thumbnailUrl: "https://example.com/1.png",
       },
     ]);
+    getAthleteCatalogMock.mockResolvedValue([
+      {
+        displayName: "Catalog Create Athlete",
+        slug: "catalog-create-athlete",
+        thumbnailUrl: "https://example.com/catalog-create-athlete.png",
+      },
+    ]);
     getAdminHealthMock.mockResolvedValue(HEALTH_OK);
 
     const ui = await AdminPage();
@@ -67,5 +80,8 @@ describe("AdminPage", () => {
     expect(screen.getByText(/target-blob-1/)).toBeTruthy();
     expect(screen.getAllByText("ok")).toHaveLength(3);
     expect(screen.getByText("https://generator.example.com")).toBeTruthy();
+    expect(
+      screen.getByRole("option", { name: "Catalog Create Athlete" }),
+    ).toBeTruthy();
   });
 });
