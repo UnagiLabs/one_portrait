@@ -96,12 +96,14 @@ export async function getActiveHomeUnits(
     registry.unitIds.map(async (unitId) => {
       try {
         const unit = await getUnitProgress(unitId, { client });
-        if (unit.status !== "pending" || unit.masterId !== null) {
-          return null;
-        }
+        const lifecycleState =
+          unit.status === "pending" && unit.masterId === null
+            ? "live"
+            : "complete";
 
         return {
           displayName: unit.displayName,
+          lifecycleState,
           maxSlots: unit.maxSlots,
           submittedCount: unit.submittedCount,
           thumbnailUrl: unit.thumbnailUrl,

@@ -143,6 +143,7 @@ describe("getActiveHomeUnits", () => {
     ).resolves.toEqual([
       {
         displayName: "Latest Deployment Athlete",
+        lifecycleState: "live",
         maxSlots: 2000,
         submittedCount: 0,
         thumbnailUrl: "https://example.com/1.png",
@@ -152,7 +153,7 @@ describe("getActiveHomeUnits", () => {
     expect(calls).toEqual([REGISTRY_ID, UNIT_ONE]);
   });
 
-  it("returns only pending units from the registry index", async () => {
+  it("returns live and completed units from the registry index", async () => {
     const client = makeClient({
       getObject: vi.fn(async ({ id }) => {
         if (id === REGISTRY_ID) {
@@ -183,8 +184,50 @@ describe("getActiveHomeUnits", () => {
     ).resolves.toEqual([
       {
         displayName: "Demo Athlete One",
+        lifecycleState: "live",
         maxSlots: 2000,
         submittedCount: 1997,
+        thumbnailUrl: "https://example.com/1.png",
+        unitId: UNIT_ONE,
+      },
+      {
+        displayName: "Demo Athlete Two",
+        lifecycleState: "complete",
+        maxSlots: 2000,
+        submittedCount: 0,
+        thumbnailUrl: "https://example.com/2.png",
+        unitId: UNIT_TWO,
+      },
+    ]);
+  });
+
+  it("returns finalized units as completed home entries", async () => {
+    const client = makeClient({
+      getObject: vi.fn(async ({ id }) => {
+        if (id === REGISTRY_ID) {
+          return { data: registryObject({ unit_ids: [UNIT_ONE] }) };
+        }
+        if (id === UNIT_ONE) {
+          return {
+            data: unitObject(UNIT_ONE, 1, "Demo Athlete One", {
+              status: 2,
+              master_id: { fields: { vec: ["0xmaster"] } },
+              submissions: submissionList(347),
+            }),
+          };
+        }
+        throw new Error(`unexpected id ${id}`);
+      }) as unknown as SuiReadClient["getObject"],
+    });
+
+    await expect(
+      getActiveHomeUnits({ client, registryObjectId: REGISTRY_ID }),
+    ).resolves.toEqual([
+      {
+        displayName: "Demo Athlete One",
+        lifecycleState: "complete",
+        maxSlots: 2000,
+        submittedCount: 347,
         thumbnailUrl: "https://example.com/1.png",
         unitId: UNIT_ONE,
       },

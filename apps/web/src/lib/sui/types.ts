@@ -16,6 +16,7 @@ export type RegistryAthleteView = {
 
 export type ActiveHomeUnitView = {
   readonly displayName: string;
+  readonly lifecycleState: "complete" | "live";
   readonly maxSlots: number;
   readonly submittedCount: number;
   readonly thumbnailUrl: string;

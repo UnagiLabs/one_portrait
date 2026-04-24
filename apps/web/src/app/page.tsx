@@ -30,6 +30,7 @@ type HomeEntry = {
   readonly progress:
     | {
         readonly kind: "active";
+        readonly lifecycleState: "complete" | "live";
         readonly maxSlots: number;
         readonly submittedCount: number;
         readonly unitId: string;
@@ -72,7 +73,8 @@ function buildPortraitWorkRail(
 
     const isComplete =
       entry.progress.kind === "active" &&
-      entry.progress.submittedCount >= entry.progress.maxSlots;
+      (entry.progress.lifecycleState === "complete" ||
+        entry.progress.submittedCount >= entry.progress.maxSlots);
     const progressLabel =
       entry.progress.kind === "active"
         ? `${formatProgressCount(entry.progress.submittedCount)} / ${formatProgressCount(entry.progress.maxSlots)}`
@@ -375,6 +377,7 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
       thumbnailUrl: unit.thumbnailUrl,
       progress: {
         kind: "active" as const,
+        lifecycleState: unit.lifecycleState,
         maxSlots: unit.maxSlots,
         submittedCount: unit.submittedCount,
         unitId: unit.unitId,
@@ -430,6 +433,10 @@ async function loadDemoEntries(
       unitId,
       progress: {
         kind: "active",
+        lifecycleState:
+          progress.status === "pending" && progress.masterId === null
+            ? "live"
+            : "complete",
         maxSlots: progress.maxSlots,
         submittedCount: progress.submittedCount,
         unitId,
