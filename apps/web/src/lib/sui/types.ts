@@ -67,6 +67,7 @@ export type GalleryEntryView =
       readonly unitId: string;
       readonly displayName: string;
       readonly walrusBlobId: string;
+      readonly kakeraObjectId?: string;
       readonly submissionNo: number;
       readonly mintedAtMs: number;
       readonly masterId: null;
@@ -78,6 +79,7 @@ export type GalleryEntryView =
       readonly unitId: string;
       readonly displayName: string;
       readonly walrusBlobId: string;
+      readonly kakeraObjectId?: string;
       readonly submissionNo: number;
       readonly mintedAtMs: number;
       readonly masterId: string;

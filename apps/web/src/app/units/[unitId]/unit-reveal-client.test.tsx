@@ -110,6 +110,7 @@ function completedEntry(
     unitId: "0xunit-1",
     displayName: "Demo Athlete One",
     walrusBlobId: "walrus-blob-1",
+    kakeraObjectId: "0xkakera-1",
     submissionNo: 42,
     mintedAtMs: 1700000000000,
     masterId: "0xmaster-1",
