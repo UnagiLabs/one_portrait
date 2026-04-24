@@ -48,10 +48,7 @@ export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   }
 
   return {
-    athleteSlug: parseNonEmptyTrimmedString(
-      record.athleteSlug,
-      "athleteSlug",
-    ),
+    athleteSlug: parseNonEmptyTrimmedString(record.athleteSlug, "athleteSlug"),
     displayMaxSlots,
     blobId: parseBlobId(record.blobId),
     maxSlots,
