@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { RevealPanel } from "./reveal-panel";
 
 describe("RevealPanel", () => {
-  it("shows the original photo, red tile frame, and guide line by default", () => {
+  it("shows the original photo, tile highlight, and guide line by default", () => {
     render(
       <RevealPanel
         displayName="Demo Athlete One"
@@ -37,6 +37,17 @@ describe("RevealPanel", () => {
     expect(
       screen.getByTestId("placement-highlight").getAttribute("style"),
     ).toContain(`height: ${100 / unitTileGrid.rows}%`);
+    expect(
+      screen
+        .getByTestId("placement-highlight")
+        .classList.contains("op-placement-highlight-frame"),
+    ).toBe(true);
+    expect(
+      screen.getByTestId("placement-guide-line").getAttribute("stroke"),
+    ).toBe("var(--ok)");
+    expect(
+      screen.getByTestId("placement-guide-line").getAttribute("stroke-width"),
+    ).toBe("1.35");
     expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
   });
 

@@ -68,7 +68,7 @@ export function RevealPanel({
 
           {placement && highlightVisible ? (
             <div
-              className="op-placement-highlight-pulse pointer-events-none absolute z-10 box-border border-[2px] border-[var(--ember)] bg-[rgba(212,50,14,0.12)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_0_0_1px_rgba(212,50,14,0.4)]"
+              className="op-placement-highlight-frame op-placement-highlight-pulse pointer-events-none absolute z-10 box-border"
               data-replay-id={highlightReplayId}
               data-testid="placement-highlight"
               style={{
@@ -96,10 +96,10 @@ export function RevealPanel({
               data-testid="placement-guide-line"
               fill="none"
               pathLength={1}
-              stroke="var(--ember)"
+              stroke="var(--ok)"
               strokeDasharray="0.04 0.035"
               strokeLinecap="round"
-              strokeWidth="0.7"
+              strokeWidth="1.35"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
