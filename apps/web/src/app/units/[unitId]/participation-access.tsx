@@ -115,6 +115,7 @@ export function ParticipationAccess({
   recoveryMaxAttempts,
   recoveryRetryIntervalMs,
   packageId,
+  typePackageId,
   startupEnabled = true,
   walrusEnv,
 }: {
@@ -124,6 +125,7 @@ export function ParticipationAccess({
   readonly recoveryMaxAttempts?: number;
   readonly recoveryRetryIntervalMs?: number;
   readonly packageId?: string | null;
+  readonly typePackageId?: string | null;
   readonly startupEnabled?: boolean;
   readonly walrusEnv?: WalrusEnv;
 }): React.ReactElement {
@@ -151,8 +153,8 @@ export function ParticipationAccess({
       recoveryRetryIntervalMs={
         recoveryRetryIntervalMs ?? RECOVERY_RETRY_INTERVAL_MS
       }
-      packageId={packageId ?? ""}
       startupEnabled={startupEnabled}
+      typePackageId={typePackageId ?? packageId ?? ""}
       unitId={unitId}
       walrusEnv={walrusEnv ?? EMPTY_WALRUS_ENV}
     />
@@ -165,8 +167,8 @@ function ParticipationAccessEnabled({
   putBlob,
   recoveryMaxAttempts,
   recoveryRetryIntervalMs,
-  packageId,
   startupEnabled,
+  typePackageId,
   walrusEnv,
 }: {
   readonly unitId: string;
@@ -174,8 +176,8 @@ function ParticipationAccessEnabled({
   readonly putBlob: PutBlobFn;
   readonly recoveryMaxAttempts: number;
   readonly recoveryRetryIntervalMs: number;
-  readonly packageId: string;
   readonly startupEnabled: boolean;
+  readonly typePackageId: string;
   readonly walrusEnv: WalrusEnv;
 }): React.ReactElement {
   const wallets = useWallets();
@@ -248,7 +250,7 @@ function ParticipationAccessEnabled({
       startupEnabled && phase.kind === "done" ? phase.result.sender : null,
     unitId,
     walrusBlobId: doneBlobId,
-    packageId: packageId ?? "",
+    packageId: typePackageId,
   });
 
   async function handleLogin(): Promise<void> {
@@ -351,7 +353,7 @@ function ParticipationAccessEnabled({
           ownerAddress: phase.recovery.sender,
           unitId,
           walrusBlobId: phase.recovery.blobId,
-          packageId: packageId ?? "",
+          packageId: typePackageId,
         });
       } catch {
         result = { status: "recovering", kakera: null } as const;
@@ -407,11 +409,11 @@ function ParticipationAccessEnabled({
       }
     };
   }, [
-    packageId,
     phase,
     recoveryMaxAttempts,
     recoveryRetryIntervalMs,
     startupEnabled,
+    typePackageId,
     unitId,
   ]);
 

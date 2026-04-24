@@ -179,6 +179,7 @@ export default async function UnitPage(
             <ParticipationAccess
               packageId={packageId}
               startupEnabled={startupEnabled}
+              typePackageId={typePackageId}
               unitId={unitId}
               walrusEnv={walrusEnv}
             />
