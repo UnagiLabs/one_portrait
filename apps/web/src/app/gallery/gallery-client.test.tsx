@@ -435,9 +435,7 @@ describe("GalleryClient", () => {
     expect(screen.getByText(/Submission #17/i)).toBeTruthy();
     expect(screen.getByText("Kakera Object ID")).toBeTruthy();
     expect(
-      screen
-        .getByRole("link", { name: "0xkakera-1" })
-        .getAttribute("href"),
+      screen.getByRole("link", { name: "0xkakera-1" }).getAttribute("href"),
     ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(
       screen
@@ -467,9 +465,7 @@ describe("GalleryClient", () => {
     expect(screen.getByText(/Master 0xmaster-1/i)).toBeTruthy();
     expect(screen.getByText("Kakera Object ID")).toBeTruthy();
     expect(
-      screen
-        .getByRole("link", { name: "0xkakera-1" })
-        .getAttribute("href"),
+      screen.getByRole("link", { name: "0xkakera-1" }).getAttribute("href"),
     ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(
       screen
@@ -616,9 +612,7 @@ describe("GalleryClient", () => {
 
     expect(screen.getByText(/Submission #21/i)).toBeTruthy();
     expect(
-      screen
-        .getByRole("link", { name: "0xkakera-1" })
-        .getAttribute("href"),
+      screen.getByRole("link", { name: "0xkakera-1" }).getAttribute("href"),
     ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(screen.queryByText(/No Kakera found for this wallet/i)).toBeNull();
   });
