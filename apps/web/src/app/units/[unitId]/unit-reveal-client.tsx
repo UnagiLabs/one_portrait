@@ -203,6 +203,7 @@ function UnitRevealClientCore(
     <>
       <LiveProgress
         eventSubscriptionEnabled={eventSubscriptionEnabled}
+        initialMasterId={initialMasterId}
         initialSubmittedCount={initialSubmittedCount}
         maxSlots={maxSlots}
         onMosaicReady={(event) => {

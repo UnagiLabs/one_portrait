@@ -49,6 +49,7 @@ export type GeneratorRuntimeCloudflareEnv = RuntimeEnvSource & {
 
 export type GeneratorRuntimeResolution =
   | {
+      readonly detail?: string;
       readonly source: GeneratorRuntimeSource;
       readonly status: "ok";
       readonly url: string;
@@ -81,6 +82,16 @@ type ResolveGeneratorRuntimeDeps = {
   readonly readFileSync?: typeof fs.readFileSync;
   readonly stateMaxAgeMs?: number;
 };
+
+type RuntimeKvReadResult =
+  | {
+      readonly detail?: string;
+      readonly state: GeneratorRuntimeKvState;
+    }
+  | {
+      readonly detail?: string;
+      readonly state: null;
+    };
 
 export function resolveGeneratorRuntime(
   deps: ResolveGeneratorRuntimeDeps = {},
@@ -228,11 +239,12 @@ export async function resolveCloudflareGeneratorRuntime({
   }
 
   const kvRuntime = await readGeneratorRuntimeKvState(env);
-  if (kvRuntime !== null) {
+  if (kvRuntime.state !== null) {
     return {
+      ...(kvRuntime.detail ? { detail: kvRuntime.detail } : {}),
       source: "worker_kv",
       status: "ok",
-      url: kvRuntime.url,
+      url: kvRuntime.state.url,
     };
   }
 
@@ -242,6 +254,11 @@ export async function resolveCloudflareGeneratorRuntime({
   }
   if (legacyUrl.url !== null) {
     return {
+      ...(kvRuntime.detail
+        ? {
+            detail: `${kvRuntime.detail} Falling back to legacy runtime env.`,
+          }
+        : {}),
       source: "legacy_env",
       status: "ok",
       url: legacyUrl.url,
@@ -249,6 +266,9 @@ export async function resolveCloudflareGeneratorRuntime({
   }
 
   return {
+    ...(kvRuntime.detail
+      ? { detail: `${kvRuntime.detail} Falling back to localhost.` }
+      : {}),
     source: "fallback",
     status: "ok",
     url: DEFAULT_FALLBACK_URL,
@@ -287,10 +307,10 @@ function resolveLegacyRuntimeUrl(
 
 async function readGeneratorRuntimeKvState(
   env: GeneratorRuntimeCloudflareEnv,
-): Promise<GeneratorRuntimeKvState | null> {
+): Promise<RuntimeKvReadResult> {
   const kv = env[GENERATOR_RUNTIME_KV_BINDING];
   if (!kv) {
-    return null;
+    return { state: null };
   }
 
   try {
@@ -299,7 +319,10 @@ async function readGeneratorRuntimeKvState(
       now: Date.now(),
     });
   } catch {
-    return null;
+    return {
+      detail: "Worker KV runtime state could not be read.",
+      state: null,
+    };
   }
 }
 
@@ -341,9 +364,9 @@ function normalizeRuntimeState(input: unknown): GeneratorRuntimeState | null {
 function normalizeRuntimeKvState(
   input: unknown,
   { now }: { now: number },
-): GeneratorRuntimeKvState | null {
+): RuntimeKvReadResult {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    return null;
+    return { state: null };
   }
 
   const record = input as Record<string, unknown>;
@@ -360,22 +383,28 @@ function normalizeRuntimeKvState(
     typeof updatedAt !== "string" ||
     url === null
   ) {
-    return null;
+    return { state: null };
   }
 
   const updatedAtMs = Date.parse(updatedAt);
-  if (
-    !Number.isFinite(updatedAtMs) ||
-    now - updatedAtMs > DEFAULT_REMOTE_STATE_MAX_AGE_MS
-  ) {
-    return null;
+  if (!Number.isFinite(updatedAtMs)) {
+    return { state: null };
+  }
+
+  if (now - updatedAtMs > DEFAULT_REMOTE_STATE_MAX_AGE_MS) {
+    return {
+      detail: "Worker KV runtime state is stale.",
+      state: null,
+    };
   }
 
   return {
-    mode,
-    updatedAt,
-    url,
-    version,
+    state: {
+      mode,
+      updatedAt,
+      url,
+      version,
+    },
   };
 }
 

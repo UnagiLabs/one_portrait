@@ -98,6 +98,22 @@ describe("getAdminUnitSnapshot", () => {
     });
   });
 
+  it("accepts upgraded Sui object master_id values returned as plain strings", async () => {
+    const client = clientReturning(
+      unitData({
+        master_id: "0xmaster",
+        status: 2,
+      }),
+    );
+
+    await expect(
+      getAdminUnitSnapshot(UNIT_ID, { client }),
+    ).resolves.toMatchObject({
+      masterId: "0xmaster",
+      status: "finalized",
+    });
+  });
+
   it("throws UnitNotFoundError when the unit is missing", async () => {
     const client = clientReturning(null);
 

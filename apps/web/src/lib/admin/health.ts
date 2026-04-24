@@ -1,3 +1,4 @@
+import testnetDeploymentManifest from "../../../../../ops/deployments/testnet.json";
 import { DISPATCH_SECRET_HEADER } from "../finalize/dispatch";
 import {
   type GeneratorRuntimeCloudflareEnv,
@@ -6,15 +7,24 @@ import {
 } from "../generator-runtime";
 
 export type AdminHealthStatus = {
+  readonly adminCapId?: string;
   readonly httpStatus: number | null;
+  readonly message?: string;
+  readonly network?: string;
+  readonly packageId?: string;
   readonly status: "misconfigured" | "ok" | "unauthorized" | "unreachable";
 };
 
 export type AdminHealthSummary = {
   readonly currentUrl: string | null;
   readonly dispatchAuthorization: AdminHealthStatus;
+  readonly expectedDeployment: {
+    readonly network: string;
+    readonly packageId: string;
+  };
   readonly generatorReadiness: AdminHealthStatus;
   readonly resolutionStatus: "misconfigured" | "ok";
+  readonly runtimeWarning?: string;
   readonly source:
     | "fallback"
     | "legacy_env"
@@ -27,6 +37,11 @@ export type AdminHealthSummary = {
 type GetAdminHealthDeps = {
   readonly env?: GeneratorRuntimeCloudflareEnv;
 };
+
+const expectedDeployment = {
+  network: testnetDeploymentManifest.network,
+  packageId: testnetDeploymentManifest.packageId,
+} as const;
 
 export async function getAdminHealth(
   deps: GetAdminHealthDeps = {},
@@ -43,6 +58,7 @@ export async function getAdminHealth(
         httpStatus: null,
         status: "misconfigured",
       },
+      expectedDeployment,
       generatorReadiness: {
         httpStatus: null,
         status: "misconfigured",
@@ -66,12 +82,29 @@ export async function getAdminHealth(
         } satisfies AdminHealthStatus)
       : fetchDispatchAuthorization(runtime.url, sharedSecret),
   ]);
+  const deploymentMatches =
+    generatorReadiness.status === "ok" &&
+    generatorReadiness.packageId === expectedDeployment.packageId;
+  const effectiveGeneratorReadiness =
+    generatorReadiness.status === "ok" && !deploymentMatches
+      ? ({
+          ...generatorReadiness,
+          status: "misconfigured",
+        } satisfies AdminHealthStatus)
+      : generatorReadiness;
 
   return {
     currentUrl: runtime.url,
     dispatchAuthorization,
-    generatorReadiness,
-    resolutionStatus: "ok",
+    expectedDeployment,
+    generatorReadiness: effectiveGeneratorReadiness,
+    resolutionStatus:
+      effectiveGeneratorReadiness.status === "ok" &&
+      dispatchAuthorization.status === "ok" &&
+      runtime.source !== "fallback"
+        ? "ok"
+        : "misconfigured",
+    ...(runtime.detail ? { runtimeWarning: runtime.detail } : {}),
     source: runtime.source,
   };
 }
@@ -86,8 +119,14 @@ async function fetchGeneratorReadiness(
       }),
     );
 
+    const payload = await readGeneratorHealthPayload(response);
+
     return {
+      adminCapId: payload?.adminCapId,
       httpStatus: response.status,
+      ...(payload?.message ? { message: payload.message } : {}),
+      network: payload?.network,
+      packageId: payload?.packageId,
       status: response.ok ? "ok" : "unreachable",
     };
   } catch {
@@ -96,6 +135,40 @@ async function fetchGeneratorReadiness(
       status: "unreachable",
     };
   }
+}
+
+async function readGeneratorHealthPayload(response: Response): Promise<{
+  readonly adminCapId?: string;
+  readonly message?: string;
+  readonly network?: string;
+  readonly packageId?: string;
+} | null> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  try {
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return null;
+    }
+
+    return {
+      adminCapId: readString(payload, "adminCapId"),
+      message: readString(payload, "message"),
+      network: readString(payload, "network"),
+      packageId: readString(payload, "packageId"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readString(source: object, key: string): string | undefined {
+  const value = (source as Record<string, unknown>)[key];
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 async function fetchDispatchAuthorization(
@@ -115,8 +188,11 @@ async function fetchDispatchAuthorization(
       ),
     );
 
+    const message = await readDispatchProbeMessage(response);
+
     return {
       httpStatus: response.status,
+      ...(message ? { message } : {}),
       status: mapDispatchStatus(response.status),
     };
   } catch {
@@ -124,6 +200,26 @@ async function fetchDispatchAuthorization(
       httpStatus: null,
       status: "unreachable",
     };
+  }
+}
+
+async function readDispatchProbeMessage(
+  response: Response,
+): Promise<string | undefined> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return undefined;
+  }
+
+  try {
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return undefined;
+    }
+
+    return readString(payload, "message");
+  } catch {
+    return undefined;
   }
 }
 

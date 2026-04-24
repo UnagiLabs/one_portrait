@@ -112,6 +112,20 @@ describe("getUnitProgress", () => {
     expect(view.masterId).toBe("0xmaster");
   });
 
+  it("accepts upgraded Sui object master_id values returned as plain strings", async () => {
+    const client = clientReturning(
+      unitData({
+        master_id: "0xmaster",
+        status: 2,
+      }),
+    );
+
+    const view = await getUnitProgress(UNIT_ID, { client });
+
+    expect(view.status).toBe("finalized");
+    expect(view.masterId).toBe("0xmaster");
+  });
+
   it("throws UnitNotFoundError when the response has no data", async () => {
     const client = clientReturning(null);
 

@@ -37,10 +37,10 @@ Cloudflare Workers 側の `/api/finalize` の proof は別 runbook (`docs/demo-s
 | 変数 | 用途 |
 | :--- | :--- |
 | `SUI_NETWORK` | `testnet` などの接続先 |
-| `PACKAGE_ID` | `admin_api::finalize` を含む package |
-| `WALRUS_PUBLISHER` | 完成モザイクを書き込む先 |
-| `WALRUS_AGGREGATOR` | 投稿画像を読む先 |
-| `ADMIN_CAP_ID` | `finalize` 実行に使う AdminCap |
+| `PACKAGE_ID` | `ops/deployments/testnet.json` から注入される package |
+| `WALRUS_PUBLISHER` | manifest から注入される完成モザイク書き込み先 |
+| `WALRUS_AGGREGATOR` | manifest から注入される投稿画像読み込み先 |
+| `ADMIN_CAP_ID` | manifest から注入される AdminCap |
 | `ADMIN_SUI_PRIVATE_KEY` | `finalize` を送る管理者鍵 |
 | `OP_FINALIZE_DISPATCH_SECRET` | Worker と同じ shared secret |
 | `OP_LOCAL_TUNNEL_NAME` | 任意。`cloudflared tunnel run` に使う named tunnel 名。未設定なら Quick Tunnel |
@@ -114,6 +114,7 @@ corepack pnpm --filter web run generator:tunnel
 - named tunnel か Quick Tunnel かの preflight
 - local generator の起動
 - `http://127.0.0.1:${OP_LOCAL_GENERATOR_PORT:-8080}/health` の自動確認
+- `/health` は `network`、`packageId`、`adminCapId` を返し、`/api/admin/health` は Worker manifest の package と generator package の不一致を `misconfigured` として表示する
 - Cloudflare Tunnel の起動
 - 外部 URL の自動検出または named tunnel URL の確定
 - `https://<hostname>/health` または `https://<random>.trycloudflare.com/health` の自動確認
@@ -161,10 +162,8 @@ finalize 本体は実行しません。
   - `OP_GENERATOR_RUNTIME_URL_OVERRIDE` を使うなら shell だけで入れる
   - fixed URL を使うなら `OP_FINALIZE_DISPATCH_URL` と `OP_GENERATOR_BASE_URL` を一致させる
 - generator 側:
-  - `ADMIN_CAP_ID` が空でない
+  - `ops/deployments/testnet.json` の `packageId`、`adminCapId`、`walrusPublisher`、`walrusAggregator` が本番対象に合っている
   - `ADMIN_SUI_PRIVATE_KEY` が空でない
-  - `SUI_NETWORK` と `PACKAGE_ID` が本番対象に合っている
-  - `WALRUS_PUBLISHER` と `WALRUS_AGGREGATOR` が正しい
   - `OP_LOCAL_TUNNEL_NAME` が作成済み tunnel 名と一致している
   - demo unit を使う場合は `OP_DEMO_FINALIZE_MANIFEST` が設定済みで、manifest 内 entry 数が `display_max_slots - max_slots` 以上
 

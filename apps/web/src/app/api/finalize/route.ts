@@ -4,7 +4,10 @@ import {
   jsonError,
   parseFinalizeInput,
 } from "../../../lib/finalize/api";
-import { dispatchFinalize } from "../../../lib/finalize/dispatch";
+import {
+  dispatchFinalize,
+  getFinalizeDispatchFailure,
+} from "../../../lib/finalize/dispatch";
 import { createFinalizeRouteService } from "../../../lib/finalize/service";
 import { getFinalizeUnitSnapshot } from "../../../lib/sui";
 
@@ -32,6 +35,7 @@ function toResponse(error: unknown): Response {
   }
 
   return Response.json({
+    ...getFinalizeDispatchFailure(error),
     status: "ignored_dispatch_failed",
     unitId: null,
   });

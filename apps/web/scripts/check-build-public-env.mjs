@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  readEnvFile,
+  readOptionalDeploymentManifest,
+  toWebPublicEnv,
+  warnDuplicatedCanonicalEnv,
+} from "../../../scripts/deployment-env.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const validSuiNetworks = new Set(["mainnet", "testnet", "devnet", "localnet"]);
@@ -10,6 +16,7 @@ export const buildPublicEnvKeys = {
   cloudflare: [
     "NEXT_PUBLIC_SUI_NETWORK",
     "NEXT_PUBLIC_PACKAGE_ID",
+    "NEXT_PUBLIC_ORIGINAL_PACKAGE_ID",
     "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
     "NEXT_PUBLIC_ENOKI_API_KEY",
     "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
@@ -29,12 +36,14 @@ export function loadBuildPublicEnvSource({
     return {
       ...readWranglerBuildEnvFile(cwd),
       ...env,
+      ...readManifestWebPublicEnv(cwd),
     };
   }
 
   return {
     ...readLocalBuildEnvFiles(cwd),
     ...env,
+    ...readManifestWebPublicEnv(cwd),
   };
 }
 
@@ -136,18 +145,18 @@ function buildMissingMessage(mode, missing) {
     return [
       "Missing required public env variable(s) for local build:",
       missing.join(", "),
-      "Local build reads process.env plus apps/web/.env, apps/web/.env.production, apps/web/.env.local, and apps/web/.env.production.local.",
+      "Local build reads apps/web/.env*, process.env, then ops/deployments/testnet.json.",
       `Required local keys: ${requiredKeys}.`,
-      "Set them in apps/web/.env.local (see apps/web/.env.example).",
+      "Set shared testnet values in ops/deployments/testnet.json; use apps/web/.env.local only for personal overrides.",
     ].join("\n");
   }
 
   return [
     "Missing required public env variable(s) for Cloudflare build:",
     missing.join(", "),
-    "Cloudflare build reads process.env first, then falls back to apps/web/wrangler.jsonc vars for public keys only.",
+    "Cloudflare build reads ops/deployments/testnet.json first, then process.env and apps/web/wrangler.jsonc vars for compatibility.",
     `Required Cloudflare keys: ${requiredKeys}.`,
-    "Set them as Cloudflare Build Variables or define them under wrangler.jsonc vars before running build:cf, preview, deploy, or upload.",
+    "Set non-secret deploy values in ops/deployments/testnet.json before running build:cf, preview, deploy, or upload.",
   ].join("\n");
 }
 
@@ -161,53 +170,20 @@ function buildInvalidMessage(mode, key, value) {
 
 function readLocalBuildEnvFiles(cwd) {
   const merged = {};
+  const envLocal = readEnvFile(path.join(cwd, ".env.local"));
 
-  for (const fileName of [
-    ".env",
-    ".env.production",
-    ".env.local",
-    ".env.production.local",
-  ]) {
-    Object.assign(merged, readEnvFile(path.join(cwd, fileName)));
-  }
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env")));
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env.production")));
+  Object.assign(merged, envLocal);
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env.production.local")));
+
+  warnDuplicatedCanonicalEnv({
+    localEnv: envLocal,
+    manifestEnv: readManifestWebPublicEnv(cwd),
+    secretsEnv: {},
+  });
 
   return merged;
-}
-
-function readEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const values = {};
-  const content = fs.readFileSync(filePath, "utf8");
-
-  for (const line of content.split(/\r?\n/u)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const withoutExport = trimmed.startsWith("export ")
-      ? trimmed.slice("export ".length).trim()
-      : trimmed;
-    const separator = withoutExport.indexOf("=");
-
-    if (separator <= 0) {
-      continue;
-    }
-
-    const key = withoutExport.slice(0, separator).trim();
-    const rawValue = withoutExport.slice(separator + 1).trim();
-
-    if (!key) {
-      continue;
-    }
-
-    values[key] = stripWrappingQuotes(rawValue);
-  }
-
-  return values;
 }
 
 function readWranglerBuildEnvFile(cwd) {
@@ -238,6 +214,12 @@ function readWranglerBuildEnvFile(cwd) {
   }
 
   return values;
+}
+
+function readManifestWebPublicEnv(cwd) {
+  const repoRoot = path.resolve(cwd, "..", "..");
+  const manifest = readOptionalDeploymentManifest({ repoRoot });
+  return manifest ? toWebPublicEnv(manifest) : {};
 }
 
 function parseJsoncFile(filePath) {
@@ -317,17 +299,6 @@ function stripJsonComments(value) {
   }
 
   return result;
-}
-
-function stripWrappingQuotes(value) {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  return value;
 }
 
 function isMissingValue(value) {

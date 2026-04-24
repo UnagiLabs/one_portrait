@@ -97,6 +97,9 @@ function extractOptionalId(value: unknown): string | null {
   if (value === null || value === undefined) {
     return null;
   }
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
   const inner =
     typeof value === "object" && value !== null && "fields" in value
       ? (value as { fields: unknown }).fields

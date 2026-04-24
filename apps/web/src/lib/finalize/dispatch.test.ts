@@ -169,4 +169,58 @@ describe("createFinalizeDispatcher", () => {
       "request-scoped-secret",
     );
   });
+
+  it("preserves a safe generator 500 json message without leaking dispatch secrets", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json(
+        {
+          message:
+            "mosaic source missing after auth with OP_FINALIZE_DISPATCH_SECRET=shared-secret and x-op-finalize-dispatch-secret",
+        },
+        {
+          status: 500,
+        },
+      ),
+    );
+    const dispatchFinalize = createFinalizeDispatcher({
+      fetchImpl,
+      dispatchSecret: "shared-secret",
+      resolveRuntime: () => ({
+        source: "runtime_state",
+        status: "ok",
+        url: "https://generator.example",
+      }),
+    });
+
+    await expect(
+      dispatchFinalize({
+        unitId: VALID_UNIT_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: "generator_error",
+      message: expect.stringContaining("mosaic source missing"),
+      name: "FinalizeDispatchError",
+    });
+    await expect(
+      dispatchFinalize({
+        unitId: VALID_UNIT_ID,
+      }),
+    ).rejects.not.toMatchObject({
+      message: expect.stringContaining("shared-secret"),
+    });
+    await expect(
+      dispatchFinalize({
+        unitId: VALID_UNIT_ID,
+      }),
+    ).rejects.not.toMatchObject({
+      message: expect.stringContaining("OP_FINALIZE_DISPATCH_SECRET"),
+    });
+    await expect(
+      dispatchFinalize({
+        unitId: VALID_UNIT_ID,
+      }),
+    ).rejects.not.toMatchObject({
+      message: expect.stringContaining("x-op-finalize-dispatch-secret"),
+    });
+  });
 });

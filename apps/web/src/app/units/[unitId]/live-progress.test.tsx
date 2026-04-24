@@ -1,7 +1,13 @@
 // @vitest-environment happy-dom
 
 import { unitTileCount } from "@one-portrait/shared";
-import { act, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -111,6 +117,34 @@ describe("LiveProgress", () => {
     expect(screen.getByText(/1996\s*\/\s*2000/)).toBeTruthy();
   });
 
+  it("renders initial filled progress as finalizing instead of filling", async () => {
+    const triggerFinalize = vi.fn(async () => ({
+      status: "queued" as const,
+      unitId: "0xunit-1",
+    }));
+    useUnitEventsMock.mockImplementation(() => undefined);
+
+    render(
+      <LiveProgress
+        initialMasterId={null}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        triggerFinalize={triggerFinalize}
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(screen.getByText("Finalizing")).toBeTruthy();
+    expect(screen.queryByText("Filling")).toBeNull();
+    expect(screen.getByText(/finalize is running/i)).toBeTruthy();
+
+    await waitFor(() => {
+      expect(triggerFinalize).toHaveBeenCalledTimes(1);
+    });
+    expect(triggerFinalize).toHaveBeenCalledWith("0xunit-1");
+  });
+
   it("ignores older SubmittedEvent deliveries that would decrease the count", () => {
     let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
     useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
@@ -217,9 +251,19 @@ describe("LiveProgress", () => {
     );
   });
 
-  it("fires /api/finalize once when UnitFilledEvent arrives", async () => {
+  it("fires /api/finalize once and shows running state when UnitFilledEvent arrives", async () => {
     let capturedOnFilled: ((event: UnitFilledEvent) => void) | undefined;
-    const triggerFinalize = vi.fn(async () => undefined);
+    let resolveFinalize: (() => void) | undefined;
+    const triggerFinalize = vi.fn(
+      () =>
+        new Promise<{
+          readonly status: "queued";
+          readonly unitId: string;
+        }>((resolve) => {
+          resolveFinalize = () =>
+            resolve({ status: "queued", unitId: "0xunit-1" });
+        }),
+    );
     useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
       capturedOnFilled = args.onFilled;
     });
@@ -246,6 +290,13 @@ describe("LiveProgress", () => {
 
     expect(triggerFinalize).toHaveBeenCalledTimes(1);
     expect(triggerFinalize).toHaveBeenCalledWith("0xunit-1");
+    expect(screen.getByText("Finalizing")).toBeTruthy();
+    expect(screen.getByText(/finalize is running/i)).toBeTruthy();
+
+    await act(async () => {
+      resolveFinalize?.();
+      await Promise.resolve();
+    });
   });
 
   it("does not fire finalize twice for duplicate UnitFilledEvent deliveries", async () => {
@@ -278,5 +329,67 @@ describe("LiveProgress", () => {
     });
 
     expect(triggerFinalize).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the safe finalize failure reason and retries the same unit", async () => {
+    const triggerFinalize = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: "dispatch_failed",
+        message: "container offline",
+        status: "ignored_dispatch_failed",
+        unitId: "0xunit-1",
+      })
+      .mockResolvedValueOnce({
+        status: "queued",
+        unitId: "0xunit-1",
+      });
+    useUnitEventsMock.mockImplementation(() => undefined);
+
+    render(
+      <LiveProgress
+        initialMasterId={null}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        triggerFinalize={triggerFinalize}
+        unitId="0xunit-1"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/container offline/)).toBeTruthy();
+    });
+    expect(screen.getByText(/dispatch_failed/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /retry finalize/i }));
+
+    expect(screen.getByText(/finalize is running/i)).toBeTruthy();
+    await waitFor(() => {
+      expect(triggerFinalize).toHaveBeenCalledTimes(2);
+    });
+    expect(triggerFinalize).toHaveBeenLastCalledWith("0xunit-1");
+  });
+
+  it("keeps completed revisit progress from auto-finalizing", () => {
+    const triggerFinalize = vi.fn(async () => ({
+      status: "queued" as const,
+      unitId: "0xunit-1",
+    }));
+    useUnitEventsMock.mockImplementation(() => undefined);
+
+    render(
+      <LiveProgress
+        initialMasterId="0xmaster-1"
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        triggerFinalize={triggerFinalize}
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(screen.getByText("Filled")).toBeTruthy();
+    expect(triggerFinalize).not.toHaveBeenCalled();
   });
 });

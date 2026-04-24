@@ -1,7 +1,14 @@
 import { spawn, spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  readDeploymentSecretsEnv,
+  readEnvFile,
+  readOptionalDeploymentManifest,
+  toGeneratorEnv,
+  toWebPublicEnv,
+  warnDuplicatedCanonicalEnv,
+} from "../../../scripts/deployment-env.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,11 +18,35 @@ const generatorRoot = path.join(repoRoot, "generator");
 const generatorDockerfilePath = path.join(generatorRoot, "Dockerfile");
 const generatorImageTag = "one-portrait-generator:local";
 
-export function loadWebScriptEnv({ env = process.env } = {}) {
+export function loadWebScriptEnv({
+  env = process.env,
+  repoRoot: envRepoRoot = repoRoot,
+  webRoot: envWebRoot = webRoot,
+  warn = console.warn,
+} = {}) {
+  const envLocal = readEnvFile(path.join(envWebRoot, ".env.local"));
+  const manifest = readOptionalDeploymentManifest({ repoRoot: envRepoRoot });
+  const manifestEnv = manifest
+    ? {
+        ...toWebPublicEnv(manifest),
+        ...toGeneratorEnv(manifest),
+      }
+    : {};
+  const secretsEnv = readDeploymentSecretsEnv({ repoRoot: envRepoRoot });
+
+  warnDuplicatedCanonicalEnv({
+    localEnv: envLocal,
+    manifestEnv,
+    secretsEnv,
+    warn,
+  });
+
   return {
-    ...readEnvFile(path.join(webRoot, ".env")),
-    ...readEnvFile(path.join(webRoot, ".env.local")),
+    ...readEnvFile(path.join(envWebRoot, ".env")),
+    ...envLocal,
     ...env,
+    ...manifestEnv,
+    ...secretsEnv,
   };
 }
 
@@ -31,11 +62,18 @@ export function startLocalGenerator({
   env = process.env,
   spawnImpl = spawn,
   cwd = repoRoot,
+  webRoot: envWebRoot = webRoot,
   imageTag = generatorImageTag,
   runDockerBuild = defaultRunDockerBuild,
+  runDockerRemove = defaultRunDockerRemove,
 } = {}) {
-  const mergedEnv = loadWebScriptEnv({ env });
+  const mergedEnv = loadWebScriptEnv({
+    env,
+    repoRoot: cwd,
+    webRoot: envWebRoot,
+  });
   const localPort = resolveLocalGeneratorPort(mergedEnv);
+  const containerName = `one-portrait-generator-${localPort}`;
 
   runDockerBuild({
     contextPath: cwd,
@@ -46,7 +84,7 @@ export function startLocalGenerator({
   const child = spawnImpl(
     "docker",
     buildDockerRunArgs({
-      containerName: `one-portrait-generator-${localPort}`,
+      containerName,
       imageTag,
       runtimeEnv: buildGeneratorContainerEnv(mergedEnv),
       localPort,
@@ -61,6 +99,11 @@ export function startLocalGenerator({
       stdio: "inherit",
     },
   );
+
+  attachDockerContainerCleanup(child, {
+    containerName,
+    runDockerRemove,
+  });
 
   return { child };
 }
@@ -91,6 +134,16 @@ if (isExecutedDirectly()) {
     finalize({ code: 1 });
   });
 
+  process.once("SIGINT", () => {
+    child.kill("SIGTERM");
+    finalize({ signal: "SIGINT" });
+  });
+
+  process.once("SIGTERM", () => {
+    child.kill("SIGTERM");
+    finalize({ signal: "SIGTERM" });
+  });
+
   child.once("exit", (code, signal) => {
     finalize({ code, signal });
   });
@@ -98,43 +151,6 @@ if (isExecutedDirectly()) {
   child.once("close", (code, signal) => {
     finalize({ code, signal });
   });
-}
-
-function readEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const entries = {};
-
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const separatorIndex = trimmed.indexOf("=");
-    if (separatorIndex <= 0) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, separatorIndex).trim();
-    const rawValue = trimmed.slice(separatorIndex + 1).trim();
-    entries[key] = stripQuotes(rawValue);
-  }
-
-  return entries;
-}
-
-function stripQuotes(value) {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  return value;
 }
 
 function normalizePortEnvValue(value) {
@@ -200,6 +216,33 @@ function defaultRunDockerBuild({ contextPath, dockerfilePath, imageTag }) {
   if (result.status !== 0) {
     throw new Error(`docker build failed with exit code ${result.status ?? 1}`);
   }
+}
+
+function defaultRunDockerRemove({ containerName }) {
+  spawnSync("docker", ["rm", "-f", containerName], {
+    stdio: "inherit",
+  });
+}
+
+function attachDockerContainerCleanup(
+  child,
+  { containerName, runDockerRemove },
+) {
+  if (!child || typeof child.kill !== "function") {
+    return;
+  }
+
+  const originalKill = child.kill.bind(child);
+  let cleanupStarted = false;
+
+  child.kill = (signal) => {
+    if (!cleanupStarted) {
+      cleanupStarted = true;
+      runDockerRemove({ containerName });
+    }
+
+    return originalKill(signal);
+  };
 }
 
 function isExecutedDirectly() {

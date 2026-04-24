@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "packageId": "0x1c4b30fffcfe46e9b60772065553b2652ea96f8bc77b9dfa63f437e8505f0bd5",
+  "originalPackageId": "0xf00703a89a105784ef6728e8160bc4a8b20646d39b037e7233340ee431412be3",
+  "registryObjectId": "0x5cfbf8ddfb6b57dfc7a1506d9ab272a4b089a293f9f0a77487f2f97103a9f713",
+  "adminCapId": "0xbfbea978136dd6a6ffdf5f2e7fb33f66bbe20b81c7bb97fee744d979719c77b6",
+  "walrusPublisher": "https://publisher.walrus-testnet.walrus.space",
+  "walrusAggregator": "https://aggregator.walrus-testnet.walrus.space",
+  "enokiPublicApiKey": "enoki_public_f6adc0082f791a0a226ac20f81a9f635",
+  "googleClientId": "317939856639-5m1cu2msauk1s66q6u6jj35ja0ir1mar.apps.googleusercontent.com"
+}

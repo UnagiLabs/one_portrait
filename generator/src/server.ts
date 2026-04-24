@@ -44,8 +44,12 @@ export async function handleRequest(
       return;
     }
 
-    response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
-    response.end("ok");
+    writeJson(response, 200, {
+      adminCapId: readiness.adminCapId,
+      network: readiness.network,
+      packageId: readiness.packageId,
+      status: "ok",
+    });
     return;
   }
 
@@ -309,6 +313,12 @@ function writeJson(
         readonly unitId: string;
       }
     | {
+        readonly adminCapId: string;
+        readonly network: string;
+        readonly packageId: string;
+        readonly status: "ok";
+      }
+    | {
         readonly status: "ok";
       }
     | { readonly error: string; readonly message: string },
@@ -361,10 +371,13 @@ function normalizeHeaderValue(
   return normalized.length > 0 ? normalized : null;
 }
 
-function getGeneratorReadiness(
-  source: NodeJS.ProcessEnv,
-):
-  | { readonly ready: true }
+function getGeneratorReadiness(source: NodeJS.ProcessEnv):
+  | {
+      readonly adminCapId: string;
+      readonly network: string;
+      readonly packageId: string;
+      readonly ready: true;
+    }
   | { readonly ready: false; readonly missing: readonly string[] } {
   const missing = [...generatorRuntimeEnvKeys].filter(
     (key) => normalizeHeaderValue(source[key]) === null,
@@ -378,6 +391,9 @@ function getGeneratorReadiness(
   }
 
   return {
+    adminCapId: normalizeHeaderValue(source.ADMIN_CAP_ID) ?? "",
+    network: normalizeHeaderValue(source.SUI_NETWORK) ?? "",
+    packageId: normalizeHeaderValue(source.PACKAGE_ID) ?? "",
     ready: true,
   };
 }

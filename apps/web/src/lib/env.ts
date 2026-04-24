@@ -27,6 +27,7 @@ export type PublicEnv = {
   readonly suiNetwork: SuiNetwork;
   readonly registryObjectId: string;
   readonly packageId: string | null;
+  readonly originalPackageId: string | null;
 };
 
 export class MissingPublicEnvError extends Error {
@@ -75,6 +76,9 @@ export function loadPublicEnv(source: EnvSource): PublicEnv {
       "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
     ) as string,
     packageId: normalizeOptionalValue(source.NEXT_PUBLIC_PACKAGE_ID),
+    originalPackageId:
+      normalizeOptionalValue(source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID) ??
+      normalizeOptionalValue(source.NEXT_PUBLIC_PACKAGE_ID),
   };
 }
 
@@ -94,6 +98,8 @@ function isSuiNetwork(value: string): value is SuiNetwork {
 export function getPublicEnvSource(): EnvSource {
   return {
     NEXT_PUBLIC_SUI_NETWORK: process.env.NEXT_PUBLIC_SUI_NETWORK,
+    NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:
+      process.env.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
     NEXT_PUBLIC_PACKAGE_ID: process.env.NEXT_PUBLIC_PACKAGE_ID,
     NEXT_PUBLIC_REGISTRY_OBJECT_ID: process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID,
     NEXT_PUBLIC_ENOKI_API_KEY: process.env.NEXT_PUBLIC_ENOKI_API_KEY,
