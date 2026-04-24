@@ -31,7 +31,7 @@ test.describe("gallery states", () => {
       page.getByAltText(/Demo Athlete One completed mosaic/i),
     ).toBeVisible();
     await expect(
-      page.getByText("Completed", { exact: true }).first(),
+      page.getByText("Complete", { exact: true }).first(),
     ).toBeVisible();
     await expect(page.getByText(/Placed at 12, 8/i)).toBeVisible();
     await expect(page.getByText(`Master ${STUB_MASTER_ID}`)).toBeVisible();
@@ -75,7 +75,7 @@ test.describe("gallery states", () => {
     await page.goto("/gallery");
 
     await expect(
-      page.getByText("Completed", { exact: true }).first(),
+      page.getByText("Complete", { exact: true }).first(),
     ).toBeVisible();
     await expect(page.getByText(/Original photo unavailable/i)).toBeVisible();
     await expect(
