@@ -1,14 +1,19 @@
+import { readFile } from "node:fs/promises";
+
 import type {
   GeneratorSubmissionRef,
   GeneratorUnitSnapshot,
   MosaicRgb,
 } from "@one-portrait/shared";
-import { renderedMosaicTileSizePx } from "@one-portrait/shared";
-import sharp from "sharp";
+import {
+  loadSeedingInputFromManifest,
+  type SeedingInputEntry,
+} from "./seeding-input";
 
 export type PreparedSubmission = GeneratorSubmissionRef & {
   readonly averageColor: MosaicRgb;
   readonly imageBytes: Uint8Array;
+  readonly isDummy?: boolean;
 };
 
 export type PreparedFinalizeInput = {
@@ -28,6 +33,11 @@ export type WalrusReadClient = {
 };
 
 export type PrepareFinalizeDeps = {
+  readonly demoFinalizeManifestPath?: string | null;
+  readonly loadSeedingInputFromManifest?: (
+    manifestPath: string,
+  ) => Promise<SeedingInputEntry[]>;
+  readonly readLocalFile?: (filePath: string) => Promise<Uint8Array>;
   readonly sampleAverageColor: AverageColorSampler;
   readonly walrus: WalrusReadClient;
 };
@@ -60,18 +70,19 @@ export async function prepareFinalizeInput(
         ...submission,
         averageColor,
         imageBytes,
+        isDummy: false,
       } satisfies PreparedSubmission;
     }),
   );
-  const dummySubmissions = await createDummyPreparedSubmissions(
-    Math.max(0, displayMaxSlots - preparedRealSubmissions.length),
-    preparedRealSubmissions.length + 1,
-    deps.sampleAverageColor,
+
+  const preparedDummySubmissions = await loadPreparedDummySubmissions(
+    snapshot,
+    deps,
   );
 
   return {
     athleteId: snapshot.athleteId,
-    submissions: [...preparedRealSubmissions, ...dummySubmissions],
+    submissions: [...preparedRealSubmissions, ...preparedDummySubmissions],
     targetImageBytes,
     targetWalrusBlobId: snapshot.targetWalrusBlobId,
     unitId: snapshot.unitId,
@@ -90,39 +101,52 @@ export function sortSubmissions(
   });
 }
 
-async function createDummyPreparedSubmissions(
-  count: number,
-  startingSubmissionNo: number,
-  sampleAverageColor: AverageColorSampler,
+async function loadPreparedDummySubmissions(
+  snapshot: GeneratorUnitSnapshot,
+  deps: PrepareFinalizeDeps,
 ): Promise<PreparedSubmission[]> {
-  if (count <= 0) {
+  const dummyCount = Math.max(
+    0,
+    snapshot.displayMaxSlots - snapshot.submissions.length,
+  );
+  if (dummyCount === 0) {
     return [];
   }
 
-  const imageBytes = await createDummyImageBytes();
-  const averageColor = await sampleAverageColor(imageBytes);
+  const manifestPath = deps.demoFinalizeManifestPath?.trim() ?? "";
+  if (manifestPath.length === 0) {
+    throw new Error(
+      "Demo finalize requires OP_DEMO_FINALIZE_MANIFEST when displayMaxSlots exceeds real submissions.",
+    );
+  }
 
-  return Array.from({ length: count }, (_, index) => ({
-    submissionNo: startingSubmissionNo + index,
-    submitter: DUMMY_SUBMITTER,
-    submittedAtMs: 0,
-    walrusBlobId: `dummy-locked-tile-${String(index + 1).padStart(4, "0")}`,
-    averageColor,
-    imageBytes,
-  }));
+  const manifestEntries = await (
+    deps.loadSeedingInputFromManifest ?? loadSeedingInputFromManifest
+  )(manifestPath);
+
+  if (manifestEntries.length < dummyCount) {
+    throw new Error(
+      `Demo finalize manifest only has ${manifestEntries.length} image(s), but ${dummyCount} are required.`,
+    );
+  }
+
+  const readLocalFile = deps.readLocalFile ?? readFile;
+  const selectedEntries = manifestEntries.slice(0, dummyCount);
+
+  return Promise.all(
+    selectedEntries.map(async (entry, index) => {
+      const imageBytes = await readLocalFile(entry.filePath);
+      const averageColor = await deps.sampleAverageColor(imageBytes);
+
+      return {
+        submissionNo: snapshot.submissions.length + index + 1,
+        submitter: `0xdemo-dummy-${String(index + 1).padStart(4, "0")}`,
+        submittedAtMs: 0,
+        walrusBlobId: `demo-dummy:${entry.imageKey}`,
+        averageColor,
+        imageBytes,
+        isDummy: true,
+      } satisfies PreparedSubmission;
+    }),
+  );
 }
-
-async function createDummyImageBytes(): Promise<Uint8Array> {
-  return sharp({
-    create: {
-      width: renderedMosaicTileSizePx,
-      height: renderedMosaicTileSizePx,
-      channels: 3,
-      background: { r: 232, g: 224, b: 212 },
-    },
-  })
-    .png()
-    .toBuffer();
-}
-
-const DUMMY_SUBMITTER = `0x${"0".repeat(64)}`;

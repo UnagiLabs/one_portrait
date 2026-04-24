@@ -2,6 +2,10 @@ import type http from "node:http";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  createFinalizeRunnerFromEndpointsMock: vi.fn(),
+}));
+
 vi.mock("../src/env", () => ({
   generatorRuntimeEnvKeys: [
     "SUI_NETWORK",
@@ -11,14 +15,19 @@ vi.mock("../src/env", () => ({
     "WALRUS_PUBLISHER",
     "WALRUS_AGGREGATOR",
   ],
-  loadGeneratorRuntimeEnv: vi.fn(() => ({
-    adminCapId: "0xadmincap",
-    adminPrivateKey: "suiprivkey",
-    packageId: "0xpkg",
-    suiNetwork: "testnet",
-    walrusAggregatorBaseUrl: "https://aggregator.example",
-    walrusPublisherBaseUrl: "https://publisher.example",
-  })),
+  loadGeneratorRuntimeEnv: vi.fn(() => {
+    const manifestPath = process.env.OP_DEMO_FINALIZE_MANIFEST?.trim() ?? "";
+
+    return {
+      adminCapId: "0xadmincap",
+      adminPrivateKey: "suiprivkey",
+      demoFinalizeManifestPath: manifestPath.length > 0 ? manifestPath : null,
+      packageId: "0xpkg",
+      suiNetwork: "testnet",
+      walrusAggregatorBaseUrl: "https://aggregator.example",
+      walrusPublisherBaseUrl: "https://publisher.example",
+    };
+  }),
 }));
 
 const runMock = vi.fn(async () => ({
@@ -29,11 +38,12 @@ const createUnitMock = vi.fn(async () => ({
   digest: "0xcreate",
   unitId: VALID_UNIT_ID,
 }));
+mocks.createFinalizeRunnerFromEndpointsMock.mockImplementation(() => ({
+  run: runMock,
+}));
 
 vi.mock("../src/runtime", () => ({
-  createFinalizeRunnerFromEndpoints: vi.fn(() => ({
-    run: runMock,
-  })),
+  createFinalizeRunnerFromEndpoints: mocks.createFinalizeRunnerFromEndpointsMock,
 }));
 
 vi.mock("../src/sui", () => ({
@@ -59,11 +69,13 @@ afterEach(() => {
     "SUI_NETWORK",
     "WALRUS_AGGREGATOR",
     "WALRUS_PUBLISHER",
+    "OP_DEMO_FINALIZE_MANIFEST",
   ]) {
     delete process.env[key];
   }
   runMock.mockClear();
   createUnitMock.mockClear();
+  mocks.createFinalizeRunnerFromEndpointsMock.mockClear();
 });
 
 describe("generator server", () => {
@@ -133,6 +145,11 @@ describe("generator server", () => {
         unitId: VALID_UNIT_ID,
       });
       expect(runMock).toHaveBeenCalledWith(VALID_UNIT_ID);
+      expect(mocks.createFinalizeRunnerFromEndpointsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          demoFinalizeManifestPath: "/tmp/demo-finalize-manifest.json",
+        }),
+      );
     } finally {
       await close(server);
     }
@@ -215,6 +232,7 @@ function setReadyGeneratorEnv(): void {
   process.env.WALRUS_PUBLISHER = "https://publisher.example";
   process.env.WALRUS_AGGREGATOR = "https://aggregator.example";
   process.env.OP_FINALIZE_DISPATCH_SECRET = "shared-secret";
+  process.env.OP_DEMO_FINALIZE_MANIFEST = "/tmp/demo-finalize-manifest.json";
 }
 
 async function listen(server: http.Server): Promise<string> {

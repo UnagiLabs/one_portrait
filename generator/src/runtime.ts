@@ -60,6 +60,7 @@ export type FinalizeRunnerDeps = {
 };
 
 export type DefaultFinalizeRunnerDeps = {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly generateFinalizeMosaic?: (
     prepared: PreparedFinalizeInput,
@@ -153,6 +154,7 @@ export function createDefaultFinalizeRunner(
       }
 
       const prepared = await prepareFinalizeInput(snapshot, {
+        demoFinalizeManifestPath: deps.demoFinalizeManifestPath,
         walrus: deps.walrusRead,
         sampleAverageColor:
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
@@ -181,12 +183,14 @@ export function createDefaultFinalizeRunner(
 }
 
 export function createFinalizeRunnerFromEndpoints(input: {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
   readonly walrusAggregatorBaseUrl: string;
   readonly walrusPublisherBaseUrl: string;
 }): FinalizeRunner {
   return createDefaultFinalizeRunner({
+    demoFinalizeManifestPath: input.demoFinalizeManifestPath,
     readUnitSnapshot: input.readUnitSnapshot,
     finalizeTransaction: input.finalizeTransaction,
     walrusRead: createWalrusReadClient({
