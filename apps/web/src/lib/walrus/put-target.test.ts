@@ -78,7 +78,7 @@ function baseDeps(fetchFn: typeof fetch) {
 }
 
 describe("putTargetBlobToWalrus", () => {
-  it("PUTs the target blob with epochs=100", async () => {
+  it("PUTs the target blob with epochs=50", async () => {
     const { calls, fetchFn } = queuedFetch([
       {
         kind: "ok",
@@ -97,8 +97,8 @@ describe("putTargetBlobToWalrus", () => {
     );
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.url).toBe(`${PUBLISHER}/v1/blobs?epochs=100`);
-    expect(calls[0]?.url).not.toContain("epochs=5");
+    expect(calls[0]?.url).toBe(`${PUBLISHER}/v1/blobs?epochs=50`);
+    expect(calls[0]?.url).not.toContain("epochs=100");
     expect(result.blobId).toBe("target-blob");
     expect(result.aggregatorUrl).toBe(`${AGGREGATOR}/v1/blobs/target-blob`);
   });

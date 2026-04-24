@@ -1,4 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import type {
   GeneratorSubmissionRef,
@@ -34,6 +39,7 @@ export type WalrusReadClient = {
 
 export type PrepareFinalizeDeps = {
   readonly demoFinalizeManifestPath?: string | null;
+  readonly loadBundledDemoTiles?: () => Promise<SeedingInputEntry[]>;
   readonly loadSeedingInputFromManifest?: (
     manifestPath: string,
   ) => Promise<SeedingInputEntry[]>;
@@ -45,6 +51,30 @@ export type PrepareFinalizeDeps = {
 type DisplayAwareFinalizeSnapshot = GeneratorUnitSnapshot & {
   readonly displayMaxSlots?: number;
 };
+
+const execFileAsync = promisify(execFile);
+const generatorRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const bundledDemoTilesArchivePath = path.join(
+  generatorRoot,
+  "assets",
+  "archives",
+  "merged-generator-tiles.tar.gz",
+);
+const bundledDemoTilesCacheDir = path.join(
+  os.tmpdir(),
+  "one-portrait-bundled-demo-tiles",
+);
+const bundledDemoTilesExtractedDir = path.join(
+  bundledDemoTilesCacheDir,
+  "merged-generator-tiles",
+);
+const bundledDemoTilesReadyMarker = path.join(
+  bundledDemoTilesCacheDir,
+  ".ready",
+);
 
 export async function prepareFinalizeInput(
   snapshot: DisplayAwareFinalizeSnapshot,
@@ -107,16 +137,7 @@ async function loadPreparedDummySubmissions(
     return [];
   }
 
-  const manifestPath = deps.demoFinalizeManifestPath?.trim() ?? "";
-  if (manifestPath.length === 0) {
-    throw new Error(
-      "Demo finalize requires OP_DEMO_FINALIZE_MANIFEST when displayMaxSlots exceeds real submissions.",
-    );
-  }
-
-  const manifestEntries = await (
-    deps.loadSeedingInputFromManifest ?? loadSeedingInputFromManifest
-  )(manifestPath);
+  const manifestEntries = await loadDummyManifestEntries(deps);
 
   if (manifestEntries.length < dummyCount) {
     throw new Error(
@@ -143,4 +164,72 @@ async function loadPreparedDummySubmissions(
       } satisfies PreparedSubmission;
     }),
   );
+}
+
+async function loadDummyManifestEntries(
+  deps: PrepareFinalizeDeps,
+): Promise<SeedingInputEntry[]> {
+  const manifestPath = deps.demoFinalizeManifestPath?.trim() ?? "";
+  if (manifestPath.length > 0) {
+    return (deps.loadSeedingInputFromManifest ?? loadSeedingInputFromManifest)(
+      manifestPath,
+    );
+  }
+
+  return (deps.loadBundledDemoTiles ?? loadBundledDemoTiles)();
+}
+
+export async function loadBundledDemoTiles(): Promise<SeedingInputEntry[]> {
+  await ensureBundledDemoTilesExtracted();
+  return loadImageEntriesFromDirectory(bundledDemoTilesExtractedDir);
+}
+
+async function ensureBundledDemoTilesExtracted(): Promise<void> {
+  try {
+    await access(bundledDemoTilesReadyMarker);
+    return;
+  } catch {
+    // Fall through and rebuild the cache from the bundled archive.
+  }
+
+  await mkdir(bundledDemoTilesCacheDir, { recursive: true });
+  await execFileAsync("tar", [
+    "-xzf",
+    bundledDemoTilesArchivePath,
+    "-C",
+    bundledDemoTilesCacheDir,
+  ]);
+  await writeFile(bundledDemoTilesReadyMarker, "ready\n");
+}
+
+async function loadImageEntriesFromDirectory(
+  directoryPath: string,
+): Promise<SeedingInputEntry[]> {
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => path.join(directoryPath, entry.name))
+    .filter(isSupportedImageFile)
+    .sort(compareImagePaths)
+    .map((filePath) => ({
+      imageKey: path.basename(filePath),
+      filePath,
+    }));
+}
+
+function isSupportedImageFile(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  return (
+    extension === ".png" ||
+    extension === ".jpg" ||
+    extension === ".jpeg" ||
+    extension === ".webp"
+  );
+}
+
+function compareImagePaths(left: string, right: string): number {
+  return path.basename(left).localeCompare(path.basename(right), undefined, {
+    numeric: true,
+  });
 }

@@ -17,10 +17,12 @@
       "!apps/web/.open-next",
       "!apps/web/.e2e-xdg",
       "!apps/web/.wrangler",
-      "!apps/web/playwright-report",
+      "!apps/web/playwright-report*",
       "!apps/web/test-results",
       "!.claude",
       "!.codex",
+      "!.pnpm-store",
+      "!**/.pnpm-store",
       "!node_modules"
     ]
   },

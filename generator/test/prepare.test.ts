@@ -119,19 +119,76 @@ describe("prepareFinalizeInput", () => {
     );
   });
 
-  it("fails clearly when a demo unit is missing OP_DEMO_FINALIZE_MANIFEST", async () => {
-    await expect(
-      prepareFinalizeInput(
-        {
-          ...snapshot(),
-          displayMaxSlots: 3,
-        },
-        {
-          sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
-          walrus: { getBlob: vi.fn(async (blobId: string) => encode(blobId)) },
-        },
-      ),
-    ).rejects.toThrow(/OP_DEMO_FINALIZE_MANIFEST/);
+  it("falls back to bundled dummy tiles when OP_DEMO_FINALIZE_MANIFEST is unset", async () => {
+    const prepared = await prepareFinalizeInput(
+      {
+        ...snapshot(),
+        displayMaxSlots: 4,
+      },
+      {
+        loadBundledDemoTiles: vi.fn(async () => [
+          {
+            imageKey: "bundled-1.webp",
+            filePath: "/tmp/bundled-1.webp",
+          },
+          {
+            imageKey: "bundled-2.webp",
+            filePath: "/tmp/bundled-2.webp",
+          },
+        ]),
+        readLocalFile: vi.fn(async (filePath: string) => encode(filePath)),
+        sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+        walrus: { getBlob: vi.fn(async (blobId: string) => encode(blobId)) },
+      },
+    );
+
+    expect(prepared.submissions.map((entry) => entry.walrusBlobId)).toEqual([
+      "submission-a",
+      "submission-b",
+      "demo-dummy:bundled-1.webp",
+      "demo-dummy:bundled-2.webp",
+    ]);
+  });
+
+  it("prepares a zero-submission demo unit entirely from dummy tiles", async () => {
+    const loadBundledDemoTiles = vi.fn(async () =>
+      Array.from({ length: 2000 }, (_, index) => ({
+        imageKey: `bundled-${index + 1}.webp`,
+        filePath: `/tmp/bundled-${index + 1}.webp`,
+      })),
+    );
+    const readLocalFile = vi.fn(async (filePath: string) => encode(filePath));
+
+    const prepared = await prepareFinalizeInput(
+      {
+        displayName: "Demo Athlete Zero",
+        displayMaxSlots: 2000,
+        targetWalrusBlobId: "target-blob-zero",
+        unitId: "0xunit-zero",
+        submissions: [],
+      },
+      {
+        loadBundledDemoTiles,
+        readLocalFile,
+        sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+        walrus: { getBlob: vi.fn(async (blobId: string) => encode(blobId)) },
+      },
+    );
+
+    expect(loadBundledDemoTiles).toHaveBeenCalledTimes(1);
+    expect(readLocalFile).toHaveBeenCalledTimes(2000);
+    expect(prepared.submissions).toHaveLength(2000);
+    expect(prepared.submissions.every((entry) => entry.isDummy)).toBe(true);
+    expect(prepared.submissions[0]).toMatchObject({
+      submissionNo: 1,
+      submitter: "0xdemo-dummy-0001",
+      walrusBlobId: "demo-dummy:bundled-1.webp",
+    });
+    expect(prepared.submissions.at(-1)).toMatchObject({
+      submissionNo: 2000,
+      submitter: "0xdemo-dummy-2000",
+      walrusBlobId: "demo-dummy:bundled-2000.webp",
+    });
   });
 
   it("fails clearly when the manifest does not have enough dummy tiles", async () => {

@@ -198,6 +198,75 @@ describe("generator server", () => {
     }
   });
 
+  it("accepts /admin/create-unit with zero real upload slots", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/create-unit`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          blobId: "target-blob-zero",
+          displayMaxSlots: 2000,
+          displayName: "Demo Athlete Zero",
+          maxSlots: 0,
+          registryObjectId: VALID_REGISTRY_ID,
+          thumbnailUrl: "https://example.com/0.png",
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(createUnitMock).toHaveBeenCalledWith({
+        blobId: "target-blob-zero",
+        displayMaxSlots: 2000,
+        displayName: "Demo Athlete Zero",
+        maxSlots: 0,
+        registryObjectId: VALID_REGISTRY_ID,
+        thumbnailUrl: "https://example.com/0.png",
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
+  it("rejects /admin/create-unit when displayMaxSlots is zero", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/create-unit`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({
+          blobId: "target-blob-zero",
+          displayMaxSlots: 0,
+          displayName: "Demo Athlete Zero",
+          maxSlots: 0,
+          registryObjectId: VALID_REGISTRY_ID,
+          thumbnailUrl: "https://example.com/0.png",
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: "invalid_args",
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
   it("accepts /dispatch-auth-probe with the shared secret and does not run finalize", async () => {
     setReadyGeneratorEnv();
 

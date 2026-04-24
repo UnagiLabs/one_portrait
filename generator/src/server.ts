@@ -215,7 +215,7 @@ function parseCreateUnitInput(input: unknown): {
   readonly thumbnailUrl: string;
 } {
   const record = parseJsonRecord(input);
-  const maxSlots = parsePositiveInteger(record.maxSlots, "maxSlots");
+  const maxSlots = parseNonNegativeInteger(record.maxSlots, "maxSlots");
   const displayMaxSlots = parsePositiveInteger(
     record.displayMaxSlots,
     "displayMaxSlots",
@@ -248,6 +248,18 @@ function parseJsonRecord(input: unknown): Record<string, unknown> {
 }
 
 function parsePositiveInteger(value: unknown, fieldName: string): number {
+  const parsed = parseNonNegativeInteger(value, fieldName);
+
+  if (parsed === 0) {
+    throw new InvalidPayloadError(
+      `Payload requires ${fieldName} as a positive integer.`,
+    );
+  }
+
+  return parsed;
+}
+
+function parseNonNegativeInteger(value: unknown, fieldName: string): number {
   const parsed =
     typeof value === "number"
       ? value
@@ -255,9 +267,9 @@ function parsePositiveInteger(value: unknown, fieldName: string): number {
         ? Number(value)
         : NaN;
 
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  if (!Number.isInteger(parsed) || parsed < 0) {
     throw new InvalidPayloadError(
-      `Payload requires ${fieldName} as a positive integer.`,
+      `Payload requires ${fieldName} as a non-negative integer.`,
     );
   }
 

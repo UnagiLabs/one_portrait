@@ -111,30 +111,43 @@ export function createFinalizeTransactionExecutor(input: {
   return async (args) => {
     const tx = new Transaction();
 
-    tx.moveCall({
-      target: `${input.packageId}::admin_api::finalize`,
-      arguments: [
-        tx.object(input.adminCapId),
-        tx.object(args.unitId),
-        tx.pure.vector(
-          "u8",
-          Array.from(new TextEncoder().encode(args.mosaicBlobId)),
-        ),
-        tx.pure(
-          bcs.vector(placementInputBcs).serialize(
-            args.placements.map((placement) => ({
-              blob_id: Array.from(
-                new TextEncoder().encode(placement.walrusBlobId),
-              ),
-              x: placement.x,
-              y: placement.y,
-              submitter: placement.submitter,
-              submission_no: placement.submissionNo,
-            })),
+    const encodedMosaicBlobId = tx.pure.vector(
+      "u8",
+      Array.from(new TextEncoder().encode(args.mosaicBlobId)),
+    );
+
+    if (args.placements.length === 0) {
+      tx.moveCall({
+        target: `${input.packageId}::admin_api::finalize_empty`,
+        arguments: [
+          tx.object(input.adminCapId),
+          tx.object(args.unitId),
+          encodedMosaicBlobId,
+        ],
+      });
+    } else {
+      tx.moveCall({
+        target: `${input.packageId}::admin_api::finalize`,
+        arguments: [
+          tx.object(input.adminCapId),
+          tx.object(args.unitId),
+          encodedMosaicBlobId,
+          tx.pure(
+            bcs.vector(placementInputBcs).serialize(
+              args.placements.map((placement) => ({
+                blob_id: Array.from(
+                  new TextEncoder().encode(placement.walrusBlobId),
+                ),
+                x: placement.x,
+                y: placement.y,
+                submitter: placement.submitter,
+                submission_no: placement.submissionNo,
+              })),
+            ),
           ),
-        ),
-      ],
-    });
+        ],
+      });
+    }
 
     const execution = await input.client.signAndExecuteTransaction({
       signer,

@@ -5,7 +5,7 @@ import type { PreprocessedPhoto } from "../image/preprocess";
 import type { WalrusEnv, WalrusPutDeps, WalrusPutResult } from "./put";
 import { WalrusPutError } from "./put";
 
-const TARGET_WALRUS_EPOCHS = 100;
+const TARGET_WALRUS_EPOCHS = 50;
 const WALRUS_MAX_ATTEMPTS = 3;
 const WALRUS_BASE_BACKOFF_MS = 200;
 const WALRUS_REQUEST_TIMEOUT_MS = 30_000;
