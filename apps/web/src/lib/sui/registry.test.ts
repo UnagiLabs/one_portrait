@@ -94,20 +94,16 @@ describe("listRegistryAthletes", () => {
       listRegistryAthletes({ client, registryObjectId: REGISTRY_ID }),
     ).resolves.toEqual([
       {
-        athletePublicId: "1",
         currentUnitId: UNIT_ONE,
         metadata: {
-          athletePublicId: "1",
           displayName: "Demo Athlete One",
           slug: "unit-unit-1",
           thumbnailUrl: "https://example.com/1.png",
         },
       },
       {
-        athletePublicId: "2",
         currentUnitId: UNIT_TWO,
         metadata: {
-          athletePublicId: "2",
           displayName: "Demo Athlete Two",
           slug: "unit-unit-2",
           thumbnailUrl: "https://example.com/2.png",
@@ -148,7 +144,6 @@ describe("getActiveHomeUnits", () => {
       getActiveHomeUnits({ client, registryObjectId: REGISTRY_ID }),
     ).resolves.toEqual([
       {
-        athletePublicId: "1",
         displayName: "Demo Athlete One",
         maxSlots: 2000,
         submittedCount: 1997,
@@ -179,7 +174,7 @@ function registryObject(fields: Record<string, unknown>) {
 
 function unitObject(
   unitId: string,
-  athleteId: number,
+  thumbnailIndex: number,
   displayName: string,
   overrides: Record<string, unknown> = {},
 ) {
@@ -194,9 +189,8 @@ function unitObject(
       type: "0xpkg::unit::Unit",
       fields: {
         id: { id: unitId },
-        athlete_id: athleteId,
         display_name: bytes(displayName),
-        thumbnail_url: bytes(`https://example.com/${athleteId}.png`),
+        thumbnail_url: bytes(`https://example.com/${thumbnailIndex}.png`),
         target_walrus_blob: bytes("target-blob"),
         max_slots: "2000",
         display_max_slots: "2000",

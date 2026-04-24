@@ -5,7 +5,6 @@ import {
 } from "../sui";
 
 export type AdminAthleteEntry = {
-  readonly athletePublicId: string;
   readonly currentUnit: AdminUnitSnapshot | null;
   readonly displayName: string;
   readonly entryId?: string;
@@ -40,7 +39,6 @@ function buildEntry(
   lookupState: AdminAthleteEntry["lookupState"],
 ): AdminAthleteEntry {
   return {
-    athletePublicId: currentUnit.athletePublicId,
     currentUnit,
     displayName: currentUnit.displayName,
     entryId: currentUnit.unitId,
@@ -53,7 +51,6 @@ function buildEntry(
 
 function buildUnavailableEntry(unitId: string): AdminAthleteEntry {
   return {
-    athletePublicId: "unavailable",
     currentUnit: null,
     displayName: `Unit ${unitId.slice(0, 10)}…`,
     entryId: unitId,

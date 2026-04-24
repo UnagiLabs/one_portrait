@@ -1,29 +1,10 @@
 /**
  * Catalog type boundary for ONE Portrait.
  *
- * The catalog layer owns **display metadata** (name, slug, thumbnail, etc.).
- * The on-chain layer owns the **Registry -> Unit** pointer and nothing else
- * about how the athlete should be rendered.
- *
- * These two concerns intentionally share **only** `athletePublicId` so that:
- *   - Display tweaks (copy changes, new images) never require a chain migration.
- *   - The chain stays cheap and stable (just `athlete_id: u16`).
- *   - A future CMS can replace the catalog without touching chain code.
+ * The catalog layer owns demo/display metadata for known Units.
+ * Live chain data now carries its own display name and thumbnail on Unit,
+ * so `unitId` is the only catalog key.
  */
-
-/**
- * String-normalized form of the on-chain `athlete_id: u16`.
- *
- * The Move package uses `u16` so numeric values are bound to `[0, 65535]`, but
- * we keep the catalog-side representation as a decimal string for three
- * reasons:
- *   1. Some on-chain identifier types elsewhere in the Sui ecosystem are
- *      addresses or `vector<u8>`; standardising on strings here lets us swap
- *      representations later without breaking callers.
- *   2. JSON payloads from a future CMS will almost certainly arrive as strings.
- *   3. `Map<AthletePublicId, ...>` keys behave identically across sources.
- */
-export type AthletePublicId = string;
 
 /**
  * Display-side record for a single athlete.
@@ -33,8 +14,8 @@ export type AthletePublicId = string;
  * {@link AthleteChainRef}.
  */
 export type AthleteCatalogEntry = {
-  /** Decimal-string form of the on-chain `athlete_id: u16`. */
-  readonly athletePublicId: AthletePublicId;
+  /** Object ID of the current demo/display Unit. */
+  readonly unitId: string;
   /** URL-safe identifier used in routes like `/athletes/[slug]`. */
   readonly slug: string;
   /** Human-readable name shown in UI. */
@@ -52,8 +33,6 @@ export type AthleteCatalogEntry = {
  * `@ts-expect-error` lines flip and the build fails.
  */
 export type AthleteChainRef = {
-  /** Must match an {@link AthleteCatalogEntry.athletePublicId} to be useful. */
-  readonly athletePublicId: AthletePublicId;
   /** Object ID of the current `Unit`, or `null` if no unit has been opened. */
-  readonly currentUnitId: string | null;
+  readonly unitId: string | null;
 };

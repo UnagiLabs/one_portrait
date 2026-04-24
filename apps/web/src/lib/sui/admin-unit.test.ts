@@ -33,7 +33,6 @@ function unitData(fields: Record<string, unknown>) {
       type: "0xpkg::unit::Unit",
       fields: {
         id: { id: UNIT_ID },
-        athlete_id: 7,
         display_name: bytes("Demo Athlete Seven"),
         thumbnail_url: bytes("https://example.com/7.png"),
         target_walrus_blob: bytes("target-blob-007"),
@@ -64,7 +63,6 @@ describe("getAdminUnitSnapshot", () => {
     const client = clientReturning(unitData({}));
 
     await expect(getAdminUnitSnapshot(UNIT_ID, { client })).resolves.toEqual({
-      athletePublicId: "7",
       displayMaxSlots: 2000,
       displayName: "Demo Athlete Seven",
       masterId: null,

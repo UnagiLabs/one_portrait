@@ -34,7 +34,6 @@ function submittedSuiEvent(unitId: string, submissionNo = "1") {
     type: `${PACKAGE_ID}::events::SubmittedEvent`,
     parsedJson: {
       unit_id: unitId,
-      athlete_id: 1,
       submitter: "0xsender",
       walrus_blob_id: [1, 2, 3],
       submission_no: submissionNo,
@@ -50,7 +49,6 @@ function unitFilledSuiEvent(unitId: string) {
     type: `${PACKAGE_ID}::events::UnitFilledEvent`,
     parsedJson: {
       unit_id: unitId,
-      athlete_id: 1,
       filled_count: String(unitTileCount),
       max_slots: String(unitTileCount),
     },
@@ -62,7 +60,6 @@ function mosaicReadySuiEvent(unitId: string) {
     type: `${PACKAGE_ID}::events::MosaicReadyEvent`,
     parsedJson: {
       unit_id: unitId,
-      athlete_id: 1,
       master_id: "0xmaster",
       mosaic_walrus_blob_id: [9, 8, 7],
     },

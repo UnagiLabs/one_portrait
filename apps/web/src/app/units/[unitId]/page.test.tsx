@@ -9,13 +9,11 @@ import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../../lib/e2e/stub-data";
 
 const {
   getUnitProgressMock,
-  getAthleteByPublicIdMock,
   loadPublicEnvMock,
   participationAccessMock,
   unitRevealClientMock,
 } = vi.hoisted(() => ({
   getUnitProgressMock: vi.fn(),
-  getAthleteByPublicIdMock: vi.fn(),
   loadPublicEnvMock: vi.fn(),
   participationAccessMock: vi.fn(),
   unitRevealClientMock: vi.fn(),
@@ -23,10 +21,6 @@ const {
 
 vi.mock("../../../lib/sui", () => ({
   getUnitProgress: getUnitProgressMock,
-}));
-
-vi.mock("../../../lib/catalog", () => ({
-  getAthleteByPublicId: getAthleteByPublicIdMock,
 }));
 
 vi.mock("../../../lib/env", () => ({
@@ -89,19 +83,17 @@ import UnitPage from "./page";
 
 function buildProgress(
   overrides: Partial<{
-    athletePublicId: string;
+    unitId: string;
     displayName: string | null;
     masterId: string | null;
     maxSlots: number;
     status: "pending" | "filled" | "finalized";
     submittedCount: number;
     thumbnailUrl: string | null;
-    unitId: string;
   }> = {},
 ) {
   return {
     unitId: "0xunit-1",
-    athletePublicId: "1",
     displayName: "Demo Athlete One",
     submittedCount: 15,
     maxSlots: unitTileCount,
@@ -129,7 +121,6 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_WALRUS_PUBLISHER;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   getUnitProgressMock.mockReset();
-  getAthleteByPublicIdMock.mockReset();
   loadPublicEnvMock.mockReset();
   participationAccessMock.mockReset();
   unitRevealClientMock.mockReset();
@@ -163,17 +154,10 @@ describe("UnitPage", () => {
   it("renders demo unit progress with the display_max_slots based counter", async () => {
     getUnitProgressMock.mockResolvedValue({
       unitId: "0xunit-1",
-      athletePublicId: "1",
       submittedCount: 1995,
       maxSlots: 2000,
       status: "pending",
       masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
     });
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
@@ -400,12 +384,6 @@ describe("UnitPage", () => {
 
   it("uses demo fixture progress without calling Sui when demo mode is enabled", async () => {
     process.env.NEXT_PUBLIC_DEMO_MODE = "1";
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -509,7 +487,6 @@ describe("UnitPage", () => {
         maxSlots: unitTileCount,
       }),
     );
-    expect(getAthleteByPublicIdMock).not.toHaveBeenCalled();
   });
 
   it("ignores the finalized unit bootstrap for non-stub units", async () => {

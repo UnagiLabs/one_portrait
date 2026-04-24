@@ -2,7 +2,6 @@ import { getPublicEnvSource, loadPublicEnv } from "../env";
 import { getSuiClient, type SuiReadClient } from "./client";
 import type {
   ActiveHomeUnitView,
-  AthleteMetadataView,
   RegistryAthleteView,
   RegistryView,
 } from "./types";
@@ -66,14 +65,12 @@ export async function listRegistryAthletes(
       try {
         const unit = await getUnitProgress(unitId, { client });
         return {
-          athletePublicId: unit.athletePublicId,
           currentUnitId: unit.unitId,
           metadata: {
-            athletePublicId: unit.athletePublicId,
             displayName: unit.displayName,
             slug: buildSyntheticSlug(unit.unitId),
             thumbnailUrl: unit.thumbnailUrl,
-          } satisfies AthleteMetadataView,
+          },
         } satisfies RegistryAthleteView;
       } catch (error) {
         console.error(`Failed to load registry unit ${unitId}`, error);
@@ -104,7 +101,6 @@ export async function getActiveHomeUnits(
         }
 
         return {
-          athletePublicId: unit.athletePublicId,
           displayName: unit.displayName,
           maxSlots: unit.maxSlots,
           submittedCount: unit.submittedCount,

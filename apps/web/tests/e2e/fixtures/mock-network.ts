@@ -462,7 +462,6 @@ function handleGetObject(
           hasPublicTransfer: false,
           fields: {
             id: { id: STUB_UNIT_ID },
-            athlete_id: Number(STUB_ATHLETE_ID),
             display_name: Array.from(
               new TextEncoder().encode("Demo Athlete One"),
             ),
@@ -507,7 +506,6 @@ function handleGetObject(
           fields: {
             id: { id: STUB_MASTER_ID },
             unit_id: STUB_UNIT_ID,
-            athlete_id: Number(STUB_ATHLETE_ID),
             mosaic_walrus_blob_id: Array.from(
               new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),
             ),
@@ -645,7 +643,6 @@ function handleOwnedObjects(
             hasPublicTransfer: false,
             fields: {
               id: { id: STUB_KAKERA_OBJECT_ID },
-              athlete_id: STUB_ATHLETE_ID,
               unit_id: STUB_UNIT_ID,
               walrus_blob_id: blobBytes,
               submission_no: STUB_SUBMISSION_NO,
@@ -725,7 +722,6 @@ function makeSubmittedEvent(opts: {
     eventSeq: opts.eventSeq,
     parsedJson: {
       unit_id: STUB_UNIT_ID,
-      athlete_id: STUB_ATHLETE_ID,
       submitter: E2E_STUB_ACCOUNT_ADDRESS,
       walrus_blob_id: Array.from(new TextEncoder().encode(STUB_BLOB_ID)),
       submission_no: STUB_SUBMISSION_NO,
@@ -743,7 +739,6 @@ function makeUnitFilledEvent(opts: {
     eventSeq: opts.eventSeq,
     parsedJson: {
       unit_id: STUB_UNIT_ID,
-      athlete_id: STUB_ATHLETE_ID,
       filled_count: unitTileCount,
       max_slots: unitTileCount,
     },
@@ -758,7 +753,6 @@ function makeMosaicReadyEvent(opts: {
     eventSeq: opts.eventSeq,
     parsedJson: {
       unit_id: STUB_UNIT_ID,
-      athlete_id: STUB_ATHLETE_ID,
       master_id: STUB_MASTER_ID,
       mosaic_walrus_blob_id: Array.from(
         new TextEncoder().encode(STUB_MOSAIC_BLOB_ID),

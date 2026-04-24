@@ -56,7 +56,7 @@ import { GalleryClient } from "./gallery-client";
 
 const CATALOG = [
   {
-    athletePublicId: "1",
+    unitId: "0xunit-1",
     slug: "demo-athlete-one",
     displayName: "Demo Athlete One",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
@@ -66,7 +66,6 @@ const CATALOG = [
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
-    athletePublicId: "1",
     unitId: "0xunit-1",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
@@ -82,7 +81,7 @@ function pendingEntry(
 ): Extract<GalleryEntryView, { status: { kind: "pending" } }> {
   return {
     unitId: "0xunit-1",
-    athletePublicId: "1",
+    displayName: "Demo Athlete One",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
     mintedAtMs: 1700000000000,
@@ -101,7 +100,7 @@ function completedEntry(
 ): Extract<GalleryEntryView, { status: { kind: "completed" } }> {
   return {
     unitId: "0xunit-1",
-    athletePublicId: "1",
+    displayName: "Demo Athlete One",
     walrusBlobId: "walrus-original-1",
     submissionNo: 17,
     mintedAtMs: 1700000000000,

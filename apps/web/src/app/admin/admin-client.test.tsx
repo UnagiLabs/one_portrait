@@ -42,9 +42,7 @@ describe("AdminClient", () => {
       <AdminClient
         initialAthletes={[
           {
-            athletePublicId: "1",
             currentUnit: {
-              athletePublicId: "1",
               displayMaxSlots: 2000,
               displayName: "Demo Athlete One",
               masterId: null,
@@ -161,7 +159,6 @@ describe("AdminClient", () => {
       <AdminClient
         initialAthletes={[
           {
-            athletePublicId: "7",
             currentUnit: null,
             displayName: "Demo Athlete Seven",
             entryId: "draft-7",
@@ -175,7 +172,7 @@ describe("AdminClient", () => {
       />,
     );
 
-    expect(screen.queryByLabelText(/athlete ID/)).toBeNull();
+    expect(screen.queryByLabelText(/unit ID/)).toBeNull();
     fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
       target: { value: "target-blob-7" },
     });
@@ -186,7 +183,7 @@ describe("AdminClient", () => {
     });
     expect(screen.getByText(/ユニットID: 0xunit-created/)).toBeTruthy();
     expect(screen.getByText(/ステータス: created/)).toBeTruthy();
-    expect(screen.queryByText(/athlete ID: 7/)).toBeNull();
+    expect(screen.queryByText(/unit ID: 7/)).toBeNull();
     expect(createPayload).toEqual({
       blobId: "target-blob-7",
       displayMaxSlots: unitTileCount,
@@ -245,7 +242,6 @@ describe("AdminClient", () => {
       <AdminClient
         initialAthletes={[
           {
-            athletePublicId: "12",
             currentUnit: null,
             displayName: "Demo Athlete Twelve",
             entryId: "draft-12",

@@ -9,7 +9,6 @@
  *
  * Field naming mirrors `contracts/sources/events.move`:
  *   - `unit_id`        → `unitId`           (object id, always `0x`-prefixed)
- *   - `athlete_id`     → `athletePublicId`  (decimal string; matches `@/lib/catalog`)
  *   - `walrus_blob_id` → `walrusBlobId`     (raw `vector<u8>`)
  *   - u64 counts       → `number`           (within JS safe-int range for our scale)
  */
@@ -23,7 +22,6 @@ export type RawSuiEventLike = {
 export type SubmittedEvent = {
   readonly kind: "submitted";
   readonly unitId: string;
-  readonly athletePublicId: string;
   readonly submitter: string;
   readonly walrusBlobId: readonly number[];
   readonly submissionNo: number;
@@ -34,7 +32,6 @@ export type SubmittedEvent = {
 export type UnitFilledEvent = {
   readonly kind: "filled";
   readonly unitId: string;
-  readonly athletePublicId: string;
   readonly filledCount: number;
   readonly maxSlots: number;
 };
@@ -42,7 +39,6 @@ export type UnitFilledEvent = {
 export type MosaicReadyEvent = {
   readonly kind: "mosaicReady";
   readonly unitId: string;
-  readonly athletePublicId: string;
   readonly masterId: string;
   readonly mosaicWalrusBlobId: readonly number[];
 };
@@ -54,10 +50,6 @@ export function parseSubmittedEvent(raw: RawSuiEventLike): SubmittedEvent {
   return {
     kind: "submitted",
     unitId: asString(json.unit_id, "SubmittedEvent.unit_id"),
-    athletePublicId: asAthletePublicId(
-      json.athlete_id,
-      "SubmittedEvent.athlete_id",
-    ),
     submitter: asString(json.submitter, "SubmittedEvent.submitter"),
     walrusBlobId: asByteArray(
       json.walrus_blob_id,
@@ -77,10 +69,6 @@ export function parseUnitFilledEvent(raw: RawSuiEventLike): UnitFilledEvent {
   return {
     kind: "filled",
     unitId: asString(json.unit_id, "UnitFilledEvent.unit_id"),
-    athletePublicId: asAthletePublicId(
-      json.athlete_id,
-      "UnitFilledEvent.athlete_id",
-    ),
     filledCount: asInteger(json.filled_count, "UnitFilledEvent.filled_count"),
     maxSlots: asInteger(json.max_slots, "UnitFilledEvent.max_slots"),
   };
@@ -91,10 +79,6 @@ export function parseMosaicReadyEvent(raw: RawSuiEventLike): MosaicReadyEvent {
   return {
     kind: "mosaicReady",
     unitId: asString(json.unit_id, "MosaicReadyEvent.unit_id"),
-    athletePublicId: asAthletePublicId(
-      json.athlete_id,
-      "MosaicReadyEvent.athlete_id",
-    ),
     masterId: asString(json.master_id, "MosaicReadyEvent.master_id"),
     mosaicWalrusBlobId: asByteArray(
       json.mosaic_walrus_blob_id,
@@ -125,12 +109,6 @@ function asInteger(value: unknown, label: string): number {
     return Number(value);
   }
   throw new Error(`${label} is not an integer-like value: ${String(value)}`);
-}
-
-function asAthletePublicId(value: unknown, label: string): string {
-  // `athlete_id` is u16 on-chain; surface it as the decimal string the rest
-  // of the app keys on (see `lib/catalog/types.ts`).
-  return String(asInteger(value, label));
 }
 
 function asByteArray(value: unknown, label: string): readonly number[] {

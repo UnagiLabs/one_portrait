@@ -30,9 +30,7 @@ describe("AdminPage", () => {
   it("renders the admin console with the initial server data", async () => {
     loadAdminAthletesMock.mockResolvedValue([
       {
-        athletePublicId: "1",
         currentUnit: {
-          athletePublicId: "1",
           displayMaxSlots: 2000,
           displayName: "Demo Athlete One",
           masterId: null,

@@ -37,7 +37,7 @@ vi.mock("./gallery-page-client", () => ({
     packageId,
   }: {
     catalog: readonly {
-      athletePublicId: string;
+      unitId: string;
       slug: string;
       displayName: string;
       thumbnailUrl: string;
@@ -62,13 +62,11 @@ import GalleryPage from "./page";
 
 const CATALOG = [
   {
-    athletePublicId: "1",
     slug: "demo-athlete-one",
     displayName: "Demo Athlete One",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
   },
   {
-    athletePublicId: "2",
     slug: "demo-athlete-two",
     displayName: "Demo Athlete Two",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+2",
@@ -119,7 +117,6 @@ describe("GalleryPage", () => {
     getDemoGalleryEntriesMock.mockReturnValue([
       {
         unitId: "0xdemo-unit",
-        athletePublicId: "1",
         walrusBlobId: "demo-original",
         submissionNo: 17,
         mintedAtMs: 1800000000000,
@@ -151,7 +148,6 @@ describe("GalleryPage", () => {
     getDemoGalleryEntriesMock.mockReturnValue([
       {
         unitId: "0xdemo-unit",
-        athletePublicId: "1",
         walrusBlobId: "demo-original",
         submissionNo: 17,
         mintedAtMs: 1800000000000,

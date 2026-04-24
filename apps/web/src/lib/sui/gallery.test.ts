@@ -20,7 +20,6 @@ function encodeBytes(value: string): number[] {
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
-    athletePublicId: "7",
     unitId: UNIT_ID,
     walrusBlobId: WALRUS_BLOB_ID,
     submissionNo: SUBMISSION_NO,
@@ -41,7 +40,6 @@ function unitObject(overrides: Partial<Record<string, unknown>> = {}) {
       type: "0xpkg::unit::Unit",
       fields: {
         id: { id: UNIT_ID },
-        athlete_id: 7,
         display_name: encodeBytes("Demo Athlete Seven"),
         thumbnail_url: encodeBytes("https://example.com/7.png"),
         target_walrus_blob: [],
@@ -73,7 +71,6 @@ function masterObject(overrides: Partial<Record<string, unknown>> = {}) {
       fields: {
         id: { id: MASTER_ID },
         unit_id: UNIT_ID,
-        athlete_id: 7,
         mosaic_walrus_blob_id: encodeBytes(MOSAIC_BLOB_ID),
         placements: {
           type: "0x2::table::Table<vector<u8>, 0xpkg::master_portrait::Placement>",
@@ -171,7 +168,7 @@ describe("getGalleryEntry", () => {
       }),
     ).resolves.toEqual({
       unitId: UNIT_ID,
-      athletePublicId: "7",
+      displayName: "Demo Athlete Seven",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
       mintedAtMs: 1700000000000,
@@ -192,7 +189,7 @@ describe("getGalleryEntry", () => {
       }),
     ).resolves.toEqual({
       unitId: UNIT_ID,
-      athletePublicId: "7",
+      displayName: "Demo Athlete Seven",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
       mintedAtMs: 1700000000000,
@@ -222,7 +219,7 @@ describe("getGalleryEntry", () => {
       }),
     ).resolves.toEqual({
       unitId: UNIT_ID,
-      athletePublicId: "7",
+      displayName: "Demo Athlete Seven",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: SUBMISSION_NO,
       mintedAtMs: 1700000000000,

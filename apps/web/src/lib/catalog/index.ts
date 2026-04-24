@@ -8,12 +8,11 @@
  */
 
 export {
-  getAthleteByPublicId,
+  getAthleteByUnitId,
   getAthleteBySlug,
   getAthleteCatalog,
 } from "./athlete-catalog";
 export type {
   AthleteCatalogEntry,
   AthleteChainRef,
-  AthletePublicId,
 } from "./types";

@@ -45,7 +45,6 @@ function kakeraObject(overrides: {
         fields: {
           id: { id: overrides.objectId ?? "0xkakera-1" },
           unit_id: UNIT_ID,
-          athlete_id: 1,
           submitter: OWNER,
           walrus_blob_id: encodeBytes(WALRUS_BLOB_ID),
           submission_no: "42",
@@ -137,7 +136,6 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-1",
-        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
@@ -145,7 +143,6 @@ describe("listOwnedKakera", () => {
       },
       {
         objectId: "0xkakera-2",
-        athletePublicId: "1",
         unitId: "0xunit-2",
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
@@ -172,7 +169,6 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-real",
-        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
@@ -217,7 +213,6 @@ describe("listOwnedKakera", () => {
     ).resolves.toEqual([
       {
         objectId: "0xkakera-real",
-        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,
@@ -255,7 +250,6 @@ describe("findOwnedKakeraForUnit", () => {
       }),
     ).resolves.toEqual({
       objectId: "0xunit-2-kakera",
-      athletePublicId: "1",
       unitId: "0xunit-2",
       walrusBlobId: WALRUS_BLOB_ID,
       submissionNo: 42,
@@ -296,7 +290,6 @@ describe("findKakeraForSubmission", () => {
 
     expect(result).not.toBeNull();
     expect(result?.objectId).toBe("0xkakera-1");
-    expect(result?.athletePublicId).toBe("1");
     expect(result?.unitId).toBe(UNIT_ID);
     expect(result?.walrusBlobId).toBe(WALRUS_BLOB_ID);
     expect(result?.submissionNo).toBe(42);
