@@ -454,7 +454,8 @@ function ParticipationAccessEnabled({
       phase.kind === "submitting");
   const showConsentAndFilePicker = !unitFull && !isDone && !isRecovering;
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
-  const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
+  const phaseRetry =
+    !unitFull && phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
   const connectedWalletLabel = isGoogleConnected ? "zkLogin" : "Sui wallet";
   const connectedWalletMessage = isGoogleConnected

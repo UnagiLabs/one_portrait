@@ -792,6 +792,70 @@ describe("ParticipationAccess", () => {
       });
     });
 
+    it("hides the retry button when live progress reaches maxSlots", async () => {
+      const { preprocessPhoto } = setupPreviewingEnv();
+      const { WalrusPutError } = await import("../../../lib/walrus/put");
+      let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+      useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+        capturedOnSubmitted = args.onSubmitted;
+      });
+      const putBlob = vi
+        .fn<PutMock>()
+        .mockRejectedValue(
+          new WalrusPutError(
+            "final",
+            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+          ),
+        );
+
+      render(
+        <UnitFullStateProvider initialFull={false}>
+          <LiveProgress
+            initialSubmittedCount={1999}
+            maxSlots={2000}
+            packageId="0xpkg"
+            unitId="0xunit-1"
+          />
+          <ParticipationAccess
+            preprocessPhoto={preprocessPhoto}
+            putBlob={putBlob}
+            unitId="0xunit-1"
+            walrusEnv={{
+              NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+              NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+            }}
+          />
+        </UnitFullStateProvider>,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /もう一度送信する/ }),
+        ).toBeTruthy();
+      });
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 2000,
+          submittedCount: 2000,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(
+        screen.queryByRole("button", { name: /もう一度送信する/ }),
+      ).toBeNull();
+      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+      expect(putBlob).toHaveBeenCalledTimes(1);
+    });
+
     it("disconnects and returns to the login step when submitPhoto fails with auth_expired", async () => {
       const { preprocessPhoto, submitPhoto } = setupPreviewingEnv();
       const disconnectMutate = vi.fn();
