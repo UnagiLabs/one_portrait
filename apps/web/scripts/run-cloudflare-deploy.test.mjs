@@ -3,8 +3,10 @@ import path from "node:path";
 import { test } from "node:test";
 
 import {
+  assertCloudflareDeployCredentials,
   buildCloudflareDeployArgs,
   buildCloudflareDeployEnv,
+  getMissingCloudflareDeployCredentials,
 } from "./run-cloudflare-deploy.mjs";
 
 const manifest = {
@@ -102,4 +104,38 @@ test("buildCloudflareDeployEnv uses the cloudflare build PATH and XDG_CONFIG_HOM
 
   assert.equal(env.PATH, `${path.join(cwd, "scripts")}:/usr/bin`);
   assert.equal(env.XDG_CONFIG_HOME, path.join(cwd, ".wrangler"));
+});
+
+test("getMissingCloudflareDeployCredentials reports missing or blank credentials", () => {
+  assert.deepEqual(
+    getMissingCloudflareDeployCredentials({
+      env: {
+        CLOUDFLARE_ACCOUNT_ID: "   ",
+        CLOUDFLARE_API_TOKEN: "token",
+      },
+    }),
+    ["CLOUDFLARE_ACCOUNT_ID"],
+  );
+  assert.deepEqual(
+    getMissingCloudflareDeployCredentials({
+      env: {
+        CLOUDFLARE_ACCOUNT_ID: "account-id",
+        CLOUDFLARE_API_TOKEN: "token",
+      },
+    }),
+    [],
+  );
+});
+
+test("assertCloudflareDeployCredentials fails with an actionable message", () => {
+  assert.throws(
+    () =>
+      assertCloudflareDeployCredentials({
+        env: {
+          CLOUDFLARE_ACCOUNT_ID: "",
+          CLOUDFLARE_API_TOKEN: "",
+        },
+      }),
+    /Missing required Cloudflare deploy credentials: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID/,
+  );
 });

@@ -6,6 +6,10 @@ const frontendCiWorkflow = readFileSync(
   "utf8",
 );
 
+const webPackageJson = JSON.parse(
+  readFileSync(new URL("../apps/web/package.json", import.meta.url), "utf8"),
+);
+
 const deployWebWorkflowUrl = new URL(
   "../.github/workflows/deploy-web.yml",
   import.meta.url,
@@ -57,6 +61,22 @@ describe("deploy-web workflow", () => {
   it("deploys the Web worker with the deploy wrapper", () => {
     expect(readDeployWebWorkflow()).toContain(
       "corepack pnpm --filter web run deploy",
+    );
+  });
+
+  it("checks Cloudflare credentials before building the Web worker", () => {
+    expect(webPackageJson.scripts.deploy).toMatch(
+      /^node \.\/scripts\/run-cloudflare-deploy\.mjs --check && pnpm run build:cf && node \.\/scripts\/run-cloudflare-deploy\.mjs$/,
+    );
+  });
+
+  it("skips deploy cleanly when Cloudflare credentials are not configured", () => {
+    const workflow = readDeployWebWorkflow();
+
+    expect(workflow).toContain("HAS_CLOUDFLARE_DEPLOY_CREDENTIALS:");
+    expect(workflow).toContain("Cloudflare deploy skipped");
+    expect(workflow).toContain(
+      "steps.cloudflare-credentials.outputs.enabled == 'true'",
     );
   });
 
