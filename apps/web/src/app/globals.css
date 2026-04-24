@@ -681,8 +681,19 @@ a {
   letter-spacing: 0.12em;
 }
 
+.op-home-portrait-card-status {
+  max-width: 132px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 .op-home-portrait-card-body span.is-live {
   color: var(--ember);
+}
+
+.op-home-portrait-card-body span.is-unavailable {
+  color: var(--ink-faint);
 }
 
 .op-home-portrait-card-body h3 {

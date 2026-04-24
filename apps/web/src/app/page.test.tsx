@@ -4,12 +4,15 @@ import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getActiveHomeUnitsMock } = vi.hoisted(() => ({
+import { demoUnitId } from "../lib/demo";
+
+const { getAthleteCatalogMock, getActiveHomeUnitsMock } = vi.hoisted(() => ({
+  getAthleteCatalogMock: vi.fn(),
   getActiveHomeUnitsMock: vi.fn(),
 }));
 
 vi.mock("../lib/catalog", () => ({
-  getAthleteCatalog: vi.fn(),
+  getAthleteCatalog: getAthleteCatalogMock,
 }));
 
 vi.mock("../lib/sui", () => ({
@@ -29,9 +32,26 @@ vi.mock("../lib/sui", () => ({
 
 import HomePage from "./page";
 
+const CATALOG = [
+  {
+    unitId: demoUnitId,
+    slug: "demo-athlete-one",
+    displayName: "Demo Athlete One",
+    thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+  },
+  {
+    unitId:
+      "0x00000000000000000000000000000000000000000000000000000000000000d4",
+    slug: "demo-athlete-two",
+    displayName: "Demo Athlete Two",
+    thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+2",
+  },
+] as const;
+
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
+  getAthleteCatalogMock.mockReset();
   getActiveHomeUnitsMock.mockReset();
 });
 
@@ -91,6 +111,24 @@ describe("HomePage", () => {
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Complete").length).toBeGreaterThan(0);
     expect(screen.getAllByText("1999 / 2000").length).toBeGreaterThan(0);
+  });
+
+  it("keeps E2E degraded home card states distinct in the portrait rail", async () => {
+    process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+
+    const ui = await HomePage({
+      searchParams: Promise.resolve({
+        op_e2e_home_card_state: `${demoUnitId}:waiting,0x00000000000000000000000000000000000000000000000000000000000000d4:unavailable`,
+      }),
+    });
+    render(ui);
+
+    expect(screen.getAllByText(/Waiting \/ No active unit/i).length).toBe(2);
+    expect(
+      screen.getAllByText(/Progress temporarily unavailable/i).length,
+    ).toBe(2);
+    expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });
 
   it("does not render the legacy live registry block", async () => {

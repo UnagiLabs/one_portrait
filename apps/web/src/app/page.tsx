@@ -49,7 +49,7 @@ type PortraitWork = {
   readonly name: string;
   readonly progressLabel?: string;
   readonly region: string;
-  readonly state?: "complete" | "live";
+  readonly state?: "complete" | "live" | "unavailable";
   readonly status: string;
   readonly src: string;
 };
@@ -162,13 +162,10 @@ function buildPortraitWorkRail(entries: readonly HomeEntry[]) {
           ? isComplete
             ? "complete"
             : "live"
-          : undefined,
-      status:
-        entry.progress.kind === "active"
-          ? isComplete
-            ? "Complete"
-            : "Live"
-          : "Waiting",
+          : entry.progress.kind === "unavailable"
+            ? "unavailable"
+            : undefined,
+      status: getPortraitWorkStatus(entry.progress, isComplete),
     };
   });
 
@@ -287,6 +284,7 @@ function PortraitWorkCard({
 }): React.ReactElement {
   const isComplete = work.state === "complete";
   const isLive = work.state === "live";
+  const isUnavailable = work.state === "unavailable";
   const card = (
     <article
       className={`op-home-portrait-card${isLive ? " is-live" : ""}${
@@ -294,6 +292,7 @@ function PortraitWorkCard({
       }`}
       data-complete={isComplete ? "true" : undefined}
       data-live={isLive ? "true" : undefined}
+      data-unavailable={isUnavailable ? "true" : undefined}
     >
       {/* biome-ignore lint/performance/noImgElement: temporary public portrait artwork */}
       <img alt={work.name} src={work.src} />
@@ -312,7 +311,13 @@ function PortraitWorkCard({
       <div className="op-home-portrait-card-body">
         <div className="flex items-center justify-between gap-4">
           <span>{work.region}</span>
-          <span className="is-live">{work.status}</span>
+          <span
+            className={`op-home-portrait-card-status${
+              isLive ? " is-live" : ""
+            }${isUnavailable ? " is-unavailable" : ""}`}
+          >
+            {work.status}
+          </span>
         </div>
         <h3>{work.name}</h3>
         {work.progressLabel ? (
@@ -492,6 +497,21 @@ async function loadDemoEntries(
 function buildWaitingRoomHref(unitId: string, athleteName: string): string {
   const params = new URLSearchParams({ athleteName });
   return `/units/${unitId}?${params.toString()}`;
+}
+
+function getPortraitWorkStatus(
+  progress: HomeEntry["progress"],
+  isComplete: boolean,
+): string {
+  if (progress.kind === "active") {
+    return isComplete ? "Complete" : "Live";
+  }
+
+  if (progress.kind === "waiting") {
+    return "Waiting / No active unit";
+  }
+
+  return "Progress temporarily unavailable";
 }
 
 function resolveE2ECardOverride(
