@@ -883,6 +883,164 @@ describe("runGeneratorStackTunnel", () => {
     }
   });
 
+  it("stops children, cleans remote runtime, and exits non-zero when heartbeat fails", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicBaseUrl: "https://generator.example",
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    writeRemoteGeneratorRuntimeMock
+      .mockResolvedValueOnce({
+        marker: "[generator-runtime][remote-kv][written]",
+        ok: true,
+      })
+      .mockResolvedValueOnce({
+        marker: "[generator-runtime][remote-kv][write-failed]",
+        ok: false,
+      });
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+      },
+      heartbeatIntervalMs: 10,
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    try {
+      await settle();
+      localHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      });
+      await settle();
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+
+      await expect(withTimeout(runPromise, 80)).resolves.toEqual({
+        exitCode: 1,
+        marker: "[generator-stack][remote-kv][heartbeat-failed]",
+        ok: false,
+      });
+      expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(tunnelChild.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(logger.warn).toHaveBeenCalledWith(
+        "[generator-stack][remote-kv][heartbeat-failed] marker=[generator-runtime][remote-kv][write-failed]",
+      );
+      expect(deleteRemoteGeneratorRuntimeMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          logger,
+        }),
+      );
+    } finally {
+      tunnelChild.emit("exit", 1, null);
+      await runPromise;
+    }
+  });
+
+  it("stops heartbeat writes after tunnel exit", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicBaseUrl: "https://generator.example",
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+      },
+      heartbeatIntervalMs: 10,
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    await settle();
+    localHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][local][ready]",
+      ok: true,
+    });
+    await settle();
+    externalHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][external][ready]",
+      ok: true,
+    });
+    await settle();
+    await delay(25);
+    const writeCountBeforeExit =
+      writeRemoteGeneratorRuntimeMock.mock.calls.length;
+
+    tunnelChild.emit("exit", 1, null);
+    await runPromise;
+    await delay(25);
+
+    expect(writeRemoteGeneratorRuntimeMock.mock.calls.length).toBe(
+      writeCountBeforeExit,
+    );
+  });
+
   it("respects a custom runtime state path from merged env", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
@@ -1155,4 +1313,14 @@ async function delay(ms: number) {
   await new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number) {
+  return Promise.race([
+    promise,
+    delay(ms).then(() => ({
+      marker: "[test][timeout]",
+      ok: false,
+    })),
+  ]);
 }

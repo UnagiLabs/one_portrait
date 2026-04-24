@@ -266,6 +266,7 @@ export async function runGeneratorStackTunnel({
         kind: "child-exit",
         result,
       })),
+      remoteRuntimeHeartbeat.promise,
       signalState.promise,
     ]);
 
@@ -273,6 +274,13 @@ export async function runGeneratorStackTunnel({
       return stopForSignal({
         generator,
         signal: terminalResult.signal,
+        tunnel,
+      });
+    }
+
+    if (isHeartbeatResult(terminalResult)) {
+      return stopForHeartbeatFailure({
+        generator,
         tunnel,
       });
     }
@@ -295,6 +303,18 @@ export async function runGeneratorStackTunnel({
   }
 }
 
+function createDeferredTerminal() {
+  let resolve;
+  const promise = new Promise((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return {
+    promise,
+    resolve,
+  };
+}
+
 function createRemoteRuntimeHeartbeat({
   env,
   intervalMs,
@@ -305,6 +325,7 @@ function createRemoteRuntimeHeartbeat({
 }) {
   let inFlight = null;
   let stopped = false;
+  const terminal = createDeferredTerminal();
   const timer = setInterval(() => {
     if (inFlight !== null || stopped) {
       return;
@@ -318,10 +339,25 @@ function createRemoteRuntimeHeartbeat({
     })
       .then((result) => {
         if (!result.ok) {
+          stopped = true;
+          clearInterval(timer);
           logger?.warn?.(
             `[generator-stack][remote-kv][heartbeat-failed] marker=${result.marker}`,
           );
+          terminal.resolve({
+            kind: "heartbeat-failed",
+          });
         }
+      })
+      .catch((error) => {
+        stopped = true;
+        clearInterval(timer);
+        logger?.warn?.(
+          `[generator-stack][remote-kv][heartbeat-failed] message=${formatError(error)}`,
+        );
+        terminal.resolve({
+          kind: "heartbeat-failed",
+        });
       })
       .finally(() => {
         inFlight = null;
@@ -329,6 +365,7 @@ function createRemoteRuntimeHeartbeat({
   }, intervalMs);
 
   return {
+    promise: terminal.promise,
     async stop() {
       stopped = true;
       clearInterval(timer);
@@ -587,6 +624,20 @@ async function handleTerminalResult({ generator, result, tunnel }) {
   };
 }
 
+function isHeartbeatResult(result) {
+  return result?.kind === "heartbeat-failed";
+}
+
+async function stopForHeartbeatFailure({ generator, tunnel }) {
+  await Promise.all([stopTrackedChild(generator), stopTrackedChild(tunnel)]);
+
+  return {
+    exitCode: 1,
+    marker: "[generator-stack][remote-kv][heartbeat-failed]",
+    ok: false,
+  };
+}
+
 async function stopForSignal({ generator, signal, tunnel }) {
   await Promise.all([stopTrackedChild(generator), stopTrackedChild(tunnel)]);
 
@@ -596,6 +647,14 @@ async function stopForSignal({ generator, signal, tunnel }) {
     ok: false,
     signal,
   };
+}
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 async function stopTrackedChild(child) {
