@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import testnetDeploymentManifest from "../ops/deployments/testnet.json";
@@ -6,6 +7,7 @@ import {
   parseDeploymentManifest,
   toGeneratorEnv,
   toWebPublicEnv,
+  toWranglerVarArgs,
 } from "../scripts/deployment-env.mjs";
 
 const VALID_MANIFEST = testnetDeploymentManifest;
@@ -29,6 +31,60 @@ describe("deployment manifest", () => {
       WALRUS_AGGREGATOR: VALID_MANIFEST.walrusAggregator,
       WALRUS_PUBLISHER: VALID_MANIFEST.walrusPublisher,
     });
+  });
+
+  it("exports web public env as Wrangler var arguments", () => {
+    const manifest = parseDeploymentManifest(VALID_MANIFEST);
+    const args = toWranglerVarArgs({
+      ...toWebPublicEnv(manifest),
+      ADMIN_SUI_PRIVATE_KEY: "secret-admin-key",
+      ENOKI_PRIVATE_API_KEY: "secret-enoki-key",
+      OP_FINALIZE_DISPATCH_SECRET: "secret-dispatch-key",
+    });
+
+    expect(args).toContain(
+      `NEXT_PUBLIC_PACKAGE_ID:${VALID_MANIFEST.packageId}`,
+    );
+    expect(args).toContain(
+      `NEXT_PUBLIC_REGISTRY_OBJECT_ID:${VALID_MANIFEST.registryObjectId}`,
+    );
+    expect(args).toContain("NEXT_PUBLIC_SUI_NETWORK:testnet");
+    expect(args).not.toContain("ADMIN_SUI_PRIVATE_KEY:secret-admin-key");
+    expect(args).not.toContain(
+      "OP_FINALIZE_DISPATCH_SECRET:secret-dispatch-key",
+    );
+    expect(args).not.toContain("ENOKI_PRIVATE_API_KEY:secret-enoki-key");
+    expect(args.join(" ")).not.toMatch(/secret-/);
+  });
+
+  it("prints Wrangler var arguments from the CLI", () => {
+    const output = execFileSync("node", [
+      new URL("../scripts/deployment-env.mjs", import.meta.url).pathname,
+      "wrangler-vars",
+    ]).toString();
+
+    expect(output).toContain(
+      `--var NEXT_PUBLIC_PACKAGE_ID:${VALID_MANIFEST.packageId}`,
+    );
+    expect(output).toContain(
+      `--var NEXT_PUBLIC_REGISTRY_OBJECT_ID:${VALID_MANIFEST.registryObjectId}`,
+    );
+    expect(output).not.toMatch(/ADMIN_SUI_PRIVATE_KEY/);
+    expect(output).not.toMatch(/OP_FINALIZE_DISPATCH_SECRET/);
+    expect(output).not.toMatch(/ENOKI_PRIVATE_API_KEY/);
+  });
+
+  it("mentions wrangler-vars in unknown command help", () => {
+    expect(() =>
+      execFileSync(
+        "node",
+        [
+          new URL("../scripts/deployment-env.mjs", import.meta.url).pathname,
+          "unknown-command",
+        ],
+        { stdio: "pipe" },
+      ),
+    ).toThrow(/wrangler-vars/);
   });
 
   it("rejects missing required keys", () => {
