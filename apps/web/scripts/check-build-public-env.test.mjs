@@ -109,10 +109,7 @@ test("local build prefers deployment manifest public env over .env.local", () =>
     source.NEXT_PUBLIC_REGISTRY_OBJECT_ID,
     "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
   );
-  assert.equal(
-    source.NEXT_PUBLIC_PACKAGE_ID,
-    NEUTRAL_PACKAGE_ID,
-  );
+  assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, NEUTRAL_PACKAGE_ID);
   assert.equal(
     source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
     NEUTRAL_ORIGINAL_PACKAGE_ID,
@@ -289,10 +286,7 @@ test("deployment manifest values override stale build env values", () => {
       mode: "cloudflare",
     });
 
-    assert.equal(
-      source.NEXT_PUBLIC_PACKAGE_ID,
-      NEUTRAL_PACKAGE_ID,
-    );
+    assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, NEUTRAL_PACKAGE_ID);
     assert.equal(
       source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
       NEUTRAL_ORIGINAL_PACKAGE_ID,
