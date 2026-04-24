@@ -6,12 +6,14 @@ import type { MasterPlacementView } from "../../../lib/sui";
 type RevealPanelProps = {
   readonly displayName: string;
   readonly mosaicUrl: string;
+  readonly originalPhotoUrl?: string | null;
   readonly placement: MasterPlacementView | null;
 };
 
 export function RevealPanel({
   displayName,
   mosaicUrl,
+  originalPhotoUrl: _originalPhotoUrl,
   placement,
 }: RevealPanelProps): React.ReactElement {
   return (
