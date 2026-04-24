@@ -18,7 +18,11 @@ export function startDev({
   nextDevBin = path.join(cwd, "node_modules", ".bin", "next"),
   spawnImpl = spawn,
 }) {
-  const mergedEnv = loadWebScriptEnv({ env });
+  const mergedEnv = loadWebScriptEnv({
+    env,
+    repoRoot: path.resolve(cwd, "..", ".."),
+    webRoot: cwd,
+  });
 
   return spawnImpl(nextDevBin, ["dev"], {
     cwd,

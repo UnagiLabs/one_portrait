@@ -3,14 +3,19 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { loadWebScriptEnv, startLocalGenerator } from "./run-local-generator.mjs";
+import {
+  loadWebScriptEnv,
+  startLocalGenerator,
+} from "./run-local-generator.mjs";
 
 describe("startLocalGenerator", () => {
   it("builds the generator image and runs the container with forwarded env", () => {
+    const repoRoot = createTempRepo();
     const runDockerBuild = vi.fn();
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 
     startLocalGenerator({
+      cwd: repoRoot,
       env: {
         ADMIN_CAP_ID: "0xadmincap",
         ADMIN_SUI_PRIVATE_KEY: "suiprivkey",
@@ -23,11 +28,12 @@ describe("startLocalGenerator", () => {
       },
       runDockerBuild,
       spawnImpl,
+      webRoot: path.join(repoRoot, "apps/web"),
     });
 
     expect(runDockerBuild).toHaveBeenCalledWith(
       expect.objectContaining({
-        contextPath: expect.stringContaining("one_portrait"),
+        contextPath: repoRoot,
         dockerfilePath: expect.stringContaining("generator/Dockerfile"),
         imageTag: "one-portrait-generator:local",
       }),
@@ -60,23 +66,26 @@ describe("startLocalGenerator", () => {
         "one-portrait-generator:local",
       ]),
       expect.objectContaining({
-        cwd: expect.stringContaining("one_portrait"),
+        cwd: repoRoot,
         stdio: "inherit",
       }),
     );
   });
 
   it("defaults to 8080 when OP_LOCAL_GENERATOR_PORT is blank", () => {
+    const repoRoot = createTempRepo();
     const runDockerBuild = vi.fn();
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 
     startLocalGenerator({
+      cwd: repoRoot,
       env: {
         OP_LOCAL_GENERATOR_PORT: "",
         PORT: "",
       },
       runDockerBuild,
       spawnImpl,
+      webRoot: path.join(repoRoot, "apps/web"),
     });
 
     expect(spawnImpl).toHaveBeenCalledWith(
@@ -92,15 +101,18 @@ describe("startLocalGenerator", () => {
   });
 
   it("uses PORT when OP_LOCAL_GENERATOR_PORT is unset", () => {
+    const repoRoot = createTempRepo();
     const runDockerBuild = vi.fn();
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 
     startLocalGenerator({
+      cwd: repoRoot,
       env: {
         PORT: "9090",
       },
       runDockerBuild,
       spawnImpl,
+      webRoot: path.join(repoRoot, "apps/web"),
     });
 
     expect(spawnImpl).toHaveBeenCalledWith(
@@ -111,16 +123,19 @@ describe("startLocalGenerator", () => {
   });
 
   it("prefers OP_LOCAL_GENERATOR_PORT over PORT", () => {
+    const repoRoot = createTempRepo();
     const runDockerBuild = vi.fn();
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 
     startLocalGenerator({
+      cwd: repoRoot,
       env: {
         OP_LOCAL_GENERATOR_PORT: "7070",
         PORT: "9090",
       },
       runDockerBuild,
       spawnImpl,
+      webRoot: path.join(repoRoot, "apps/web"),
     });
 
     expect(spawnImpl).toHaveBeenCalledWith(

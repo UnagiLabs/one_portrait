@@ -252,5 +252,6 @@ function createTempDir() {
 }
 
 function writeFile(dir, name, content) {
+  fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, name), content);
 }

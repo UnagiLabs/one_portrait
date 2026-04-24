@@ -48,6 +48,10 @@ describe("getAdminHealth", () => {
     vi.stubEnv("OP_FINALIZE_DISPATCH_SECRET", "shared-secret");
     vi.stubEnv("OP_FINALIZE_DISPATCH_URL", "https://dispatch.example.com");
     vi.stubEnv("OP_GENERATOR_BASE_URL", "https://generator.example.com");
+    vi.stubEnv(
+      "OP_GENERATOR_RUNTIME_STATE_PATH",
+      "/tmp/one-portrait-missing-generator-runtime.json",
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getAdminHealth()).resolves.toEqual({

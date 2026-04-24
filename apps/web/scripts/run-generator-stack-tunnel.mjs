@@ -42,7 +42,11 @@ export async function runGeneratorStackTunnel({
   let tunnel = null;
   let tunnelChild = null;
   let remoteRuntimeInitialized = false;
-  const mergedEnv = loadWebScriptEnv({ env });
+  const mergedEnv = loadWebScriptEnv({
+    env,
+    repoRoot: path.resolve(appRootPath, "..", ".."),
+    webRoot: appRootPath,
+  });
   const cloudflaredConfigPath = resolveCloudflaredConfigPath(mergedEnv);
 
   try {
@@ -75,7 +79,9 @@ export async function runGeneratorStackTunnel({
 
     const generatorSpawn = await startLocalGenerator({
       env: mergedEnv,
+      cwd: path.resolve(appRootPath, "..", ".."),
       spawnImpl,
+      webRoot: appRootPath,
     });
     generator = trackChild(generatorSpawn.child);
 
