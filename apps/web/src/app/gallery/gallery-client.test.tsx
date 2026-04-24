@@ -422,6 +422,11 @@ describe("GalleryClient", () => {
     expect(screen.getByText(/Waiting for reveal/i)).toBeTruthy();
     expect(screen.getByText(/Submission #17/i)).toBeTruthy();
     expect(
+      screen
+        .getByAltText(/Demo Athlete One original submission/i)
+        .getAttribute("src"),
+    ).toBe(`${WALRUS_AGGREGATOR}/v1/blobs/walrus-original-1`);
+    expect(
       screen.queryByRole("link", { name: /unit ページで位置を見る/i }),
     ).toBeNull();
   });

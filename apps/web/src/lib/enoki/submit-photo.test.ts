@@ -115,6 +115,10 @@ describe("resolveRuntimeEnv", () => {
 });
 
 describe("sponsorSubmitPhoto", () => {
+  it("keeps the sponsored target pinned to accessors::submit_photo only", () => {
+    expect(submitPhotoTarget("0xpkg")).toBe("0xpkg::accessors::submit_photo");
+  });
+
   it("validates the JWT and restricts sponsorship to submit_photo", async () => {
     const getZkLogin = vi.fn(async () => ({
       address: "0xsender",
