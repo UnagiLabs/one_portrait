@@ -24,10 +24,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const DEFAULT_LOCAL_PORT = 8080;
+const GENERATOR_RUNTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
 
 export async function runGeneratorStackTunnel({
   appRootPath = webRoot,
   env = process.env,
+  heartbeatIntervalMs = GENERATOR_RUNTIME_HEARTBEAT_INTERVAL_MS,
   logger = console,
   preflight = runGeneratorStackPreflight,
   processImpl = process,
@@ -41,6 +43,7 @@ export async function runGeneratorStackTunnel({
   let generator = null;
   let tunnel = null;
   let tunnelChild = null;
+  let remoteRuntimeHeartbeat = null;
   let remoteRuntimeInitialized = false;
   const mergedEnv = loadWebScriptEnv({
     env,
@@ -188,24 +191,6 @@ export async function runGeneratorStackTunnel({
           : processImpl.pid,
       url: publicBaseUrl,
     });
-    if (preflightResult.tunnelMode === "quick") {
-      const writeRemoteRuntimeResult = await writeRemoteRuntime({
-        env: mergedEnv,
-        logger,
-        mode: "quick",
-        url: publicBaseUrl,
-      });
-      if (!writeRemoteRuntimeResult.ok) {
-        await stopTrackedChild(generator);
-        await stopTrackedChild(tunnel);
-        return {
-          exitCode: 1,
-          marker: "[generator-stack][remote-kv][write-failed]",
-          ok: false,
-        };
-      }
-    }
-
     const externalHealth = await waitForHealthUntilReady({
       healthFactory: () =>
         waitForHealth({
@@ -244,6 +229,30 @@ export async function runGeneratorStackTunnel({
       return externalHealth.result;
     }
 
+    const writeRemoteRuntimeResult = await writeRemoteRuntime({
+      env: mergedEnv,
+      logger,
+      mode: preflightResult.tunnelMode,
+      url: publicBaseUrl,
+    });
+    if (!writeRemoteRuntimeResult.ok) {
+      await stopTrackedChild(generator);
+      await stopTrackedChild(tunnel);
+      return {
+        exitCode: 1,
+        marker: "[generator-stack][remote-kv][write-failed]",
+        ok: false,
+      };
+    }
+    remoteRuntimeHeartbeat = createRemoteRuntimeHeartbeat({
+      env: mergedEnv,
+      intervalMs: heartbeatIntervalMs,
+      logger,
+      mode: preflightResult.tunnelMode,
+      url: publicBaseUrl,
+      writeRemoteRuntime,
+    });
+
     logger?.info?.("[generator-stack][ready]");
 
     const terminalResult = await Promise.race([
@@ -257,6 +266,7 @@ export async function runGeneratorStackTunnel({
         kind: "child-exit",
         result,
       })),
+      remoteRuntimeHeartbeat.promise,
       signalState.promise,
     ]);
 
@@ -268,12 +278,20 @@ export async function runGeneratorStackTunnel({
       });
     }
 
+    if (isHeartbeatResult(terminalResult)) {
+      return stopForHeartbeatFailure({
+        generator,
+        tunnel,
+      });
+    }
+
     return handleTerminalResult({
       generator,
       result: terminalResult,
       tunnel,
     });
   } finally {
+    await remoteRuntimeHeartbeat?.stop();
     if (remoteRuntimeInitialized) {
       await deleteRemoteRuntime({
         env: mergedEnv,
@@ -283,6 +301,77 @@ export async function runGeneratorStackTunnel({
     signalState.cleanup();
     removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
   }
+}
+
+function createDeferredTerminal() {
+  let resolve;
+  const promise = new Promise((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return {
+    promise,
+    resolve,
+  };
+}
+
+function createRemoteRuntimeHeartbeat({
+  env,
+  intervalMs,
+  logger,
+  mode,
+  url,
+  writeRemoteRuntime,
+}) {
+  let inFlight = null;
+  let stopped = false;
+  const terminal = createDeferredTerminal();
+  const timer = setInterval(() => {
+    if (inFlight !== null || stopped) {
+      return;
+    }
+
+    inFlight = writeRemoteRuntime({
+      env,
+      logger,
+      mode,
+      url,
+    })
+      .then((result) => {
+        if (!result.ok) {
+          stopped = true;
+          clearInterval(timer);
+          logger?.warn?.(
+            `[generator-stack][remote-kv][heartbeat-failed] marker=${result.marker}`,
+          );
+          terminal.resolve({
+            kind: "heartbeat-failed",
+          });
+        }
+      })
+      .catch((error) => {
+        stopped = true;
+        clearInterval(timer);
+        logger?.warn?.(
+          `[generator-stack][remote-kv][heartbeat-failed] message=${formatError(error)}`,
+        );
+        terminal.resolve({
+          kind: "heartbeat-failed",
+        });
+      })
+      .finally(() => {
+        inFlight = null;
+      });
+  }, intervalMs);
+
+  return {
+    promise: terminal.promise,
+    async stop() {
+      stopped = true;
+      clearInterval(timer);
+      await inFlight;
+    },
+  };
 }
 
 if (isExecutedDirectly()) {
@@ -535,6 +624,20 @@ async function handleTerminalResult({ generator, result, tunnel }) {
   };
 }
 
+function isHeartbeatResult(result) {
+  return result?.kind === "heartbeat-failed";
+}
+
+async function stopForHeartbeatFailure({ generator, tunnel }) {
+  await Promise.all([stopTrackedChild(generator), stopTrackedChild(tunnel)]);
+
+  return {
+    exitCode: 1,
+    marker: "[generator-stack][remote-kv][heartbeat-failed]",
+    ok: false,
+  };
+}
+
 async function stopForSignal({ generator, signal, tunnel }) {
   await Promise.all([stopTrackedChild(generator), stopTrackedChild(tunnel)]);
 
@@ -544,6 +647,14 @@ async function stopForSignal({ generator, signal, tunnel }) {
     ok: false,
     signal,
   };
+}
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 async function stopTrackedChild(child) {
