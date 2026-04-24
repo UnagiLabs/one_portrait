@@ -33,6 +33,10 @@ describe("GET /api/admin/health", () => {
         httpStatus: 200,
         status: "ok",
       },
+      expectedDeployment: {
+        network: "testnet",
+        packageId: "0xpkg",
+      },
       generatorReadiness: {
         httpStatus: 200,
         status: "ok",
@@ -57,6 +61,10 @@ describe("GET /api/admin/health", () => {
         httpStatus: 200,
         status: "ok",
       },
+      expectedDeployment: {
+        network: "testnet",
+        packageId: "0xpkg",
+      },
       generatorReadiness: {
         httpStatus: 200,
         status: "ok",
@@ -73,6 +81,10 @@ describe("GET /api/admin/health", () => {
       dispatchAuthorization: {
         httpStatus: null,
         status: "misconfigured",
+      },
+      expectedDeployment: {
+        network: "testnet",
+        packageId: "0xpkg",
       },
       generatorReadiness: {
         httpStatus: null,
@@ -92,6 +104,10 @@ describe("GET /api/admin/health", () => {
       dispatchAuthorization: {
         httpStatus: null,
         status: "misconfigured",
+      },
+      expectedDeployment: {
+        network: "testnet",
+        packageId: "0xpkg",
       },
       generatorReadiness: {
         httpStatus: null,

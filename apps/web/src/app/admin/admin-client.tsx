@@ -235,6 +235,14 @@ export function AdminClient({
           />
           <InfoRow label="source" value={health.source} />
           <InfoRow label="resolution" value={health.resolutionStatus} />
+          <InfoRow
+            label="worker package"
+            value={health.expectedDeployment.packageId}
+          />
+          <InfoRow
+            label="generator package"
+            value={health.generatorReadiness.packageId ?? "unknown"}
+          />
         </dl>
       </section>
 
