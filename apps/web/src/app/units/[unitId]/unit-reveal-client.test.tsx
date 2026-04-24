@@ -13,6 +13,7 @@ const {
   getGalleryEntryMock,
   getMasterPlacementMock,
   getSuiClientMock,
+  liveProgressMock,
 } = vi.hoisted(() => ({
   useEnokiConfigStateMock: vi.fn(),
   useCurrentAccountMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   getGalleryEntryMock: vi.fn(),
   getMasterPlacementMock: vi.fn(),
   getSuiClientMock: vi.fn(),
+  liveProgressMock: vi.fn(),
 }));
 
 vi.mock("../../../lib/enoki/provider", () => ({
@@ -39,10 +41,12 @@ vi.mock("../../../lib/sui", () => ({
 
 vi.mock("./live-progress", () => ({
   LiveProgress: ({
+    initialMasterId,
     initialSubmittedCount,
     maxSlots,
     onMosaicReady,
   }: {
+    initialMasterId?: string | null;
     initialSubmittedCount: number;
     maxSlots: number;
     onMosaicReady?: (event: {
@@ -51,28 +55,32 @@ vi.mock("./live-progress", () => ({
       readonly masterId: string;
       readonly mosaicWalrusBlobId: readonly number[];
     }) => void;
-  }) => (
-    <div>
-      <div data-testid="live-progress">
-        {initialSubmittedCount} / {maxSlots}
+  }) => {
+    liveProgressMock({ initialMasterId, initialSubmittedCount, maxSlots });
+
+    return (
+      <div>
+        <div data-testid="live-progress">
+          {initialSubmittedCount} / {maxSlots}
+        </div>
+        <button
+          onClick={() => {
+            onMosaicReady?.({
+              kind: "mosaicReady",
+              unitId: "0xunit-1",
+              masterId: "0xmaster-1",
+              mosaicWalrusBlobId: Array.from(
+                new TextEncoder().encode("mosaic-event-blob"),
+              ),
+            });
+          }}
+          type="button"
+        >
+          emit mosaic ready
+        </button>
       </div>
-      <button
-        onClick={() => {
-          onMosaicReady?.({
-            kind: "mosaicReady",
-            unitId: "0xunit-1",
-            masterId: "0xmaster-1",
-            mosaicWalrusBlobId: Array.from(
-              new TextEncoder().encode("mosaic-event-blob"),
-            ),
-          });
-        }}
-        type="button"
-      >
-        emit mosaic ready
-      </button>
-    </div>
-  ),
+    );
+  },
 }));
 
 import { UnitRevealClient } from "./unit-reveal-client";
@@ -143,6 +151,7 @@ afterEach(() => {
   getGalleryEntryMock.mockReset();
   getMasterPlacementMock.mockReset();
   getSuiClientMock.mockReset();
+  liveProgressMock.mockReset();
   useEnokiConfigStateMock.mockReset();
 });
 
@@ -165,6 +174,29 @@ describe("UnitRevealClient", () => {
     );
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
     expect(screen.queryByTestId("reveal-image")).toBeNull();
+  });
+
+  it("passes filled-without-master state to live progress without revealing early", () => {
+    render(
+      <UnitRevealClient
+        displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
+        initialMasterId={null}
+        initialSubmittedCount={unitTileCount}
+        maxSlots={unitTileCount}
+        packageId="0xpkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(liveProgressMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialMasterId: null,
+        initialSubmittedCount: unitTileCount,
+        maxSlots: unitTileCount,
+      }),
+    );
+    expect(screen.queryByTestId("reveal-panel")).toBeNull();
   });
 
   it("reveals the mosaic and highlights the viewer placement after MosaicReadyEvent", async () => {

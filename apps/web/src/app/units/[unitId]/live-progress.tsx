@@ -5,9 +5,8 @@
  *
  * The server component (`./page.tsx`) hydrates this with the count it read
  * from Sui at request time; from there `useUnitEvents` keeps the number
- * ticking in real time via `SubmittedEvent`s. `UnitFilledEvent` and
- * `MosaicReadyEvent` are logged as hooks for the later finalize / reveal
- * flows but intentionally do not drive UI yet.
+ * ticking in real time via `SubmittedEvent`s. `UnitFilledEvent` starts the
+ * finalize handoff, while `MosaicReadyEvent` is forwarded to the reveal flow.
  *
  * Invariant (see CLAUDE.md / docs/tech.md §10, §11):
  *   `SubmittedEvent` is the ONLY source of truth for `submittedCount`.
@@ -20,7 +19,7 @@
  *   - reveal animation (listen for MosaicReadyEvent here and fan out)
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   MosaicReadyEvent,
@@ -37,26 +36,94 @@ export type LiveProgressProps = {
   readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string;
   readonly unitId: string;
+  readonly initialMasterId?: string | null;
   readonly initialSubmittedCount: number;
   readonly maxSlots: number;
   readonly onMosaicReady?: (event: MosaicReadyEvent) => void;
-  readonly triggerFinalize?: (unitId: string) => Promise<void>;
+  readonly triggerFinalize?: (
+    unitId: string,
+  ) => Promise<FinalizeTriggerResult | undefined>;
 };
+
+type FinalizeTriggerResult =
+  | {
+      readonly code: string;
+      readonly message: string;
+      readonly status: "ignored_dispatch_failed";
+      readonly unitId: string | null;
+    }
+  | {
+      readonly status: "ignored_finalized" | "ignored_pending" | "queued";
+      readonly unitId: string;
+    };
+
+type FinalizeState =
+  | { readonly status: "idle" }
+  | { readonly status: "running" }
+  | {
+      readonly status: "failed";
+      readonly code: string;
+      readonly message: string;
+    }
+  | { readonly status: "queued" };
 
 export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const {
     eventSubscriptionEnabled = true,
     packageId,
     unitId,
+    initialMasterId,
     initialSubmittedCount,
     maxSlots,
     onMosaicReady,
     triggerFinalize = defaultTriggerFinalize,
   } = props;
 
+  const initiallyFilled = maxSlots > 0 && initialSubmittedCount >= maxSlots;
+  const needsInitialFinalize = initiallyFilled && initialMasterId === null;
   const [submittedCount, setSubmittedCount] = useState(initialSubmittedCount);
-  const [filled, setFilled] = useState(false);
+  const [filled, setFilled] = useState(initiallyFilled);
+  const [finalizeState, setFinalizeState] = useState<FinalizeState>(
+    needsInitialFinalize ? { status: "running" } : { status: "idle" },
+  );
   const finalizeTriggeredRef = useRef(false);
+
+  const startFinalize = (): void => {
+    if (finalizeTriggeredRef.current) {
+      return;
+    }
+
+    finalizeTriggeredRef.current = true;
+    setFinalizeState({ status: "running" });
+    void triggerFinalize(unitId)
+      .then((result) => {
+        if (result?.status === "ignored_dispatch_failed") {
+          setFinalizeState({
+            code: result.code,
+            message: result.message,
+            status: "failed",
+          });
+          return;
+        }
+
+        setFinalizeState({ status: "queued" });
+      })
+      .catch((error: unknown) => {
+        setFinalizeState({
+          code: "request_failed",
+          message: error instanceof Error ? error.message : String(error),
+          status: "failed",
+        });
+      });
+  };
+
+  useEffect(() => {
+    if (!needsInitialFinalize) {
+      return;
+    }
+
+    startFinalize();
+  });
 
   useUnitEvents({
     packageId: eventSubscriptionEnabled ? packageId : "",
@@ -69,13 +136,8 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
       );
     },
     onFilled: (_event: UnitFilledEvent) => {
-      // Reveal orchestration is intentionally deferred to a later issue;
-      // mark the flag so follow-up work has a hook to trigger animation.
       setFilled(true);
-      if (!finalizeTriggeredRef.current) {
-        finalizeTriggeredRef.current = true;
-        void triggerFinalize(unitId).catch(() => undefined);
-      }
+      startFinalize();
     },
     onMosaicReady: (event: MosaicReadyEvent) => {
       onMosaicReady?.(event);
@@ -84,6 +146,17 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
 
   const pct = maxSlots > 0 ? (submittedCount / maxSlots) * 100 : 0;
   const remaining = Math.max(0, maxSlots - submittedCount);
+  const progressLabel =
+    finalizeState.status === "running" || finalizeState.status === "failed"
+      ? "Finalizing"
+      : filled
+        ? "Filled"
+        : "Filling";
+
+  const retryFinalize = (): void => {
+    finalizeTriggeredRef.current = false;
+    startFinalize();
+  };
 
   return (
     <div className="grid gap-5">
@@ -100,27 +173,67 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
           <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
         <div className="flex flex-wrap items-baseline justify-between gap-3 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-          <span className="text-[var(--ember)]">
-            {filled ? "Filled" : "Filling"}
-          </span>
+          <span className="text-[var(--ember)]">{progressLabel}</span>
           <span>
             {formatProgressCount(remaining)} tiles remaining ·{" "}
             {formatProgressCount(submittedCount)} Kakera minted
           </span>
         </div>
       </div>
+      {finalizeState.status !== "idle" ? (
+        <div className="grid gap-3 border border-[var(--rule)] bg-[rgba(245,239,227,0.03)] p-4 text-left">
+          {finalizeState.status === "failed" ? (
+            <>
+              <p className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ember)]">
+                finalize failed
+              </p>
+              <p className="text-sm text-[var(--ink-dim)]">
+                {finalizeState.message}
+              </p>
+              <p className="font-mono-op text-[11px] text-[var(--ink-faint)]">
+                {finalizeState.code}
+              </p>
+              <button
+                className="op-btn-primary w-fit"
+                onClick={retryFinalize}
+                type="button"
+              >
+                Retry finalize
+              </button>
+            </>
+          ) : (
+            <p
+              aria-live="polite"
+              className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
+            >
+              finalize is running
+            </p>
+          )}
+        </div>
+      ) : null}
       {/* TODO(issue-4+): render submit button here (zkLogin + Sponsored Tx). */}
       {/* TODO(issue-6+): wrap reveal timing around this counter if needed. */}
     </div>
   );
 }
 
-async function defaultTriggerFinalize(unitId: string): Promise<void> {
-  await fetch("/api/finalize", {
+async function defaultTriggerFinalize(
+  unitId: string,
+): Promise<FinalizeTriggerResult> {
+  const response = await fetch("/api/finalize", {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
     body: JSON.stringify({ unitId }),
   });
+  const payload = (await response.json()) as FinalizeTriggerResult;
+
+  if (!response.ok) {
+    throw new Error(
+      "message" in payload ? payload.message : "finalize request failed",
+    );
+  }
+
+  return payload;
 }

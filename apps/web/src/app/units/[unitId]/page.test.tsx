@@ -341,6 +341,38 @@ describe("UnitPage", () => {
     ).toBe("0xmaster-1");
   });
 
+  it("passes filled progress without masterId to the client wrapper for finalizing units", async () => {
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({
+        submittedCount: unitTileCount,
+        status: "filled",
+        masterId: null,
+      }),
+    );
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialMasterId: null,
+        initialSubmittedCount: unitTileCount,
+        maxSlots: unitTileCount,
+      }),
+    );
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe("");
+  });
+
   it("prefers the on-chain display name when a route fallback is available", async () => {
     getUnitProgressMock.mockResolvedValue(
       buildProgress({ displayName: "Chain Athlete Name" }),
