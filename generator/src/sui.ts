@@ -497,7 +497,10 @@ function readIntegerField(value: unknown, label: string): number {
   throw new Error(`${label} is not a numeric value: ${String(value)}`);
 }
 
-function readOptionalIntegerField(value: unknown, label: string): number | null {
+function readOptionalIntegerField(
+  value: unknown,
+  label: string,
+): number | null {
   if (value === null || value === undefined) {
     return null;
   }
