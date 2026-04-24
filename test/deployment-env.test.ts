@@ -14,7 +14,7 @@ const VALID_MANIFEST = {
   registryObjectId:
     "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
   adminCapId:
-    "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+    "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
   walrusPublisher: "https://publisher.walrus-testnet.walrus.space",
   walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
   enokiPublicApiKey: "enoki_public_example",

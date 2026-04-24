@@ -76,7 +76,7 @@ test("local build prefers deployment manifest public env over .env.local", () =>
     JSON.stringify(
       {
         adminCapId:
-          "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+          "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
@@ -124,7 +124,7 @@ test("local build warns about duplicated canonical public env without values", (
     JSON.stringify(
       {
         adminCapId:
-          "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+          "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
@@ -245,7 +245,7 @@ test("deployment manifest values override stale build env values", () => {
     "testnet.json",
     JSON.stringify({
       adminCapId:
-        "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+        "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
       enokiPublicApiKey: "enoki-public-manifest",
       googleClientId: "google-manifest",
       network: "testnet",
