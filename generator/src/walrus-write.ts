@@ -1,4 +1,4 @@
-const MOSAIC_WALRUS_EPOCHS = 100;
+const DEFAULT_MOSAIC_WALRUS_EPOCHS = 50;
 
 export class WalrusWriteError extends Error {
   readonly status: number | null;
@@ -26,6 +26,7 @@ export type WalrusWriteClient = {
 export function createWalrusWriteClient(options: {
   readonly publisherBaseUrl: string;
   readonly aggregatorBaseUrl: string;
+  readonly epochs?: number;
   readonly fetchFn?: typeof fetch;
 }): WalrusWriteClient {
   return {
@@ -33,8 +34,9 @@ export function createWalrusWriteClient(options: {
       const fetchFn = options.fetchFn ?? fetch;
       const publisherBaseUrl = trimTrailingSlashes(options.publisherBaseUrl);
       const aggregatorBaseUrl = trimTrailingSlashes(options.aggregatorBaseUrl);
+      const epochs = options.epochs ?? DEFAULT_MOSAIC_WALRUS_EPOCHS;
       const response = await fetchFn(
-        `${publisherBaseUrl}/v1/blobs?epochs=${MOSAIC_WALRUS_EPOCHS}`,
+        `${publisherBaseUrl}/v1/blobs?epochs=${epochs}`,
         {
           method: "PUT",
           body: bytes,

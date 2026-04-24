@@ -27,7 +27,7 @@ describe("createWalrusWriteClient", () => {
       aggregatorUrl: "https://aggregator.example/v1/blobs/mosaic-blob-1",
     });
     expect(fetchFn).toHaveBeenCalledWith(
-      "https://publisher.example/v1/blobs?epochs=100",
+      "https://publisher.example/v1/blobs?epochs=50",
       expect.objectContaining({
         method: "PUT",
       }),

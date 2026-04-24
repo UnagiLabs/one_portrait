@@ -95,6 +95,49 @@ describe("generateMosaic", () => {
       y: 1,
     });
   });
+
+  it("derives an exact fallback grid from submission count when none is provided", async () => {
+    const submissions = [
+      await buildSubmission("tile-a", 1, "0x1", { r: 20, g: 20, b: 20 }),
+      await buildSubmission("tile-b", 2, "0x2", { r: 220, g: 220, b: 220 }),
+    ];
+    const targetImage = await sharp({
+      create: {
+        width: 1,
+        height: 2,
+        channels: 3,
+        background: { r: 0, g: 0, b: 0 },
+      },
+    })
+      .composite([
+        {
+          input: await solidPng(1, 1, { r: 20, g: 20, b: 20 }),
+          left: 0,
+          top: 0,
+        },
+        {
+          input: await solidPng(1, 1, { r: 220, g: 220, b: 220 }),
+          left: 0,
+          top: 1,
+        },
+      ])
+      .png()
+      .toBuffer();
+
+    const result = await generateFinalizeMosaic({
+      targetImage,
+      submissions,
+      tileSize: 10,
+    });
+
+    expect(result.width).toBe(10);
+    expect(result.height).toBe(20);
+    expect(result.placements).toHaveLength(2);
+    expect(result.placements.map((placement) => [placement.x, placement.y])).toEqual([
+      [0, 0],
+      [0, 1],
+    ]);
+  });
 });
 
 async function buildTile(
