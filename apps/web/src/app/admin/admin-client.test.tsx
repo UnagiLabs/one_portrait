@@ -275,4 +275,88 @@ describe("AdminClient", () => {
       thumbnailUrl: "https://example.com/12.png",
     });
   });
+
+  it("submits a zero-upload demo unit", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    let createPayload: Record<string, unknown> | null = null;
+
+    fetchMock.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+
+        if (url.endsWith("/api/admin/create-unit")) {
+          createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
+            string,
+            unknown
+          >;
+          return new Response(
+            JSON.stringify({
+              digest: "0xcreate-demo-zero",
+              status: "created",
+              unitId: "0xunit-demo-zero",
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+
+        if (url.endsWith("/api/admin/status")) {
+          return new Response(JSON.stringify({ athletes: [] }), {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          });
+        }
+
+        return new Response(JSON.stringify(HEALTH_OK), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      },
+    );
+
+    render(
+      <AdminClient
+        initialAthletes={[
+          {
+            currentUnit: null,
+            displayName: "Demo Athlete Zero",
+            entryId: "draft-0",
+            lookupState: "ready",
+            metadataState: "ready",
+            slug: "unit-draft-0",
+            thumbnailUrl: "https://example.com/0.png",
+          },
+        ]}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /デモ/ }));
+    fireEvent.change(screen.getByLabelText("デモ実アップロード枚数"), {
+      target: { value: "0" },
+    });
+    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+      target: { value: "target-blob-demo-zero" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+    });
+    expect(screen.getByText(/0 枚作成直後/)).toBeTruthy();
+    expect(createPayload).toEqual({
+      blobId: "target-blob-demo-zero",
+      displayMaxSlots: unitTileCount,
+      displayName: "Demo Athlete Zero",
+      maxSlots: 0,
+      thumbnailUrl: "https://example.com/0.png",
+    });
+  });
 });

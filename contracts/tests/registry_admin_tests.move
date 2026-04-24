@@ -79,6 +79,51 @@ fun create_unit_sets_initial_state_and_appends_registry_index() {
 }
 
 #[test]
+fun create_zero_submission_demo_unit_starts_filled() {
+    let publisher = @0xA11CE;
+    let max_slots = 0;
+    let display_max_slots = 2_000;
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = admin_api::create_unit(
+        &admin_cap,
+        &mut registry,
+        b"Demo Athlete Zero",
+        b"https://example.com/0.png",
+        b"target-blob-zero",
+        max_slots,
+        display_max_slots,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(publisher);
+
+    let registry = scenario.take_shared<Registry>();
+    let unit = scenario.take_shared_by_id<Unit>(unit_id);
+
+    assert_eq!(unit::max_slots_for_testing(&unit), max_slots);
+    assert_eq!(unit::display_max_slots_for_testing(&unit), display_max_slots);
+    assert!(unit::is_filled_for_testing(&unit));
+    assert_eq!(unit::submitter_count_for_testing(&unit), 0);
+    assert_eq!(unit::submission_count_for_testing(&unit), 0);
+    assert_eq!(registry::unit_count_for_testing(&registry), 1);
+    assert_eq!(registry::unit_id_for_testing(&registry, 0), unit_id);
+
+    test_scenario::return_shared(unit);
+    test_scenario::return_shared(registry);
+    scenario.end();
+}
+
+#[test]
 fun create_unit_keeps_existing_units_in_registry_order() {
     let publisher = @0xA11CE;
 

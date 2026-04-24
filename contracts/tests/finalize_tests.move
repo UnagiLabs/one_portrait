@@ -150,6 +150,65 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     scenario.end();
 }
 
+#[test]
+fun finalize_zero_submission_demo_unit_with_empty_placements() {
+    let publisher = @0xA11CE;
+    let mosaic_blob_id = b"mosaic-blob-zero";
+
+    let mut scenario = test_scenario::begin(publisher);
+    registry::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut registry = scenario.take_shared<Registry>();
+    let unit_id = admin_api::create_unit(
+        &admin_cap,
+        &mut registry,
+        b"Demo Athlete Zero",
+        b"https://example.com/0.png",
+        b"target-blob-zero",
+        0,
+        2_000,
+        scenario.ctx(),
+    );
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(registry);
+
+    scenario.next_tx(publisher);
+
+    let admin_cap = scenario.take_from_sender<AdminCap>();
+    let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
+    admin_api::finalize(
+        &admin_cap,
+        &mut unit,
+        mosaic_blob_id,
+        vector[],
+        scenario.ctx(),
+    );
+
+    assert!(unit::is_finalized_for_testing(&unit));
+    let master_id = unit::master_id_for_testing(&unit);
+
+    scenario.return_to_sender(admin_cap);
+    test_scenario::return_shared(unit);
+
+    let finalize_effects = scenario.next_tx(publisher);
+    assert_eq!(finalize_effects.num_user_events(), 1);
+
+    let master = scenario.take_from_sender<MasterPortrait>();
+    assert_eq!(object::id(&master), master_id);
+    assert_eq!(master_portrait::unit_id_for_testing(&master), unit_id);
+    assert_eq!(
+        master_portrait::mosaic_walrus_blob_id_for_testing(&master),
+        mosaic_blob_id
+    );
+    scenario.return_to_sender(master);
+
+    scenario.end();
+}
+
 #[test, expected_failure(abort_code = unit::EUNIT_NOT_FILLED)]
 fun finalize_rejects_pending_unit() {
     let publisher = @0xA11CE;
