@@ -57,6 +57,75 @@ test("local build merges env files when process.env is missing the values", () =
   });
 });
 
+test("local build prefers deployment manifest public env over .env.local", () => {
+  const repoRoot = createTempDir();
+  const cwd = path.join(repoRoot, "apps/web");
+  fs.mkdirSync(cwd, { recursive: true });
+  writeFile(
+    cwd,
+    ".env.local",
+    [
+      "NEXT_PUBLIC_SUI_NETWORK=devnet",
+      "NEXT_PUBLIC_REGISTRY_OBJECT_ID=0xreg-from-env-local",
+      "NEXT_PUBLIC_PACKAGE_ID=0xpkg-from-env-local",
+    ].join("\n"),
+  );
+  writeFile(
+    path.join(repoRoot, "ops/deployments"),
+    "testnet.json",
+    JSON.stringify(
+      {
+        NEXT_PUBLIC_SUI_NETWORK: "testnet",
+        NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg-from-manifest",
+        NEXT_PUBLIC_PACKAGE_ID: "0xpkg-from-manifest",
+      },
+      null,
+      2,
+    ),
+  );
+
+  const source = loadBuildPublicEnvSource({
+    cwd,
+    env: {},
+    mode: "local",
+  });
+
+  assert.equal(source.NEXT_PUBLIC_SUI_NETWORK, "testnet");
+  assert.equal(source.NEXT_PUBLIC_REGISTRY_OBJECT_ID, "0xreg-from-manifest");
+  assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, "0xpkg-from-manifest");
+});
+
+test("local build warns about duplicated canonical public env without values", () => {
+  const repoRoot = createTempDir();
+  const cwd = path.join(repoRoot, "apps/web");
+  fs.mkdirSync(cwd, { recursive: true });
+  writeFile(
+    cwd,
+    ".env.local",
+    "NEXT_PUBLIC_PACKAGE_ID=0xenvlocal-secret-shaped-value\n",
+  );
+  writeFile(
+    path.join(repoRoot, "ops/deployments"),
+    "testnet.json",
+    JSON.stringify({ NEXT_PUBLIC_PACKAGE_ID: "0xmanifestpkg" }, null, 2),
+  );
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  try {
+    loadBuildPublicEnvSource({ cwd, env: {}, mode: "local" });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  const warning = warnings.join("\n");
+  assert.match(warning, /NEXT_PUBLIC_PACKAGE_ID/);
+  assert.match(warning, /ops\/deployments\/testnet\.json/);
+  assert.doesNotMatch(warning, /0xenvlocal-secret-shaped-value/);
+  assert.doesNotMatch(warning, /0xmanifestpkg/);
+});
+
 test("local build fails when the read-only minimum keys are missing", () => {
   const cwd = createTempDir();
   writeFile(cwd, ".env.local", "NEXT_PUBLIC_SUI_NETWORK=testnet\n");
