@@ -108,8 +108,11 @@ vi.mock("../../../lib/sui", () => ({
 
 import { LiveProgress } from "./live-progress";
 import { ParticipationAccess } from "./participation-access";
+import { UnitFullStateProvider } from "./unit-full-state";
 
 const FILE_INPUT_LABEL = "写真を選択";
+const CONSENT_LABEL =
+  /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
 
 function makeFile(name = "photo.jpg", size = 1024): File {
   const blob = new Blob([new Uint8Array(size)], { type: "image/jpeg" });
@@ -251,6 +254,37 @@ describe("ParticipationAccess", () => {
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
   });
 
+  it("hides signed-out upload start buttons when the unit is full", () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: true,
+      config: {},
+    });
+    useWalletsMock.mockReturnValue([
+      { id: "google-wallet" },
+      { id: "sui-wallet" },
+    ]);
+    useCurrentAccountMock.mockReturnValue(null);
+    useCurrentWalletMock.mockReturnValue({
+      connectionStatus: "disconnected",
+    });
+    useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
+    useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
+
+    render(
+      <UnitFullStateProvider initialFull={true}>
+        <ParticipationAccess unitId="0xunit-1" />
+      </UnitFullStateProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Google zkLogin" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sui wallet" })).toBeNull();
+    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+  });
+
   it("keeps the signed-out Sui wallet modal controlled", async () => {
     useEnokiConfigStateMock.mockReturnValue({
       submitEnabled: true,
@@ -349,12 +383,27 @@ describe("ParticipationAccess", () => {
     expect(fileInput.disabled).toBe(true);
 
     const consent = screen.getByRole("checkbox", {
-      name: /同意/,
+      name: CONSENT_LABEL,
     }) as HTMLInputElement;
     expect(consent.checked).toBe(false);
     fireEvent.click(consent);
     expect(consent.checked).toBe(true);
     expect(fileInput.disabled).toBe(false);
+  });
+
+  it("hides signed-in consent and file upload controls when the unit is full", () => {
+    setupSignedInEnv();
+
+    render(
+      <UnitFullStateProvider initialFull={true}>
+        <ParticipationAccess unitId="0xunit-1" />
+      </UnitFullStateProvider>,
+    );
+
+    expect(screen.queryByRole("checkbox", { name: CONSENT_LABEL })).toBeNull();
+    expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
+    expect(screen.queryByRole("button", { name: /投稿を確定/ })).toBeNull();
+    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
   });
 
   it("calls preprocessPhoto with the chosen file and renders the preview URL", async () => {
@@ -376,7 +425,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
 
     const file = makeFile();
     const fileInput = screen.getByLabelText(
@@ -413,7 +462,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
 
     fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
       target: { files: [makeFile()] },
@@ -453,7 +502,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
     fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
       target: { files: [makeFile("big.jpg", 11 * 1024 * 1024)] },
     });
@@ -514,7 +563,7 @@ describe("ParticipationAccess", () => {
     async function advanceToPreview(
       preprocessPhoto: ReturnType<typeof vi.fn<PreprocessMock>>,
     ): Promise<void> {
-      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
       fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
         target: { files: [makeFile()] },
       });
@@ -741,6 +790,70 @@ describe("ParticipationAccess", () => {
       await waitFor(() => {
         expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
       });
+    });
+
+    it("hides the retry button when live progress reaches maxSlots", async () => {
+      const { preprocessPhoto } = setupPreviewingEnv();
+      const { WalrusPutError } = await import("../../../lib/walrus/put");
+      let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+      useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+        capturedOnSubmitted = args.onSubmitted;
+      });
+      const putBlob = vi
+        .fn<PutMock>()
+        .mockRejectedValue(
+          new WalrusPutError(
+            "final",
+            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+          ),
+        );
+
+      render(
+        <UnitFullStateProvider initialFull={false}>
+          <LiveProgress
+            initialSubmittedCount={1999}
+            maxSlots={2000}
+            packageId="0xpkg"
+            unitId="0xunit-1"
+          />
+          <ParticipationAccess
+            preprocessPhoto={preprocessPhoto}
+            putBlob={putBlob}
+            unitId="0xunit-1"
+            walrusEnv={{
+              NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
+              NEXT_PUBLIC_WALRUS_AGGREGATOR: "https://aggregator.example.com",
+            }}
+          />
+        </UnitFullStateProvider>,
+      );
+
+      await advanceToPreview(preprocessPhoto);
+      fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /もう一度送信する/ }),
+        ).toBeTruthy();
+      });
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 2000,
+          submittedCount: 2000,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(
+        screen.queryByRole("button", { name: /もう一度送信する/ }),
+      ).toBeNull();
+      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+      expect(putBlob).toHaveBeenCalledTimes(1);
     });
 
     it("disconnects and returns to the login step when submitPhoto fails with auth_expired", async () => {
@@ -1280,7 +1393,7 @@ describe("ParticipationAccess", () => {
         screen.getByText(new RegExp(`41\\s*/\\s*${unitTileCount}`)),
       ).toBeTruthy();
 
-      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
       fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
         target: { files: [makeFile()] },
       });
@@ -1320,6 +1433,58 @@ describe("ParticipationAccess", () => {
       expect(
         screen.getByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
       ).toBeTruthy();
+    });
+
+    it("closes upload access when a SubmittedEvent reaches maxSlots while keeping it open below cap", async () => {
+      setupSignedInEnv();
+
+      let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+      useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+        capturedOnSubmitted = args.onSubmitted;
+      });
+
+      render(
+        <UnitFullStateProvider initialFull={false}>
+          <LiveProgress
+            initialSubmittedCount={1998}
+            maxSlots={2000}
+            packageId="0xpkg"
+            unitId="0xunit-1"
+          />
+          <ParticipationAccess unitId="0xunit-1" />
+        </UnitFullStateProvider>,
+      );
+
+      expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 1999,
+          submittedCount: 1999,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 2000,
+          submittedCount: 2000,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
+      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
     });
   });
 });

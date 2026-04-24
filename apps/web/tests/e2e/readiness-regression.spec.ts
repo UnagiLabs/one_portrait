@@ -11,6 +11,8 @@ const DEMO_UNIT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000000d2";
 const DEMO_SECOND_UNIT_ID =
   "0x00000000000000000000000000000000000000000000000000000000000000d4";
+const CONSENT_LABEL =
+  /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
 
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
@@ -21,7 +23,7 @@ async function submitPhoto(page: Page): Promise<void> {
 
   await page
     .getByRole("checkbox", {
-      name: /投稿した原画像は Walrus に保存され/,
+      name: CONSENT_LABEL,
     })
     .check();
 
