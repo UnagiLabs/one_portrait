@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { unitTileCount } from "@one-portrait/shared";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../lib/demo";
@@ -228,12 +228,13 @@ describe("HomePage", () => {
   });
 
   it("links live portrait menu cards to the upload page", async () => {
+    const firstAthlete = CATALOG[0];
     getActiveHomeUnitsMock.mockResolvedValue([
       {
-        displayName: "chain-only-name",
+        displayName: firstAthlete.displayName,
         maxSlots: unitTileCount,
         submittedCount: 1999,
-        thumbnailUrl: "https://placehold.co/512x512/png?text=chain",
+        thumbnailUrl: firstAthlete.thumbnailUrl,
         unitId: "0xunit-1",
       },
     ]);
@@ -247,9 +248,103 @@ describe("HomePage", () => {
     expect(link?.getAttribute("href")).toBe(
       "/units/0xunit-1?athleteName=Demo+Athlete+One",
     );
-    expect(screen.queryByText("chain-only-name")).toBeNull();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
     expect(screen.getAllByText("1999 / 2000").length).toBeGreaterThan(0);
+  });
+
+  it("matches live home cards to catalog athletes without relying on chain order", async () => {
+    const secondAthlete = CATALOG[1];
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        displayName: secondAthlete.displayName,
+        maxSlots: unitTileCount,
+        submittedCount: 37,
+        thumbnailUrl: secondAthlete.thumbnailUrl,
+        unitId: secondAthlete.unitId,
+      },
+      {
+        displayName: "Unlisted Chain Athlete",
+        maxSlots: unitTileCount,
+        submittedCount: 1998,
+        thumbnailUrl: "https://placehold.co/512x512/png?text=unlisted",
+        unitId:
+          "0x0000000000000000000000000000000000000000000000000000000000000bad",
+      },
+    ]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    const secondAthleteLinks = screen.getAllByRole("link", {
+      name: /Demo Athlete Two portrait upload page/i,
+    });
+    expect(secondAthleteLinks).toHaveLength(2);
+    for (const link of secondAthleteLinks) {
+      expect(link.getAttribute("href")).toBe(
+        `/units/${secondAthlete.unitId}?athleteName=Demo+Athlete+Two`,
+      );
+      expect(within(link).getAllByText("Live").length).toBeGreaterThan(0);
+      expect(within(link).getByText("37 / 2000")).toBeTruthy();
+    }
+
+    const firstAthleteHeadings = screen.getAllByRole("heading", {
+      level: 3,
+      name: "Demo Athlete One",
+    });
+    expect(firstAthleteHeadings).toHaveLength(2);
+    for (const heading of firstAthleteHeadings) {
+      const card = heading.closest(".op-home-portrait-card");
+      expect(card).toBeTruthy();
+      expect(card?.getAttribute("data-live")).toBeNull();
+      expect(card?.closest("a")).toBeNull();
+      expect(within(card as HTMLElement).queryByText("Live")).toBeNull();
+      expect(within(card as HTMLElement).queryByText("37 / 2000")).toBeNull();
+      expect(within(card as HTMLElement).queryByText("1998 / 2000")).toBeNull();
+    }
+
+    expect(screen.queryByText("Unlisted Chain Athlete")).toBeNull();
+    expect(screen.queryByText("1998 / 2000")).toBeNull();
+  });
+
+  it("shows matched active entries that reached max slots as Complete in the UI guard after getActiveHomeUnits filters filled units", async () => {
+    const firstAthlete = CATALOG[0];
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        displayName: firstAthlete.displayName,
+        maxSlots: unitTileCount,
+        submittedCount: unitTileCount,
+        thumbnailUrl: firstAthlete.thumbnailUrl,
+        unitId: "0xunit-complete",
+      },
+    ]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    const firstAthleteCards = screen
+      .getAllByRole("heading", {
+        level: 3,
+        name: firstAthlete.displayName,
+      })
+      .map((heading) => heading.closest(".op-home-portrait-card"));
+    expect(firstAthleteCards).toHaveLength(2);
+
+    for (const card of firstAthleteCards) {
+      expect(card).toBeTruthy();
+      const cardElement = card as HTMLElement;
+      expect(cardElement.getAttribute("data-complete")).toBe("true");
+      expect(cardElement.getAttribute("data-live")).toBeNull();
+      expect(cardElement.closest("a")).toBeNull();
+      expect(within(cardElement).getAllByText("Complete").length).toBe(2);
+      expect(within(cardElement).queryByText("Live")).toBeNull();
+      expect(within(cardElement).getByText("2000 / 2000")).toBeTruthy();
+    }
+
+    expect(
+      screen.queryByRole("link", {
+        name: /Demo Athlete One portrait upload page/i,
+      }),
+    ).toBeNull();
   });
 
   it("keeps E2E degraded home card states distinct in the portrait rail", async () => {
