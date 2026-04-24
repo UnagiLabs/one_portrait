@@ -12,7 +12,7 @@ const STATUS_PENDING: u8 = 0;
 const STATUS_FILLED: u8 = 1;
 const STATUS_FINALIZED: u8 = 2;
 const EINVALID_MAX_SLOTS: u64 = 1;
-const ENEXT_UNIT_ATHLETE_MISMATCH: u64 = 2;
+const EINVALID_DISPLAY_MAX_SLOTS: u64 = 2;
 const EUNIT_NOT_PENDING: u64 = 3;
 const EALREADY_SUBMITTED: u64 = 4;
 const EUNIT_NOT_FILLED: u64 = 5;
@@ -23,8 +23,11 @@ const EINVALID_PLACEMENTS: u64 = 8;
 public struct Unit has key {
     id: UID,
     athlete_id: u16,
+    display_name: vector<u8>,
+    thumbnail_url: vector<u8>,
     target_walrus_blob: vector<u8>,
     max_slots: u64,
+    display_max_slots: u64,
     status: u8,
     master_id: Option<ID>,
     submitters: Table<address, bool>,
@@ -39,20 +42,30 @@ public struct SubmissionRef has copy, drop, store {
 }
 
 public(package) fun create_unit(
-    _admin_cap: &AdminCap,
+    admin_cap: &AdminCap,
     registry: &mut Registry,
     athlete_id: u16,
+    display_name: vector<u8>,
+    thumbnail_url: vector<u8>,
     target_walrus_blob: vector<u8>,
     max_slots: u64,
+    display_max_slots: u64,
     ctx: &mut TxContext,
 ): ID {
     assert!(max_slots > 0, EINVALID_MAX_SLOTS);
+    assert!(
+        display_max_slots >= max_slots,
+        EINVALID_DISPLAY_MAX_SLOTS,
+    );
 
     let unit = Unit {
         id: object::new(ctx),
         athlete_id,
+        display_name,
+        thumbnail_url,
         target_walrus_blob,
         max_slots,
+        display_max_slots,
         status: STATUS_PENDING,
         master_id: option::none(),
         submitters: table::new(ctx),
@@ -60,19 +73,9 @@ public(package) fun create_unit(
     };
     let unit_id = object::id(&unit);
 
-    registry::set_current_unit_if_missing(registry, athlete_id, unit_id);
+    registry::record_unit(admin_cap, registry, unit_id);
     transfer::share_object(unit);
     unit_id
-}
-
-public(package) fun rotate_current_unit(
-    _admin_cap: &AdminCap,
-    registry: &mut Registry,
-    athlete_id: u16,
-    next_unit: &Unit,
-) {
-    assert!(next_unit.athlete_id == athlete_id, ENEXT_UNIT_ATHLETE_MISMATCH);
-    registry::set_current_unit(registry, athlete_id, object::id(next_unit));
 }
 
 public(package) fun submit_photo(
@@ -102,6 +105,7 @@ public(package) fun submit_photo(
     );
     let submitted_count = vector::length(&unit.submissions);
     let filled_now = submitted_count == unit.max_slots;
+    let display_submitted_count = display_prefilled_count(unit) + submitted_count;
     if (filled_now) {
         unit.status = STATUS_FILLED;
     };
@@ -121,15 +125,15 @@ public(package) fun submit_photo(
         submitter,
         walrus_blob_id,
         submission_no,
-        submitted_count,
-        unit.max_slots,
+        display_submitted_count,
+        unit.display_max_slots,
     );
     if (filled_now) {
         events::emit_unit_filled(
             object::id(unit),
             unit.athlete_id,
-            submitted_count,
-            unit.max_slots,
+            unit.display_max_slots,
+            unit.display_max_slots,
         );
     };
 }
@@ -140,8 +144,23 @@ public fun athlete_id_for_testing(unit: &Unit): u16 {
 }
 
 #[test_only]
+public fun display_name_for_testing(unit: &Unit): vector<u8> {
+    copy unit.display_name
+}
+
+#[test_only]
+public fun thumbnail_url_for_testing(unit: &Unit): vector<u8> {
+    copy unit.thumbnail_url
+}
+
+#[test_only]
 public fun max_slots_for_testing(unit: &Unit): u64 {
     unit.max_slots
+}
+
+#[test_only]
+public fun display_max_slots_for_testing(unit: &Unit): u64 {
+    unit.display_max_slots
 }
 
 #[test_only]
@@ -280,12 +299,17 @@ public(package) fun finalize(
 }
 
 fun has_blob_id(submissions: &vector<SubmissionRef>, walrus_blob_id: &vector<u8>): bool {
-    let mut i = 0;
-    while (i < vector::length(submissions)) {
-        if (vector::borrow(submissions, i).walrus_blob_id == *walrus_blob_id) {
+    let mut index = 0;
+    while (index < vector::length(submissions)) {
+        let submission = vector::borrow(submissions, index);
+        if (&submission.walrus_blob_id == walrus_blob_id) {
             return true
         };
-        i = i + 1;
+        index = index + 1;
     };
     false
+}
+
+fun display_prefilled_count(unit: &Unit): u64 {
+    unit.display_max_slots - unit.max_slots
 }

@@ -34,7 +34,10 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
         &admin_cap,
         &mut registry,
         athlete_id,
+        b"Demo Athlete Eleven",
+        b"https://example.com/11.png",
         target_blob,
+        max_slots,
         max_slots,
         scenario.ctx(),
     );
@@ -142,7 +145,10 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
         &admin_cap,
         &mut registry,
         athlete_id,
+        b"Demo Athlete Twelve",
+        b"https://example.com/12.png",
         b"target-blob",
+        500,
         500,
         scenario.ctx(),
     );
@@ -182,6 +188,7 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     let second_submitter = @0xF02;
     let athlete_id = 13;
     let max_slots = 2;
+    let display_max_slots = 5;
 
     let mut scenario = test_scenario::begin(publisher);
     test_scenario::create_system_objects(&mut scenario);
@@ -195,8 +202,11 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
         &admin_cap,
         &mut registry,
         athlete_id,
+        b"Demo Athlete Thirteen",
+        b"https://example.com/13.png",
         b"target-blob",
         max_slots,
+        display_max_slots,
         scenario.ctx(),
     );
 
@@ -211,6 +221,17 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
 
     assert!(unit::is_pending_for_testing(&unit));
     assert_eq!(event::events_by_type<portrait_events::UnitFilledEvent>().length(), 0);
+    let submitted_events = event::events_by_type<portrait_events::SubmittedEvent>();
+    assert_eq!(submitted_events.length(), 1);
+    let first_event = submitted_events[0];
+    assert_eq!(
+        portrait_events::submitted_event_submitted_count_for_testing(&first_event),
+        4
+    );
+    assert_eq!(
+        portrait_events::submitted_event_max_slots_for_testing(&first_event),
+        display_max_slots
+    );
 
     test_scenario::return_shared(clock);
     test_scenario::return_shared(unit);
@@ -240,11 +261,11 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     );
     assert_eq!(
         portrait_events::unit_filled_event_filled_count_for_testing(&filled_event),
-        max_slots
+        display_max_slots
     );
     assert_eq!(
         portrait_events::unit_filled_event_max_slots_for_testing(&filled_event),
-        max_slots
+        display_max_slots
     );
 
     test_scenario::return_shared(clock);
@@ -285,7 +306,10 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
         &admin_cap,
         &mut registry,
         athlete_id,
+        b"Demo Athlete Fourteen",
+        b"https://example.com/14.png",
         b"target-blob",
+        2,
         2,
         scenario.ctx(),
     );
@@ -338,7 +362,10 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
         &admin_cap,
         &mut registry,
         18,
+        b"Demo Athlete Eighteen",
+        b"https://example.com/18.png",
         b"target-blob",
+        3,
         3,
         scenario.ctx(),
     );
