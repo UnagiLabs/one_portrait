@@ -3,12 +3,42 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createCreateUnitTransactionExecutor,
+  createUnitSnapshotLoader,
   createSeedingSnapshotLoader,
 } from "../src";
 import type {
   GeneratorSuiReadClient,
   GeneratorSuiWriteClient,
 } from "../src/sui";
+
+describe("createUnitSnapshotLoader", () => {
+  it("reads displayMaxSlots from the Unit object for demo units", async () => {
+    const client = {
+      getObject: vi.fn(async ({ id }) => {
+        expect(id).toBe(UNIT_ID);
+        return {
+          data: unitData({
+            display_max_slots: "2000",
+            max_slots: "5",
+          }),
+        };
+      }),
+    } as unknown as GeneratorSuiReadClient;
+
+    const loader = createUnitSnapshotLoader(client);
+    const snapshot = await loader(UNIT_ID);
+
+    expect(snapshot).toEqual({
+      unitId: UNIT_ID,
+      athleteId: 1,
+      displayMaxSlots: 2000,
+      targetWalrusBlobId: "target-blob",
+      submissions: [],
+      status: "pending",
+      masterId: null,
+    });
+  });
+});
 
 describe("createSeedingSnapshotLoader", () => {
   it("derives submittedCount, maxSlots, status, and submitter addresses from the unit object", async () => {
@@ -32,7 +62,7 @@ describe("createSeedingSnapshotLoader", () => {
               type: "0x2::table::Table<address, bool>",
               fields: { id: { id: "0xsubmitters" }, size: "2" },
             },
-            display_max_slots: "2000",
+            display_max_slots: "5",
             max_slots: "5",
           }),
         };
@@ -45,7 +75,7 @@ describe("createSeedingSnapshotLoader", () => {
     expect(snapshot).toEqual({
       unitId: UNIT_ID,
       athleteId: 1,
-      displayMaxSlots: 2000,
+      displayMaxSlots: 5,
       targetWalrusBlobId: "target-blob",
       submissions: [
         parsedSubmission({
@@ -63,6 +93,23 @@ describe("createSeedingSnapshotLoader", () => {
       masterId: null,
       submitterAddresses: ["0xsubmitter-a", "0xsubmitter-b"],
     });
+  });
+
+  it("keeps normal units inert when displayMaxSlots matches maxSlots", async () => {
+    const client = {
+      getObject: vi.fn(async () => ({
+        data: unitData({
+          display_max_slots: "4",
+          max_slots: "4",
+        }),
+      })),
+    } as unknown as GeneratorSuiReadClient;
+
+    const loader = createSeedingSnapshotLoader(client);
+    const snapshot = await loader(UNIT_ID);
+
+    expect(snapshot.displayMaxSlots).toBe(4);
+    expect(snapshot.maxSlots).toBe(4);
   });
 
   it("accepts submission refs wrapped in nested move-object fields", async () => {
@@ -187,8 +234,8 @@ function unitData(fields: Record<string, unknown>) {
         id: { id: UNIT_ID },
         athlete_id: 1,
         target_walrus_blob: Array.from(new TextEncoder().encode("target-blob")),
-        max_slots: "4",
         display_max_slots: "4",
+        max_slots: "4",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
