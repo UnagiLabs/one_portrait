@@ -52,7 +52,6 @@ export async function getUnitProgress(
     realMaxSlots,
     realSubmittedCount,
     status,
-    submittedCount,
     thumbnailUrl: readVectorU8AsString(fields.thumbnail_url, "thumbnail_url"),
   };
 }
