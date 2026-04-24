@@ -21,6 +21,7 @@ describe("frontend-ci workflow", () => {
     expect(frontendCiWorkflow).toMatch(
       /\b(deployment-env\.mjs check-drift|pnpm run check:deployment)\b/,
     );
+    expect(frontendCiWorkflow).toContain('"contracts/**"');
   });
 
   it("runs the Web build in PR CI", () => {
