@@ -187,6 +187,38 @@ describe("startLocalGenerator", () => {
       expect.any(Object),
     );
   });
+
+  it("removes the named docker container when the launcher child is killed", () => {
+    const repoRoot = createTempRepo();
+    const runDockerBuild = vi.fn();
+    const runDockerRemove = vi.fn();
+    const originalKill = vi.fn(() => true);
+    const child = {
+      kill: originalKill,
+      on: vi.fn(),
+    };
+    const spawnImpl = vi.fn().mockReturnValue(child);
+
+    const started = startLocalGenerator({
+      cwd: repoRoot,
+      env: {
+        OP_LOCAL_GENERATOR_PORT: "7070",
+      },
+      runDockerBuild,
+      runDockerRemove,
+      spawnImpl,
+      webRoot: path.join(repoRoot, "apps/web"),
+    });
+
+    expect(started.child.kill("SIGTERM")).toBe(true);
+    expect(started.child.kill("SIGTERM")).toBe(true);
+    expect(runDockerRemove).toHaveBeenCalledTimes(1);
+    expect(runDockerRemove).toHaveBeenCalledWith({
+      containerName: "one-portrait-generator-7070",
+    });
+    expect(originalKill).toHaveBeenCalledTimes(2);
+    expect(originalKill).toHaveBeenCalledWith("SIGTERM");
+  });
 });
 
 describe("loadWebScriptEnv", () => {

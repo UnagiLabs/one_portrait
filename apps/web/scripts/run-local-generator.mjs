@@ -65,6 +65,7 @@ export function startLocalGenerator({
   webRoot: envWebRoot = webRoot,
   imageTag = generatorImageTag,
   runDockerBuild = defaultRunDockerBuild,
+  runDockerRemove = defaultRunDockerRemove,
 } = {}) {
   const mergedEnv = loadWebScriptEnv({
     env,
@@ -72,6 +73,7 @@ export function startLocalGenerator({
     webRoot: envWebRoot,
   });
   const localPort = resolveLocalGeneratorPort(mergedEnv);
+  const containerName = `one-portrait-generator-${localPort}`;
 
   runDockerBuild({
     contextPath: cwd,
@@ -82,7 +84,7 @@ export function startLocalGenerator({
   const child = spawnImpl(
     "docker",
     buildDockerRunArgs({
-      containerName: `one-portrait-generator-${localPort}`,
+      containerName,
       imageTag,
       runtimeEnv: buildGeneratorContainerEnv(mergedEnv),
       localPort,
@@ -97,6 +99,11 @@ export function startLocalGenerator({
       stdio: "inherit",
     },
   );
+
+  attachDockerContainerCleanup(child, {
+    containerName,
+    runDockerRemove,
+  });
 
   return { child };
 }
@@ -125,6 +132,16 @@ if (isExecutedDirectly()) {
   child.once("error", (error) => {
     console.error(error instanceof Error ? error.message : String(error));
     finalize({ code: 1 });
+  });
+
+  process.once("SIGINT", () => {
+    child.kill("SIGTERM");
+    finalize({ signal: "SIGINT" });
+  });
+
+  process.once("SIGTERM", () => {
+    child.kill("SIGTERM");
+    finalize({ signal: "SIGTERM" });
   });
 
   child.once("exit", (code, signal) => {
@@ -199,6 +216,30 @@ function defaultRunDockerBuild({ contextPath, dockerfilePath, imageTag }) {
   if (result.status !== 0) {
     throw new Error(`docker build failed with exit code ${result.status ?? 1}`);
   }
+}
+
+function defaultRunDockerRemove({ containerName }) {
+  spawnSync("docker", ["rm", "-f", containerName], {
+    stdio: "inherit",
+  });
+}
+
+function attachDockerContainerCleanup(child, { containerName, runDockerRemove }) {
+  if (!child || typeof child.kill !== "function") {
+    return;
+  }
+
+  const originalKill = child.kill.bind(child);
+  let cleanupStarted = false;
+
+  child.kill = (signal) => {
+    if (!cleanupStarted) {
+      cleanupStarted = true;
+      runDockerRemove({ containerName });
+    }
+
+    return originalKill(signal);
+  };
 }
 
 function isExecutedDirectly() {
