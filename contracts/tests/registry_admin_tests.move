@@ -3,12 +3,17 @@ module one_portrait::registry_admin_tests;
 
 use std::unit_test::assert_eq;
 use one_portrait::admin_api;
+use one_portrait::kakera::Kakera;
 use one_portrait::registry::{Self as registry, AdminCap, Registry};
 use one_portrait::unit::{Self as unit, Unit};
+use std::string::{Self as string};
+use sui::display::{Self as display, Display};
+use sui::package::Publisher;
 use sui::test_scenario;
+use sui::vec_map;
 
 #[test]
-fun init_creates_admin_cap_and_shared_registry() {
+fun init_creates_admin_cap_kakera_display_and_shared_registry() {
     let publisher = @0xA11CE;
     let mut scenario = test_scenario::begin(publisher);
 
@@ -17,11 +22,33 @@ fun init_creates_admin_cap_and_shared_registry() {
     scenario.next_tx(publisher);
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
+    let publisher = scenario.take_from_sender<Publisher>();
+    let kakera_display = scenario.take_from_sender<Display<Kakera>>();
     let registry = scenario.take_shared<Registry>();
 
     assert_eq!(registry::unit_count_for_testing(&registry), 0);
+    assert_eq!(display::version(&kakera_display), 1);
+    assert_eq!(vec_map::length(display::fields(&kakera_display)), 4);
+    assert_eq!(
+        *vec_map::get(display::fields(&kakera_display), &string::utf8(b"name")),
+        string::utf8(b"ONE Portrait Kakera #{submission_no}")
+    );
+    assert_eq!(
+        *vec_map::get(display::fields(&kakera_display), &string::utf8(b"description")),
+        string::utf8(b"Soulbound proof of participation in ONE Portrait.")
+    );
+    assert_eq!(
+        *vec_map::get(display::fields(&kakera_display), &string::utf8(b"image_url")),
+        string::utf8(b"https://one-portrait-web.bububutasan00.workers.dev/demo/demo_mozaiku.png")
+    );
+    assert_eq!(
+        *vec_map::get(display::fields(&kakera_display), &string::utf8(b"project_url")),
+        string::utf8(b"https://one-portrait-web.bububutasan00.workers.dev/")
+    );
 
     scenario.return_to_sender(admin_cap);
+    scenario.return_to_sender(publisher);
+    scenario.return_to_sender(kakera_display);
     test_scenario::return_shared(registry);
     scenario.end();
 }
