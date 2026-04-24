@@ -2,11 +2,13 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  loadDeploymentManifestEnv,
-  loadDeploymentSecretsEnv,
+  readDeploymentSecretsEnv,
   readEnvFile,
+  readOptionalDeploymentManifest,
+  toGeneratorEnv,
+  toWebPublicEnv,
   warnDuplicatedCanonicalEnv,
-} from "./deployment-env.mjs";
+} from "../../../scripts/deployment-env.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,8 +25,14 @@ export function loadWebScriptEnv({
   warn = console.warn,
 } = {}) {
   const envLocal = readEnvFile(path.join(envWebRoot, ".env.local"));
-  const manifestEnv = loadDeploymentManifestEnv({ repoRoot: envRepoRoot });
-  const secretsEnv = loadDeploymentSecretsEnv({ repoRoot: envRepoRoot });
+  const manifest = readOptionalDeploymentManifest({ repoRoot: envRepoRoot });
+  const manifestEnv = manifest
+    ? {
+        ...toWebPublicEnv(manifest),
+        ...toGeneratorEnv(manifest),
+      }
+    : {};
+  const secretsEnv = readDeploymentSecretsEnv({ repoRoot: envRepoRoot });
 
   warnDuplicatedCanonicalEnv({
     localEnv: envLocal,

@@ -98,6 +98,27 @@ describe("generator server", () => {
     }
   });
 
+  it("returns deployment metadata on /health when ready", async () => {
+    setReadyGeneratorEnv();
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/health`);
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        adminCapId: "0xadmincap",
+        network: "testnet",
+        packageId: "0xpkg",
+        status: "ok",
+      });
+    } finally {
+      await close(server);
+    }
+  });
+
   it("returns 401 for /dispatch when the shared secret is missing", async () => {
     setReadyGeneratorEnv();
 

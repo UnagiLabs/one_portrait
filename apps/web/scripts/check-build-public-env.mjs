@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  loadDeploymentManifestEnv,
   readEnvFile,
-  resolveRepoRootFromWebRoot,
+  readOptionalDeploymentManifest,
+  toWebPublicEnv,
   warnDuplicatedCanonicalEnv,
-} from "./deployment-env.mjs";
+} from "../../../scripts/deployment-env.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const validSuiNetworks = new Set(["mainnet", "testnet", "devnet", "localnet"]);
@@ -35,13 +35,14 @@ export function loadBuildPublicEnvSource({
     return {
       ...readWranglerBuildEnvFile(cwd),
       ...env,
+      ...readManifestWebPublicEnv(cwd),
     };
   }
 
   return {
     ...readLocalBuildEnvFiles(cwd),
     ...env,
-    ...readLocalDeploymentManifestEnv(cwd),
+    ...readManifestWebPublicEnv(cwd),
   };
 }
 
@@ -152,9 +153,9 @@ function buildMissingMessage(mode, missing) {
   return [
     "Missing required public env variable(s) for Cloudflare build:",
     missing.join(", "),
-    "Cloudflare build reads process.env first, then falls back to apps/web/wrangler.jsonc vars for public keys only.",
+    "Cloudflare build reads ops/deployments/testnet.json first, then process.env and apps/web/wrangler.jsonc vars for compatibility.",
     `Required Cloudflare keys: ${requiredKeys}.`,
-    "Set them as Cloudflare Build Variables or define them under wrangler.jsonc vars before running build:cf, preview, deploy, or upload.",
+    "Set non-secret deploy values in ops/deployments/testnet.json before running build:cf, preview, deploy, or upload.",
   ].join("\n");
 }
 
@@ -177,17 +178,11 @@ function readLocalBuildEnvFiles(cwd) {
 
   warnDuplicatedCanonicalEnv({
     localEnv: envLocal,
-    manifestEnv: readLocalDeploymentManifestEnv(cwd),
+    manifestEnv: readManifestWebPublicEnv(cwd),
     secretsEnv: {},
   });
 
   return merged;
-}
-
-function readLocalDeploymentManifestEnv(cwd) {
-  return loadDeploymentManifestEnv({
-    repoRoot: resolveRepoRootFromWebRoot(cwd),
-  });
 }
 
 function readWranglerBuildEnvFile(cwd) {
@@ -218,6 +213,12 @@ function readWranglerBuildEnvFile(cwd) {
   }
 
   return values;
+}
+
+function readManifestWebPublicEnv(cwd) {
+  const repoRoot = path.resolve(cwd, "..", "..");
+  const manifest = readOptionalDeploymentManifest({ repoRoot });
+  return manifest ? toWebPublicEnv(manifest) : {};
 }
 
 function parseJsoncFile(filePath) {

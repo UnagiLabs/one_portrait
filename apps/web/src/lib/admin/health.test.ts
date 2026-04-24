@@ -2,6 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAdminHealth } from "./health";
 
+const MANIFEST_PACKAGE_ID =
+  "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf";
+
+const EXPECTED_DEPLOYMENT = {
+  network: "testnet",
+  packageId: MANIFEST_PACKAGE_ID,
+};
+
 describe("getAdminHealth", () => {
   const fetchMock = vi.fn();
 
@@ -19,7 +27,12 @@ describe("getAdminHealth", () => {
     );
     fetchMock.mockImplementation(async (request: Request) => {
       if (request.url === "https://generator.example.com/health") {
-        return new Response("ok", { status: 200 });
+        return Response.json({
+          adminCapId: "0xadmincap",
+          network: "testnet",
+          packageId: MANIFEST_PACKAGE_ID,
+          status: "ok",
+        });
       }
 
       return new Response(JSON.stringify({ status: "ok" }), {
@@ -35,8 +48,12 @@ describe("getAdminHealth", () => {
         httpStatus: 200,
         status: "ok",
       },
+      expectedDeployment: EXPECTED_DEPLOYMENT,
       generatorReadiness: {
+        adminCapId: "0xadmincap",
         httpStatus: 200,
+        network: "testnet",
+        packageId: MANIFEST_PACKAGE_ID,
         status: "ok",
       },
       resolutionStatus: "ok",
@@ -60,6 +77,7 @@ describe("getAdminHealth", () => {
         httpStatus: null,
         status: "misconfigured",
       },
+      expectedDeployment: EXPECTED_DEPLOYMENT,
       generatorReadiness: {
         httpStatus: null,
         status: "misconfigured",
@@ -73,7 +91,12 @@ describe("getAdminHealth", () => {
   it("reads the current url from worker kv when request env is provided", async () => {
     fetchMock.mockImplementation(async (request: Request) => {
       if (request.url === "https://worker-kv.example.com/health") {
-        return new Response("ok", { status: 200 });
+        return Response.json({
+          adminCapId: "0xadmincap",
+          network: "testnet",
+          packageId: MANIFEST_PACKAGE_ID,
+          status: "ok",
+        });
       }
 
       return new Response(JSON.stringify({ status: "ok" }), {
@@ -103,12 +126,48 @@ describe("getAdminHealth", () => {
         httpStatus: 200,
         status: "ok",
       },
+      expectedDeployment: EXPECTED_DEPLOYMENT,
       generatorReadiness: {
+        adminCapId: "0xadmincap",
         httpStatus: 200,
+        network: "testnet",
+        packageId: MANIFEST_PACKAGE_ID,
         status: "ok",
       },
       resolutionStatus: "ok",
       source: "worker_kv",
+    });
+  });
+
+  it("marks health misconfigured when the generator package differs", async () => {
+    vi.stubEnv("OP_FINALIZE_DISPATCH_SECRET", "shared-secret");
+    vi.stubEnv(
+      "OP_GENERATOR_RUNTIME_URL_OVERRIDE",
+      "https://generator.example.com",
+    );
+    fetchMock.mockImplementation(async (request: Request) => {
+      if (request.url === "https://generator.example.com/health") {
+        return Response.json({
+          adminCapId: "0xadmincap",
+          network: "testnet",
+          packageId:
+            "0x9999999999999999999999999999999999999999999999999999999999999999",
+          status: "ok",
+        });
+      }
+
+      return Response.json({ status: "ok" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getAdminHealth()).resolves.toMatchObject({
+      expectedDeployment: EXPECTED_DEPLOYMENT,
+      generatorReadiness: {
+        packageId:
+          "0x9999999999999999999999999999999999999999999999999999999999999999",
+        status: "misconfigured",
+      },
+      resolutionStatus: "misconfigured",
     });
   });
 });

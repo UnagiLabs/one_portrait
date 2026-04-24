@@ -21,6 +21,11 @@ import AdminPage from "./page";
 const HEALTH_OK = {
   currentUrl: "https://generator.example.com",
   dispatchAuthorization: { httpStatus: 200, status: "ok" } as const,
+  expectedDeployment: {
+    network: "testnet",
+    packageId:
+      "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+  },
   generatorReadiness: { httpStatus: 200, status: "ok" } as const,
   resolutionStatus: "ok" as const,
   source: "runtime_state" as const,

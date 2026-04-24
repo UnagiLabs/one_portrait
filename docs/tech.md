@@ -182,12 +182,13 @@ one_portrait/
 
 ### 5.1 ランタイム
 - OpenNext → Cloudflare Workers。`compatibility_flags: ["nodejs_compat"]`。Durable Objects は不使用。
-- 公開 env: `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID`。
-- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_CAP_ID / ADMIN_SUI_PRIVATE_KEY / OP_FINALIZE_DISPATCH_SECRET`。
+- 非 secret deploy 値の正本: `ops/deployments/testnet.json`。`network / packageId / registryObjectId / adminCapId / walrusPublisher / walrusAggregator / enokiPublicApiKey / googleClientId` をここで一元管理する。
+- 公開 env: manifest から `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID` を生成する。
+- server secret: `ENOKI_PRIVATE_API_KEY / ADMIN_SUI_PRIVATE_KEY / OP_FINALIZE_DISPATCH_SECRET`。
 - 画像は Walrus Aggregator から直接配信（Cloudflare Images Transforms でキャッシュ）。
 - build preflight は 2 系統に分ける。
-  - `pnpm run build` は `node ./scripts/check-build-public-env.mjs local` を先に実行し、`process.env` に加えて `apps/web/.env`、`apps/web/.env.production`、`apps/web/.env.local`、`apps/web/.env.production.local` を読み込んで `NEXT_PUBLIC_SUI_NETWORK` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` だけを必須扱いにする。
-  - `pnpm run build:cf` は `node ./scripts/run-cloudflare-build.mjs` を通し、Cloudflare Build Variables の `process.env` を優先しつつ、足りない `NEXT_PUBLIC_*` は `apps/web/wrangler.jsonc` の `vars` から補完して `opennextjs-cloudflare build` に引き渡す。対象キーは `NEXT_PUBLIC_SUI_NETWORK / NEXT_PUBLIC_PACKAGE_ID / NEXT_PUBLIC_REGISTRY_OBJECT_ID / NEXT_PUBLIC_ENOKI_API_KEY / NEXT_PUBLIC_GOOGLE_CLIENT_ID / NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR`。
+  - `pnpm run build` は `node ./scripts/check-build-public-env.mjs local` を先に実行し、manifest を最優先に `process.env`、`apps/web/.env`、`apps/web/.env.production`、`apps/web/.env.local`、`apps/web/.env.production.local` を読み込む。
+  - `pnpm run build:cf` は `node ./scripts/run-cloudflare-build.mjs` を通し、manifest 由来の `NEXT_PUBLIC_*` を `opennextjs-cloudflare build` に引き渡す。`wrangler.jsonc` の `vars` には contract address を置かない。
 
 ### 5.2 ページ / エンドポイント
 
@@ -289,7 +290,7 @@ one_portrait/
 
 - **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
 - **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。`Registry` ID は `sui_getObject` で `content.fields.unit_ids` が見える object だけを採用する。
-- **設定反映:** ローカル `pnpm run build` に必要なのは `apps/web/.env.local` の `NEXT_PUBLIC_SUI_NETWORK` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` だけで、`NEXT_PUBLIC_PACKAGE_ID` は任意。Cloudflare `build:cf` に必要な 7 つの `NEXT_PUBLIC_*` は Cloudflare Build Variables を優先し、未設定分だけ `wrangler.jsonc` の `vars` から補完する。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_GENERATOR_BASE_URL` と `OP_FINALIZE_DISPATCH_SECRET` を設定する。finalize Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
+- **設定反映:** publish 後は `ops/deployments/testnet.json` の `packageId`、`registryObjectId`、`adminCapId` を更新する。`contracts/Published.toml` は Move publish 記録として残し、`pnpm run check:deployment` で `published-at` と manifest の `packageId` が一致することを確認する。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_GENERATOR_BASE_URL` と `OP_FINALIZE_DISPATCH_SECRET` を設定する。finalize Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側の `SUI_NETWORK`、`PACKAGE_ID`、`ADMIN_CAP_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR` は manifest から注入し、秘密値の `ADMIN_SUI_PRIVATE_KEY` と `OP_FINALIZE_DISPATCH_SECRET` だけを環境変数で渡す。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で `build:cf`（`opennextjs-cloudflare build`）のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。OpenNext の deploy は内部で Wrangler deploy を呼ぶ。deploy 実行端末にも Docker CLI と daemon が必要。
 - **運用手順:** `manji` PC 上の generator 起動、Cloudflare Tunnel、復旧順は `docs/finalize-generator-runbook.md` を正本とする。
 - **CI (GitHub Actions):** `frontend-ci` は lint / typecheck / unit test / `corepack pnpm --filter web run build` / `corepack pnpm --filter web run test:bundle-size` を回す。`move-ci` は `cd contracts && sui move build && sui move test --test` を回す。`e2e` は Playwright の mock 経路を確認する。

@@ -5,6 +5,8 @@ on:
     paths:
       - "apps/**"
       - "shared/**"
+      - "ops/**"
+      - "scripts/deployment-env.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
