@@ -28,7 +28,7 @@ fun init_creates_admin_cap_kakera_display_and_shared_registry() {
 
     assert_eq!(registry::unit_count_for_testing(&registry), 0);
     assert_eq!(display::version(&kakera_display), 1);
-    assert_eq!(vec_map::length(display::fields(&kakera_display)), 4);
+    assert_eq!(vec_map::length(display::fields(&kakera_display)), 5);
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"name")),
         string::utf8(b"ONE Portrait Kakera #{submission_no}")
@@ -39,7 +39,11 @@ fun init_creates_admin_cap_kakera_display_and_shared_registry() {
     );
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"image_url")),
-        string::utf8(b"https://one-portrait-web.bububutasan00.workers.dev/demo/demo_mozaiku.png")
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true")
+    );
+    assert_eq!(
+        *vec_map::get(display::fields(&kakera_display), &string::utf8(b"thumbnail_url")),
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true")
     );
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"project_url")),

@@ -43,6 +43,7 @@ fun kakera_display_fields(): vector<String> {
         string::utf8(b"name"),
         string::utf8(b"description"),
         string::utf8(b"image_url"),
+        string::utf8(b"thumbnail_url"),
         string::utf8(b"project_url"),
     ]
 }
@@ -51,7 +52,8 @@ fun kakera_display_values(): vector<String> {
     vector[
         string::utf8(b"ONE Portrait Kakera #{submission_no}"),
         string::utf8(b"Soulbound proof of participation in ONE Portrait."),
-        string::utf8(b"https://one-portrait-web.bububutasan00.workers.dev/demo/demo_mozaiku.png"),
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true"),
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true"),
         string::utf8(b"https://one-portrait-web.bububutasan00.workers.dev/"),
     ]
 }
