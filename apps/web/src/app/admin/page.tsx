@@ -33,9 +33,9 @@ export default async function AdminPage(): Promise<React.ReactElement> {
             デモ管理コンソール
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
-            先に athlete metadata を on-chain 登録し、その後にユニット作成、
-            current unit の切り替え、finalize の再試行をこの 1
-            ページで操作します。
+            unit 作成時に通常版かデモ版かを選び、表示 2,000
+            枚に対する実投稿枚数を 調整できます。作成済み unit の状態確認と
+            finalize の再試行もこの 1 ページで行います。
           </p>
         </header>
 

@@ -11,10 +11,8 @@ import {
 import {
   createCreateUnitTransactionExecutor,
   createFinalizeTransactionExecutor,
-  createRotateCurrentUnitTransactionExecutor,
   createSuiClient,
   createUnitSnapshotLoader,
-  createUpsertAthleteMetadataTransactionExecutor,
 } from "./sui";
 
 export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
@@ -157,108 +155,6 @@ export async function handleRequest(
     }
   }
 
-  if (request.method === "POST" && request.url === "/admin/rotate-unit") {
-    const authorizationError = validateDispatchAuthorization(request);
-    if (authorizationError !== null) {
-      writeJson(
-        response,
-        authorizationError.status,
-        authorizationError.payload,
-      );
-      return;
-    }
-
-    try {
-      const input = parseRotateUnitInput(await readJsonBody(request));
-      const env = loadGeneratorRuntimeEnv(process.env);
-      const client = createSuiClient({
-        network: env.suiNetwork,
-      });
-      const executeRotateUnit = createRotateCurrentUnitTransactionExecutor({
-        adminCapId: env.adminCapId,
-        client,
-        packageId: env.packageId,
-        privateKey: env.adminPrivateKey,
-      });
-      const result = await executeRotateUnit(input);
-
-      writeJson(response, 200, {
-        digest: result.digest,
-        status: "rotated",
-        unitId: result.unitId,
-      });
-      return;
-    } catch (error) {
-      if (error instanceof InvalidPayloadError) {
-        writeJson(response, 400, {
-          error: "invalid_args",
-          message: error.message,
-        });
-        return;
-      }
-
-      writeJson(response, 500, {
-        error: "rotate_unit_failed",
-        message: error instanceof Error ? error.message : String(error),
-      });
-      return;
-    }
-  }
-
-  if (
-    request.method === "POST" &&
-    request.url === "/admin/upsert-athlete-metadata"
-  ) {
-    const authorizationError = validateDispatchAuthorization(request);
-    if (authorizationError !== null) {
-      writeJson(
-        response,
-        authorizationError.status,
-        authorizationError.payload,
-      );
-      return;
-    }
-
-    try {
-      const input = parseUpsertAthleteMetadataInput(
-        await readJsonBody(request),
-      );
-      const env = loadGeneratorRuntimeEnv(process.env);
-      const client = createSuiClient({
-        network: env.suiNetwork,
-      });
-      const executeUpsertMetadata =
-        createUpsertAthleteMetadataTransactionExecutor({
-          adminCapId: env.adminCapId,
-          client,
-          packageId: env.packageId,
-          privateKey: env.adminPrivateKey,
-        });
-      const result = await executeUpsertMetadata(input);
-
-      writeJson(response, 200, {
-        athleteId: result.athleteId,
-        digest: result.digest,
-        status: "upserted",
-      });
-      return;
-    } catch (error) {
-      if (error instanceof InvalidPayloadError) {
-        writeJson(response, 400, {
-          error: "invalid_args",
-          message: error.message,
-        });
-        return;
-      }
-
-      writeJson(response, 500, {
-        error: "upsert_athlete_metadata_failed",
-        message: error instanceof Error ? error.message : String(error),
-      });
-      return;
-    }
-  }
-
   writeJson(response, 404, {
     error: "not_found",
     message: "Unknown route.",
@@ -312,56 +208,34 @@ function parseDispatchInput(input: unknown): { readonly unitId: string } {
 function parseCreateUnitInput(input: unknown): {
   readonly athleteId: number;
   readonly blobId: string;
+  readonly displayMaxSlots: number;
+  readonly displayName: string;
   readonly maxSlots: number;
   readonly registryObjectId: string;
+  readonly thumbnailUrl: string;
 } {
   const record = parseJsonRecord(input);
+  const maxSlots = parsePositiveInteger(record.maxSlots, "maxSlots");
+  const displayMaxSlots = parsePositiveInteger(
+    record.displayMaxSlots,
+    "displayMaxSlots",
+  );
+  if (displayMaxSlots < maxSlots) {
+    throw new InvalidPayloadError(
+      "Payload requires displayMaxSlots to be greater than or equal to maxSlots.",
+    );
+  }
 
   return {
     athleteId: parseAthleteId(record.athleteId),
     blobId: parseNonEmptyString(record.blobId, "blobId"),
-    maxSlots: parsePositiveInteger(record.maxSlots, "maxSlots"),
-    registryObjectId: parseObjectId(
-      record.registryObjectId,
-      "registryObjectId",
-    ),
-  };
-}
-
-function parseRotateUnitInput(input: unknown): {
-  readonly athleteId: number;
-  readonly registryObjectId: string;
-  readonly unitId: string;
-} {
-  const record = parseJsonRecord(input);
-
-  return {
-    athleteId: parseAthleteId(record.athleteId),
-    registryObjectId: parseObjectId(
-      record.registryObjectId,
-      "registryObjectId",
-    ),
-    unitId: parseObjectId(record.unitId, "unitId"),
-  };
-}
-
-function parseUpsertAthleteMetadataInput(input: unknown): {
-  readonly athleteId: number;
-  readonly displayName: string;
-  readonly registryObjectId: string;
-  readonly slug: string;
-  readonly thumbnailUrl: string;
-} {
-  const record = parseJsonRecord(input);
-
-  return {
-    athleteId: parseAthleteId(record.athleteId),
+    displayMaxSlots,
     displayName: parseNonEmptyString(record.displayName, "displayName"),
+    maxSlots,
     registryObjectId: parseObjectId(
       record.registryObjectId,
       "registryObjectId",
     ),
-    slug: parseNonEmptyString(record.slug, "slug"),
     thumbnailUrl: parseNonEmptyString(record.thumbnailUrl, "thumbnailUrl"),
   };
 }

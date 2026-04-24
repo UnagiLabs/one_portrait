@@ -2,8 +2,8 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createCreateUnitTransactionExecutor,
   createSeedingSnapshotLoader,
-  createUpsertAthleteMetadataTransactionExecutor,
 } from "../src";
 import type {
   GeneratorSuiReadClient,
@@ -32,6 +32,7 @@ describe("createSeedingSnapshotLoader", () => {
               type: "0x2::table::Table<address, bool>",
               fields: { id: { id: "0xsubmitters" }, size: "2" },
             },
+            display_max_slots: "2000",
             max_slots: "5",
           }),
         };
@@ -44,6 +45,7 @@ describe("createSeedingSnapshotLoader", () => {
     expect(snapshot).toEqual({
       unitId: UNIT_ID,
       athleteId: 1,
+      displayMaxSlots: 2000,
       targetWalrusBlobId: "target-blob",
       submissions: [
         parsedSubmission({
@@ -98,16 +100,23 @@ describe("createSeedingSnapshotLoader", () => {
   });
 });
 
-describe("createUpsertAthleteMetadataTransactionExecutor", () => {
-  it("returns the digest and athlete id after a successful transaction", async () => {
+describe("createCreateUnitTransactionExecutor", () => {
+  it("returns the digest and created unit id after a successful transaction", async () => {
     const signer = Ed25519Keypair.generate();
     const signAndExecuteTransaction = vi.fn(async () => ({
-      digest: "0xupsert",
+      digest: "0xcreate",
       effects: {
         status: {
           status: "success",
         },
       },
+      objectChanges: [
+        {
+          type: "created",
+          objectId: "0xcreated-unit",
+          objectType: "0xpackage::unit::Unit",
+        },
+      ],
     }));
     const waitForTransaction = vi.fn(async () => ({
       effects: {
@@ -115,8 +124,15 @@ describe("createUpsertAthleteMetadataTransactionExecutor", () => {
           status: "success",
         },
       },
+      objectChanges: [
+        {
+          type: "created",
+          objectId: "0xcreated-unit",
+          objectType: "0xpackage::unit::Unit",
+        },
+      ],
     }));
-    const upsert = createUpsertAthleteMetadataTransactionExecutor({
+    const createUnit = createCreateUnitTransactionExecutor({
       adminCapId:
         "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
       client: {
@@ -128,24 +144,27 @@ describe("createUpsertAthleteMetadataTransactionExecutor", () => {
     });
 
     await expect(
-      upsert({
+      createUnit({
         athleteId: 12,
+        blobId: "target-blob-12",
+        displayMaxSlots: 2000,
         displayName: "Demo Athlete Twelve",
+        maxSlots: 5,
         registryObjectId:
           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-        slug: "demo-athlete-twelve",
         thumbnailUrl: "https://example.com/12.png",
       }),
     ).resolves.toEqual({
-      athleteId: 12,
-      digest: "0xupsert",
+      digest: "0xcreate",
+      unitId: "0xcreated-unit",
     });
     expect(signAndExecuteTransaction).toHaveBeenCalledTimes(1);
     expect(waitForTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
-        digest: "0xupsert",
+        digest: "0xcreate",
         options: {
           showEffects: true,
+          showObjectChanges: true,
         },
       }),
     );
@@ -169,6 +188,7 @@ function unitData(fields: Record<string, unknown>) {
         athlete_id: 1,
         target_walrus_blob: Array.from(new TextEncoder().encode("target-blob")),
         max_slots: "4",
+        display_max_slots: "4",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {

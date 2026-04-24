@@ -62,7 +62,10 @@ describe("POST /api/admin/create-unit", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
+          displayMaxSlots: 2000,
+          displayName: "Demo Athlete Twelve",
           maxSlots: 2000,
+          thumbnailUrl: "https://example.com/12.png",
         }),
         method: "POST",
       }),
@@ -105,7 +108,10 @@ describe("POST /api/admin/create-unit", () => {
         body: JSON.stringify({
           athleteId: 12,
           blobId: "target-blob-12",
+          displayMaxSlots: 2000,
+          displayName: "Demo Athlete Twelve",
           maxSlots: 2000,
+          thumbnailUrl: "https://example.com/12.png",
         }),
         headers: {
           "x-one-portrait-admin-request": "same-origin",
@@ -124,8 +130,11 @@ describe("POST /api/admin/create-unit", () => {
     await expect(request.json()).resolves.toEqual({
       athleteId: 12,
       blobId: "target-blob-12",
+      displayMaxSlots: 2000,
+      displayName: "Demo Athlete Twelve",
       maxSlots: 2000,
       registryObjectId: VALID_REGISTRY_ID,
+      thumbnailUrl: "https://example.com/12.png",
     });
     await expect(response.json()).resolves.toEqual({
       digest: "0xdigest",

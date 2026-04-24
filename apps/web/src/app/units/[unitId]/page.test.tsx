@@ -5,11 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../../../lib/demo";
-import {
-  STUB_ATHLETE_ID,
-  STUB_MASTER_ID,
-  STUB_UNIT_ID,
-} from "../../../lib/e2e/stub-data";
+import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../../lib/e2e/stub-data";
 
 const {
   getUnitProgressMock,
@@ -91,6 +87,31 @@ vi.mock("./participation-access", () => ({
 
 import UnitPage from "./page";
 
+function buildProgress(
+  overrides: Partial<{
+    athletePublicId: string;
+    displayName: string | null;
+    masterId: string | null;
+    maxSlots: number;
+    status: "pending" | "filled" | "finalized";
+    submittedCount: number;
+    thumbnailUrl: string | null;
+    unitId: string;
+  }> = {},
+) {
+  return {
+    unitId: "0xunit-1",
+    athletePublicId: "1",
+    displayName: "Demo Athlete One",
+    submittedCount: 15,
+    maxSlots: unitTileCount,
+    status: "pending" as const,
+    masterId: null,
+    thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   process.env.NEXT_PUBLIC_SUI_NETWORK = "testnet";
   process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID = "0xreg";
@@ -116,20 +137,9 @@ afterEach(() => {
 
 describe("UnitPage", () => {
   it("renders the initial progress count fetched on the server", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 72,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 72 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -151,20 +161,9 @@ describe("UnitPage", () => {
   });
 
   it("passes the server-derived public props to the waiting-room clients", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 36,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 36 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       registryObjectId: "0xreg",
@@ -220,20 +219,9 @@ describe("UnitPage", () => {
   });
 
   it("shows a waiting-room link to the participation gallery", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 10,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 10 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -291,20 +279,9 @@ describe("UnitPage", () => {
   });
 
   it("passes the packageId from env to the live progress client component", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 10,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 10 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -324,20 +301,13 @@ describe("UnitPage", () => {
   });
 
   it("passes masterId to the client wrapper so completed units can reveal on revisit", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: unitTileCount,
-      maxSlots: unitTileCount,
-      status: "finalized",
-      masterId: "0xmaster-1",
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Demo Athlete One",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({
+        submittedCount: unitTileCount,
+        status: "finalized",
+        masterId: "0xmaster-1",
+      }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -355,21 +325,10 @@ describe("UnitPage", () => {
     ).toBe("0xmaster-1");
   });
 
-  it("prefers the catalog name when both catalog and route fallback are available", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+  it("prefers the on-chain display name when a route fallback is available", async () => {
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ displayName: "Chain Athlete Name" }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -383,20 +342,12 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Catalog Athlete Name" }),
+      screen.getByRole("heading", { name: "Chain Athlete Name" }),
     ).toBeTruthy();
   });
 
-  it("falls back to route athleteName when catalog lookup fails", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockRejectedValue(new Error("catalog down"));
+  it("falls back to route athleteName when on-chain display data is missing", async () => {
+    getUnitProgressMock.mockResolvedValue(buildProgress({ displayName: null }));
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -526,25 +477,14 @@ describe("UnitPage", () => {
         maxSlots: unitTileCount,
       }),
     );
-    expect(getAthleteByPublicIdMock).toHaveBeenCalledWith(STUB_ATHLETE_ID);
+    expect(getAthleteByPublicIdMock).not.toHaveBeenCalled();
   });
 
   it("ignores the finalized unit bootstrap for non-stub units", async () => {
     process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ displayName: "Chain Athlete Name" }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -567,20 +507,12 @@ describe("UnitPage", () => {
   });
 
   it("ignores the finalized unit bootstrap outside stub E2E mode", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: STUB_UNIT_ID,
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({
+        unitId: STUB_UNIT_ID,
+        displayName: "Chain Athlete Name",
+      }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -603,20 +535,9 @@ describe("UnitPage", () => {
   });
 
   it("ignores the degraded unit seam outside stub E2E mode", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ displayName: "Chain Athlete Name" }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -633,26 +554,13 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Catalog Athlete Name" }),
+      screen.getByRole("heading", { name: "Chain Athlete Name" }),
     ).toBeTruthy();
     expect(screen.getByTestId("unit-reveal-client")).toBeTruthy();
   });
 
   it("disables reveal and event startup when the network env is unavailable", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(buildProgress());
     delete process.env.NEXT_PUBLIC_SUI_NETWORK;
     delete process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID;
 
@@ -680,20 +588,7 @@ describe("UnitPage", () => {
   });
 
   it("disables reveal and event startup when the network env is invalid", async () => {
-    getUnitProgressMock.mockResolvedValue({
-      unitId: "0xunit-1",
-      athletePublicId: "1",
-      submittedCount: 15,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-    getAthleteByPublicIdMock.mockResolvedValue({
-      athletePublicId: "1",
-      slug: "demo-athlete-one",
-      displayName: "Catalog Athlete Name",
-      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-    });
+    getUnitProgressMock.mockResolvedValue(buildProgress());
     process.env.NEXT_PUBLIC_SUI_NETWORK = "bogus";
 
     const ui = await UnitPage({

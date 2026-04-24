@@ -76,8 +76,6 @@ describe("HomePage", () => {
 
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
     expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
-    expect(screen.getByText(/demo-athlete-one/)).toBeTruthy();
-    expect(screen.getByText(/demo-athlete-two/)).toBeTruthy();
   });
 
   it("shows the current unit progress when an active unit exists", async () => {
@@ -165,7 +163,7 @@ describe("HomePage", () => {
   it("falls back to the empty state when the configured registry is stale", async () => {
     const { RegistrySchemaError } = await import("../lib/sui");
     getActiveHomeUnitsMock.mockRejectedValue(
-      new RegistrySchemaError("0xstale", "missing `athlete_metadata`"),
+      new RegistrySchemaError("0xstale", "missing `unit_ids`"),
     );
 
     const ui = await HomePage();

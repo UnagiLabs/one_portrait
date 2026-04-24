@@ -24,7 +24,6 @@ type HomePageProps = {
 type HomeEntry = {
   readonly athletePublicId: string;
   readonly displayName: string;
-  readonly slug: string;
   readonly thumbnailUrl: string;
   readonly progress:
     | {
@@ -145,8 +144,7 @@ export default async function HomePage(
               現在表示できる開催中ユニットはありません
             </h3>
             <p className="text-sm leading-6 text-[var(--ink-dim)]">
-              metadata 登録済みで `pending` な current unit が作成されると、
-              ここに自動で表示されます。
+              `pending` な unit が作成されると、 ここに自動で表示されます。
             </p>
           </article>
         ) : (
@@ -316,9 +314,6 @@ function AthleteCard({
           <h2 className="font-display text-[32px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
             {athlete.displayName}
           </h2>
-          <p className="font-mono-op text-[11px] text-[var(--ink-dim)]">
-            {athlete.slug}
-          </p>
         </div>
       </div>
       <div className="grid gap-2">
@@ -362,7 +357,6 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
     return units.map((unit) => ({
       athletePublicId: unit.athletePublicId,
       displayName: unit.displayName,
-      slug: unit.slug,
       thumbnailUrl: unit.thumbnailUrl,
       progress: {
         kind: "active" as const,

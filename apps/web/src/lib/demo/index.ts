@@ -17,10 +17,14 @@ const demoProgressByUnitId = new Map<string, AthleteProgressView>([
     {
       unitId: demoUnitId,
       athletePublicId: "1",
+      displayName: "Demo Athlete One",
       submittedCount: 347,
       maxSlots: unitTileCount,
+      realMaxSlots: unitTileCount,
+      realSubmittedCount: 347,
       status: "pending",
       masterId: null,
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
     },
   ],
 ]);

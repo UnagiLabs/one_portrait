@@ -12,7 +12,7 @@
 - **ブラウザ分散トリガー:** `UnitFilled` 検知と finalize 起動は参加者ブラウザが担う。常駐 Listener / Cron / Queue に依存しない。冪等性は Move 側 (`status == Filled && master_id.is_none()`) で担保。
 - **Soulbound は Move の型で保証:** Kakera は `store` 能力を付与せず、発行後の譲渡を型レベルで禁止。
 - **Gas は Sponsored Transaction:** ユーザーの `submit_photo` 等はすべて Enoki の Sponsored Transaction で運営が gas 負担。ファンは SUI 保有不要、Web2 体験を維持。`finalize` は AdminCap キーが自己負担。
-- **選手メタは off-chain / unit 発見は on-chain:** 選手名・画像などの表示メタデータは web の catalog で持ち、on-chain では `athlete_id: u16` と `Registry` による `athlete_id -> current_unit_id` の参照だけを持つ。
+- **Unit 中心の表示モデル:** 選手名・画像などの表示メタデータは `Unit` に持たせる。`Registry` は作成済み `Unit` の ID 一覧を持ち、画面は `Unit.status` で募集中かどうかを判定する。
 - **MVPの原画像保持は限定保証:** 完成モザイクと on-chain 記録は残す。ファン投稿原画像は `blob_id` を正本識別子として保持するが、ハッカソンMVPでは長期可用性を保証しない。
 
 ### 1.2 コンポーネント構成
@@ -124,21 +124,24 @@ one_portrait/
 
 | モジュール | 主要型 | 責務 |
 | :--- | :--- | :--- |
-| `registry` | `Registry` (shared) | `athlete_id -> current_unit_id` を保持し、各選手の進行中 unit 発見を一意にする。 |
-| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。公開 API から委譲される内部状態遷移を担う。 |
+| `registry` | `Registry` (shared) | 作成済み `Unit` の ID 一覧を保持し、home / admin が同じ一覧をたどれるようにする。 |
+| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、表示名、サムネイル、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。公開 API から委譲される内部状態遷移を担う。 |
 | `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
 | `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
-| `admin_api` | - | 管理者向け `create_unit` / `rotate_current_unit` / `finalize` のみを公開し、配置入力の構築は package 内 helper に閉じる。 |
-| `accessors` | - | ファン向け公開 API を `submit_photo` と `current_unit_id` に限定する。 |
+| `admin_api` | - | 管理者向け `create_unit` / `finalize` のみを公開し、配置入力の構築は package 内 helper に閉じる。 |
+| `accessors` | - | ファン向け公開 API を `submit_photo` に限定する。 |
 
 ### 4.3 データモデル
 - `Registry`
-  - shared object。`current_units: Table<u16, ID>` を持ち、各 `athlete_id` の現在の `Unit` を指す。
+  - shared object。`unit_ids: vector<ID>` を持ち、作成済み `Unit` の一覧を指す。
 - `Unit`
   - `athlete_id: u16`
+  - `display_name`
+  - `thumbnail_url`
   - `target_walrus_blob`
   - `max_slots`
+  - `display_max_slots`
   - `status`
   - `master_id: Option<ID>`
   - `submitters: Table<address, bool>`
@@ -165,7 +168,7 @@ one_portrait/
 `Pending (0..1,999) → Filled (2,000到達) → Finalized (Masterミント済)`
 
 ### 4.5 権限
-- `create_unit` / `rotate_current_unit`: `AdminCap` 保有者のみ。次 unit は自動生成せず、運営が `Registry` を更新する。
+- `create_unit`: `AdminCap` 保有者のみ。作成された unit は `Registry.unit_ids` に登録される。
 - `submit_photo`: 誰でも実行可（zkLoginアドレスで発火）。
 - `finalize`: `AdminCap` 保有者のみ（運営アドレス、Admin キーは Cloudflare Secrets Store）。
 
@@ -287,7 +290,7 @@ one_portrait/
 ## 12. 開発・デプロイ
 
 - **ローカル:** まず `corepack pnpm run check` で workspace 全体の lint / typecheck / test を確認する。Web は `corepack pnpm --filter web run build` と `corepack pnpm --filter web run test:bundle-size` を追加で回す。`test:bundle-size` は Wrangler の container dry-run を含むため Docker CLI と daemon が必要。Move 系は `cd contracts && sui move build` / `sui move test --test`。独立した test module は `contracts/tests/` に置き、`contracts/sources/` には本番コードと `#[test_only]` helper を残す。
-- **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。`Registry` ID は `sui_getObject` で `content.fields.current_units` / `athlete_metadata` / `slug_to_athlete` の 3 つが見える object だけを採用する。
+- **Sui Publish:** `cd contracts && sui client publish .` を実行し、`PACKAGE_ID`、shared object の `Registry` ID、運営ウォレットへ返る `AdminCap ID` を控える。`Registry` ID は `sui_getObject` で `content.fields.unit_ids` が見える object だけを採用する。
 - **設定反映:** ローカル `pnpm run build` に必要なのは `apps/web/.env.local` の `NEXT_PUBLIC_SUI_NETWORK` と `NEXT_PUBLIC_REGISTRY_OBJECT_ID` だけで、`NEXT_PUBLIC_PACKAGE_ID` は任意。Cloudflare `build:cf` に必要な 7 つの `NEXT_PUBLIC_*` は Cloudflare Build Variables を優先し、未設定分だけ `wrangler.jsonc` の `vars` から補完する。`ENOKI_PRIVATE_API_KEY` は local と deploy の両方で必要。web 側には `OP_GENERATOR_BASE_URL` と `OP_FINALIZE_DISPATCH_SECRET` を設定する。finalize Worker 側には `ENOKI_PRIVATE_API_KEY`、`OP_FINALIZE_DISPATCH_URL`、`OP_FINALIZE_DISPATCH_SECRET` を設定する。generator 側には `ADMIN_CAP_ID`、`ADMIN_SUI_PRIVATE_KEY`、`SUI_NETWORK`、`PACKAGE_ID`、`WALRUS_PUBLISHER`、`WALRUS_AGGREGATOR`、`OP_FINALIZE_DISPATCH_SECRET` を置く。
 - **デプロイ:** `corepack pnpm --filter web run deploy` を使う。script 内で `build:cf`（`opennextjs-cloudflare build`）のあとに `opennextjs-cloudflare deploy -- --keep-vars` を実行する。OpenNext の deploy は内部で Wrangler deploy を呼ぶ。deploy 実行端末にも Docker CLI と daemon が必要。
 - **運用手順:** `manji` PC 上の generator 起動、Cloudflare Tunnel、復旧順は `docs/finalize-generator-runbook.md` を正本とする。

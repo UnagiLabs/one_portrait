@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+
 import { getAdminUnitSnapshot, UnitNotFoundError } from "./admin-unit";
 import type { SuiReadClient } from "./client";
 
@@ -33,10 +34,11 @@ function unitData(fields: Record<string, unknown>) {
       fields: {
         id: { id: UNIT_ID },
         athlete_id: 7,
-        target_walrus_blob: Array.from(
-          new TextEncoder().encode("target-blob-007"),
-        ),
-        max_slots: "2000",
+        display_name: bytes("Demo Athlete Seven"),
+        thumbnail_url: bytes("https://example.com/7.png"),
+        target_walrus_blob: bytes("target-blob-007"),
+        max_slots: "5",
+        display_max_slots: "2000",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
@@ -58,16 +60,20 @@ function unitData(fields: Record<string, unknown>) {
 }
 
 describe("getAdminUnitSnapshot", () => {
-  it("returns the admin read model including targetWalrusBlobId", async () => {
+  it("returns the admin read model including display counts", async () => {
     const client = clientReturning(unitData({}));
 
     await expect(getAdminUnitSnapshot(UNIT_ID, { client })).resolves.toEqual({
       athletePublicId: "7",
+      displayMaxSlots: 2000,
+      displayName: "Demo Athlete Seven",
       masterId: null,
-      maxSlots: 2000,
+      maxSlots: 5,
+      realSubmittedCount: 1,
       status: "pending",
-      submittedCount: 1,
+      submittedCount: 1996,
       targetWalrusBlobId: "target-blob-007",
+      thumbnailUrl: "https://example.com/7.png",
       unitId: UNIT_ID,
     });
   });
@@ -102,3 +108,7 @@ describe("getAdminUnitSnapshot", () => {
     );
   });
 });
+
+function bytes(value: string) {
+  return Array.from(new TextEncoder().encode(value));
+}

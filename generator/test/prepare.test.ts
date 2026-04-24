@@ -68,11 +68,51 @@ describe("prepareFinalizeInput", () => {
       blue: "b".charCodeAt(0),
     });
   });
+
+  it("fills the remaining display slots with dummy prepared submissions", async () => {
+    const getBlob = vi.fn(async (blobId: string) => encode(blobId));
+    const sampleAverageColor = vi.fn((imageBytes: Uint8Array) => ({
+      red: imageBytes[0] ?? 0,
+      green: imageBytes[1] ?? 0,
+      blue: imageBytes[2] ?? 0,
+    }));
+
+    const prepared = await prepareFinalizeInput(
+      {
+        athleteId: 1,
+        displayMaxSlots: 4,
+        targetWalrusBlobId: "target-blob",
+        unitId: "0xunit-demo",
+        submissions: [
+          submission({
+            submissionNo: 1,
+            walrusBlobId: "submission-a",
+          }),
+        ],
+      },
+      {
+        sampleAverageColor,
+        walrus: { getBlob },
+      },
+    );
+
+    expect(getBlob.mock.calls.map(([blobId]) => blobId)).toEqual([
+      "target-blob",
+      "submission-a",
+    ]);
+    expect(prepared.submissions).toHaveLength(4);
+    expect(
+      prepared.submissions.filter((entry) =>
+        entry.walrusBlobId.startsWith("dummy-locked-tile-"),
+      ),
+    ).toHaveLength(3);
+  });
 });
 
-function snapshot(): GeneratorUnitSnapshot {
+function snapshot(): GeneratorUnitSnapshot & { displayMaxSlots: number } {
   return {
     athleteId: 1,
+    displayMaxSlots: 2,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [

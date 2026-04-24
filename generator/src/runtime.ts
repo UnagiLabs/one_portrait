@@ -97,6 +97,10 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         submissions: prepared.submissions,
         targetTiles,
       });
+      const finalizePlacements = filterFinalizePlacements(
+        placements,
+        snapshot.submissions,
+      );
       const mosaicBytes = await deps.composeMosaicPng({
         submissions: prepared.submissions,
         placements,
@@ -105,7 +109,7 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,
-        placements,
+        placements: finalizePlacements,
       });
 
       return {
@@ -113,7 +117,7 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         unitId,
         mosaicBlobId: mosaic.blobId,
         digest: finalized.digest,
-        placementCount: placements.length,
+        placementCount: finalizePlacements.length,
       };
     },
   };
@@ -154,11 +158,15 @@ export function createDefaultFinalizeRunner(
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
       });
       const mosaicResult = await buildFinalizeMosaic(prepared);
+      const finalizePlacements = filterFinalizePlacements(
+        mosaicResult.placements,
+        snapshot.submissions,
+      );
       const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,
-        placements: mosaicResult.placements,
+        placements: finalizePlacements,
       });
 
       return {
@@ -166,7 +174,7 @@ export function createDefaultFinalizeRunner(
         unitId,
         mosaicBlobId: mosaic.blobId,
         digest: finalized.digest,
-        placementCount: mosaicResult.placements.length,
+        placementCount: finalizePlacements.length,
       };
     },
   };
@@ -192,3 +200,24 @@ export function createFinalizeRunnerFromEndpoints(input: {
 }
 
 export type { GeneratorFinalizeSnapshot };
+
+function filterFinalizePlacements(
+  placements: readonly MosaicPlacement[],
+  submissions: GeneratorUnitSnapshot["submissions"],
+): MosaicPlacement[] {
+  const realSubmissionKeys = new Set(
+    submissions.map((submission) => submissionIdentity(submission)),
+  );
+
+  return placements.filter((placement) =>
+    realSubmissionKeys.has(submissionIdentity(placement)),
+  );
+}
+
+function submissionIdentity(input: {
+  readonly submissionNo: number;
+  readonly submitter: string;
+  readonly walrusBlobId: string;
+}): string {
+  return `${input.submissionNo}:${input.submitter}:${input.walrusBlobId}`;
+}

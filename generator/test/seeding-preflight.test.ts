@@ -72,6 +72,7 @@ function snapshot(
 ): GeneratorSeedingSnapshot {
   return {
     athleteId: overrides.athleteId ?? 1,
+    displayMaxSlots: overrides.displayMaxSlots ?? overrides.maxSlots ?? 5,
     targetWalrusBlobId: overrides.targetWalrusBlobId ?? "target-blob",
     unitId: overrides.unitId ?? "0xunit-1",
     submissions: overrides.submissions ?? [],
