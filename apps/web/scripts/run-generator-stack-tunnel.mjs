@@ -24,10 +24,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const DEFAULT_LOCAL_PORT = 8080;
+const GENERATOR_RUNTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
 
 export async function runGeneratorStackTunnel({
   appRootPath = webRoot,
   env = process.env,
+  heartbeatIntervalMs = GENERATOR_RUNTIME_HEARTBEAT_INTERVAL_MS,
   logger = console,
   preflight = runGeneratorStackPreflight,
   processImpl = process,
@@ -41,6 +43,7 @@ export async function runGeneratorStackTunnel({
   let generator = null;
   let tunnel = null;
   let tunnelChild = null;
+  let remoteRuntimeHeartbeat = null;
   let remoteRuntimeInitialized = false;
   const mergedEnv = loadWebScriptEnv({
     env,
@@ -241,6 +244,14 @@ export async function runGeneratorStackTunnel({
         ok: false,
       };
     }
+    remoteRuntimeHeartbeat = createRemoteRuntimeHeartbeat({
+      env: mergedEnv,
+      intervalMs: heartbeatIntervalMs,
+      logger,
+      mode: preflightResult.tunnelMode,
+      url: publicBaseUrl,
+      writeRemoteRuntime,
+    });
 
     logger?.info?.("[generator-stack][ready]");
 
@@ -272,6 +283,7 @@ export async function runGeneratorStackTunnel({
       tunnel,
     });
   } finally {
+    await remoteRuntimeHeartbeat?.stop();
     if (remoteRuntimeInitialized) {
       await deleteRemoteRuntime({
         env: mergedEnv,
@@ -281,6 +293,48 @@ export async function runGeneratorStackTunnel({
     signalState.cleanup();
     removeGeneratorRuntimeState({ appRootPath, env: mergedEnv });
   }
+}
+
+function createRemoteRuntimeHeartbeat({
+  env,
+  intervalMs,
+  logger,
+  mode,
+  url,
+  writeRemoteRuntime,
+}) {
+  let inFlight = null;
+  let stopped = false;
+  const timer = setInterval(() => {
+    if (inFlight !== null || stopped) {
+      return;
+    }
+
+    inFlight = writeRemoteRuntime({
+      env,
+      logger,
+      mode,
+      url,
+    })
+      .then((result) => {
+        if (!result.ok) {
+          logger?.warn?.(
+            `[generator-stack][remote-kv][heartbeat-failed] marker=${result.marker}`,
+          );
+        }
+      })
+      .finally(() => {
+        inFlight = null;
+      });
+  }, intervalMs);
+
+  return {
+    async stop() {
+      stopped = true;
+      clearInterval(timer);
+      await inFlight;
+    },
+  };
 }
 
 if (isExecutedDirectly()) {
