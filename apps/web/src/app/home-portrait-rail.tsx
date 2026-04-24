@@ -3,7 +3,6 @@
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
 
 const fallbackCardStepPx = 266;
-const manualPauseMs = 3200;
 const loopDurationMs = 48000;
 
 export function HomePortraitRail({
@@ -13,7 +12,6 @@ export function HomePortraitRail({
 }): React.ReactElement {
   const railRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const pauseUntilRef = useRef(0);
 
   const getLoopWidth = useCallback((): number => {
     const track = trackRef.current;
@@ -60,7 +58,6 @@ export function HomePortraitRail({
 
       const step = getCardStep();
       const loopWidth = getLoopWidth();
-      pauseUntilRef.current = Date.now() + manualPauseMs;
 
       if (direction < 0 && loopWidth > 0 && rail.scrollLeft <= 1) {
         rail.scrollLeft += loopWidth;
@@ -107,9 +104,6 @@ export function HomePortraitRail({
 
       const elapsed = time - lastFrameTime;
       lastFrameTime = time;
-      if (Date.now() < pauseUntilRef.current) {
-        return;
-      }
 
       const loopWidth = getLoopWidth();
       if (loopWidth <= 0) {
