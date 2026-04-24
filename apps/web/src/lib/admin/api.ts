@@ -19,21 +19,19 @@ export class AdminApiError extends Error {
 }
 
 export type CreateUnitRouteInput = {
+  readonly athleteSlug: string;
   readonly displayMaxSlots: number;
-  readonly displayName: string;
   readonly blobId: string;
   readonly maxSlots: number;
-  readonly thumbnailUrl: string;
 };
 
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
   assertExactKeys(record, [
+    "athleteSlug",
     "blobId",
     "displayMaxSlots",
-    "displayName",
     "maxSlots",
-    "thumbnailUrl",
   ]);
 
   const maxSlots = parseNonNegativeInteger(record.maxSlots, "maxSlots");
@@ -50,14 +48,10 @@ export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   }
 
   return {
+    athleteSlug: parseNonEmptyTrimmedString(record.athleteSlug, "athleteSlug"),
     displayMaxSlots,
-    displayName: parseNonEmptyTrimmedString(record.displayName, "displayName"),
     blobId: parseBlobId(record.blobId),
     maxSlots,
-    thumbnailUrl: parseNonEmptyTrimmedString(
-      record.thumbnailUrl,
-      "thumbnailUrl",
-    ),
   };
 }
 

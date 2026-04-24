@@ -112,6 +112,23 @@ describe("resolveRuntimeEnv", () => {
       privateApiKey: "private-key",
     });
   });
+
+  it("pins submit_photo to the latest runtime package id when original package differs", () => {
+    const env = resolveRuntimeEnv({
+      NEXT_PUBLIC_SUI_NETWORK: "testnet",
+      NEXT_PUBLIC_PACKAGE_ID: "0xlatest-pkg",
+      NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "0xoriginal-pkg",
+      NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg",
+      NEXT_PUBLIC_ENOKI_API_KEY: "public-key",
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-client-id",
+      ENOKI_PRIVATE_API_KEY: "private-key",
+    });
+
+    expect(env.packageId).toBe("0xlatest-pkg");
+    expect(submitPhotoTarget(env.packageId)).toBe(
+      "0xlatest-pkg::accessors::submit_photo",
+    );
+  });
 });
 
 describe("sponsorSubmitPhoto", () => {

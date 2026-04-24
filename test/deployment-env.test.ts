@@ -46,6 +46,9 @@ describe("deployment manifest", () => {
       `NEXT_PUBLIC_PACKAGE_ID:${VALID_MANIFEST.packageId}`,
     );
     expect(args).toContain(
+      `NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:${VALID_MANIFEST.originalPackageId}`,
+    );
+    expect(args).toContain(
       `NEXT_PUBLIC_REGISTRY_OBJECT_ID:${VALID_MANIFEST.registryObjectId}`,
     );
     expect(args).toContain("NEXT_PUBLIC_SUI_NETWORK:testnet");
@@ -65,6 +68,9 @@ describe("deployment manifest", () => {
 
     expect(output).toContain(
       `--var NEXT_PUBLIC_PACKAGE_ID:${VALID_MANIFEST.packageId}`,
+    );
+    expect(output).toContain(
+      `--var NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:${VALID_MANIFEST.originalPackageId}`,
     );
     expect(output).toContain(
       `--var NEXT_PUBLIC_REGISTRY_OBJECT_ID:${VALID_MANIFEST.registryObjectId}`,

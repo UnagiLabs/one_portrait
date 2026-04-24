@@ -177,6 +177,46 @@ describe("listOwnedKakera", () => {
     ]);
   });
 
+  it("searches the exact original-package Kakera type and ignores latest-package Kakera", async () => {
+    const client = clientReturning([
+      kakeraObject({
+        type: "0xlatest-package::kakera::Kakera",
+        objectId: "0xlatest-kakera",
+      }),
+      kakeraObject({
+        type: "0xother-package::kakera::Kakera",
+        objectId: "0xother-kakera",
+      }),
+      kakeraObject({ objectId: "0xoriginal-kakera" }),
+    ]);
+
+    await expect(
+      listOwnedKakera({
+        suiClient: client,
+        ownerAddress: OWNER,
+        packageId: PACKAGE_ID,
+      }),
+    ).resolves.toEqual([
+      {
+        objectId: "0xoriginal-kakera",
+        unitId: UNIT_ID,
+        walrusBlobId: WALRUS_BLOB_ID,
+        submissionNo: 42,
+        mintedAtMs: 1700000000000,
+      },
+    ]);
+
+    expect(client.getOwnedObjects).toHaveBeenCalledTimes(1);
+    expect(client.getOwnedObjects).toHaveBeenCalledWith({
+      owner: OWNER,
+      filter: {
+        StructType: `${PACKAGE_ID}::kakera::Kakera`,
+      },
+      options: { showContent: true, showType: true },
+      cursor: null,
+    });
+  });
+
   it("ignores malformed Kakera objects", async () => {
     const client = clientReturningResponses([
       {

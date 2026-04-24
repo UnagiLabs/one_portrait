@@ -2,7 +2,7 @@
 
 import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../lib/demo";
 
@@ -38,6 +38,8 @@ const CATALOG = [
     slug: "demo-athlete-one",
     displayName: "Demo Athlete One",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    region: "Demo Region One",
+    status: "Active portrait",
   },
   {
     unitId:
@@ -45,8 +47,14 @@ const CATALOG = [
     slug: "demo-athlete-two",
     displayName: "Demo Athlete Two",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+2",
+    region: "Demo Region Two",
+    status: "Opening soon",
   },
 ] as const;
+
+beforeEach(() => {
+  getAthleteCatalogMock.mockResolvedValue(CATALOG);
+});
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
@@ -56,7 +64,7 @@ afterEach(() => {
 });
 
 describe("HomePage", () => {
-  it("renders the cinematic hero and portrait work rail", async () => {
+  it("renders the cinematic hero and catalog-driven portrait rail", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([]);
 
     const ui = await HomePage();
@@ -71,8 +79,17 @@ describe("HomePage", () => {
       }),
     ).toBeTruthy();
     expect(screen.getByText("Step 01 — Choose your portrait")).toBeTruthy();
-    expect(screen.getAllByText("Yuya Wakamatsu").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Takeru").length).toBeGreaterThan(0);
+
+    for (const athlete of CATALOG) {
+      expect(screen.getAllByText(athlete.displayName).length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        screen
+          .getAllByAltText(athlete.displayName)
+          .some((image) => image.getAttribute("src") === athlete.thumbnailUrl),
+      ).toBe(true);
+    }
   });
 
   it("keeps the gallery link available", async () => {
@@ -90,10 +107,10 @@ describe("HomePage", () => {
   it("links live portrait menu cards to the upload page", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([
       {
-        displayName: "test02",
+        displayName: "chain-only-name",
         maxSlots: unitTileCount,
         submittedCount: 1999,
-        thumbnailUrl: "https://placehold.co/512x512/png?text=test02",
+        thumbnailUrl: "https://placehold.co/512x512/png?text=chain",
         unitId: "0xunit-1",
       },
     ]);
@@ -102,20 +119,18 @@ describe("HomePage", () => {
     render(ui);
 
     const link = screen.getAllByRole("link", {
-      name: /Yuya Wakamatsu portrait upload page/i,
+      name: /Demo Athlete One portrait upload page/i,
     })[0];
     expect(link?.getAttribute("href")).toBe(
-      "/units/0xunit-1?athleteName=Yuya+Wakamatsu",
+      "/units/0xunit-1?athleteName=Demo+Athlete+One",
     );
-    expect(screen.queryByText("test02")).toBeNull();
+    expect(screen.queryByText("chain-only-name")).toBeNull();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Complete").length).toBeGreaterThan(0);
     expect(screen.getAllByText("1999 / 2000").length).toBeGreaterThan(0);
   });
 
   it("keeps E2E degraded home card states distinct in the portrait rail", async () => {
     process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
-    getAthleteCatalogMock.mockResolvedValue(CATALOG);
 
     const ui = await HomePage({
       searchParams: Promise.resolve({
@@ -132,15 +147,7 @@ describe("HomePage", () => {
   });
 
   it("does not render the legacy live registry block", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([
-      {
-        displayName: "test02",
-        maxSlots: unitTileCount,
-        submittedCount: 1999,
-        thumbnailUrl: "https://placehold.co/512x512/png?text=test02",
-        unitId: "0xunit-1",
-      },
-    ]);
+    getActiveHomeUnitsMock.mockResolvedValue([]);
 
     const ui = await HomePage();
     render(ui);

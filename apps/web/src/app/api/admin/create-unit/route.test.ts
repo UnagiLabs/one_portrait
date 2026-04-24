@@ -9,8 +9,16 @@ const { getRequestCloudflareEnvMock } = vi.hoisted(() => ({
   getRequestCloudflareEnvMock: vi.fn(),
 }));
 
+const { getAthleteBySlugMock } = vi.hoisted(() => ({
+  getAthleteBySlugMock: vi.fn(),
+}));
+
 vi.mock("../../../../lib/admin/env", () => ({
   loadAdminRelayEnv: loadAdminRelayEnvMock,
+}));
+
+vi.mock("../../../../lib/catalog", () => ({
+  getAthleteBySlug: getAthleteBySlugMock,
 }));
 
 vi.mock("../../../../lib/env", () => ({
@@ -34,6 +42,7 @@ describe("POST /api/admin/create-unit", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     fetchMock.mockReset();
+    getAthleteBySlugMock.mockReset();
     getRequestCloudflareEnvMock.mockReset();
     loadAdminRelayEnvMock.mockReset();
     loadPublicEnvMock.mockReset();
@@ -60,11 +69,10 @@ describe("POST /api/admin/create-unit", () => {
     const response = await POST(
       new Request("http://localhost/api/admin/create-unit", {
         body: JSON.stringify({
+          athleteSlug: "yuya-wakamatsu",
           blobId: "target-blob-12",
           displayMaxSlots: 2000,
-          displayName: "Demo Athlete Twelve",
           maxSlots: 2000,
-          thumbnailUrl: "https://example.com/12.png",
         }),
         method: "POST",
       }),
@@ -76,8 +84,39 @@ describe("POST /api/admin/create-unit", () => {
     });
   });
 
-  it("relays the validated create-unit request to the generator", async () => {
+  it("returns 400 for an unknown athleteSlug", async () => {
+    getAthleteBySlugMock.mockResolvedValue(undefined);
+
+    const response = await POST(
+      new Request("http://localhost/api/admin/create-unit", {
+        body: JSON.stringify({
+          athleteSlug: "unknown-athlete",
+          blobId: "target-blob-12",
+          displayMaxSlots: 2000,
+          maxSlots: 2000,
+        }),
+        headers: {
+          "x-one-portrait-admin-request": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_args",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("relays the catalog-resolved create-unit request to the generator", async () => {
     getRequestCloudflareEnvMock.mockReturnValue(null);
+    getAthleteBySlugMock.mockResolvedValue({
+      displayName: "Yuya Wakamatsu",
+      slug: "yuya-wakamatsu",
+      thumbnailUrl:
+        "/demo/one-athletes/Yuya_Wakamatsu-avatar-champ-500x345-1.png",
+    });
     loadPublicEnvMock.mockReturnValue({
       packageId: "0xpkg",
       registryObjectId: VALID_REGISTRY_ID,
@@ -105,11 +144,10 @@ describe("POST /api/admin/create-unit", () => {
     const response = await POST(
       new Request("http://localhost/api/admin/create-unit", {
         body: JSON.stringify({
+          athleteSlug: "yuya-wakamatsu",
           blobId: "target-blob-12",
           displayMaxSlots: 2000,
-          displayName: "Demo Athlete Twelve",
           maxSlots: 2000,
-          thumbnailUrl: "https://example.com/12.png",
         }),
         headers: {
           "x-one-portrait-admin-request": "same-origin",
@@ -119,20 +157,24 @@ describe("POST /api/admin/create-unit", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(getAthleteBySlugMock).toHaveBeenCalledWith("yuya-wakamatsu");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const request = fetchMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("https://generator.example.com/admin/create-unit");
     expect(request.headers.get("x-op-finalize-dispatch-secret")).toBe(
       "shared-secret",
     );
-    await expect(request.json()).resolves.toEqual({
+    const relayBody = await request.json();
+    expect(relayBody).toEqual({
       blobId: "target-blob-12",
       displayMaxSlots: 2000,
-      displayName: "Demo Athlete Twelve",
+      displayName: "Yuya Wakamatsu",
       maxSlots: 2000,
       registryObjectId: VALID_REGISTRY_ID,
-      thumbnailUrl: "https://example.com/12.png",
+      thumbnailUrl:
+        "/demo/one-athletes/Yuya_Wakamatsu-avatar-champ-500x345-1.png",
     });
+    expect(relayBody).not.toHaveProperty("athleteSlug");
     await expect(response.json()).resolves.toEqual({
       digest: "0xdigest",
       status: "created",
