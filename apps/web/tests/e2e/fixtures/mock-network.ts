@@ -438,13 +438,7 @@ function handleGetObject(
           type: `${STUB_PACKAGE_ID}::registry::Registry`,
           hasPublicTransfer: false,
           fields: {
-            current_units: {
-              type: `0x2::table::Table<u16, 0x2::object::ID>`,
-              fields: {
-                id: { id: STUB_REGISTRY_TABLE_ID },
-                size: "1",
-              },
-            },
+            unit_ids: [STUB_UNIT_ID],
           },
         },
       },
@@ -468,11 +462,20 @@ function handleGetObject(
           hasPublicTransfer: false,
           fields: {
             id: { id: STUB_UNIT_ID },
-            status: galleryEntryMode === "completed" ? 2 : 0,
-            target_walrus_blob: [],
-            submissions: [],
-            max_slots: String(unitTileCount),
             athlete_id: Number(STUB_ATHLETE_ID),
+            display_name: Array.from(
+              new TextEncoder().encode("Demo Athlete One"),
+            ),
+            thumbnail_url: Array.from(
+              new TextEncoder().encode(
+                "https://placehold.co/512x512/png?text=Athlete+1",
+              ),
+            ),
+            target_walrus_blob: [],
+            max_slots: String(unitTileCount),
+            display_max_slots: String(unitTileCount),
+            status: galleryEntryMode === "completed" ? 2 : 0,
+            submissions: [],
             submitters: {
               type: "0x2::table::Table<address, bool>",
               fields: {
