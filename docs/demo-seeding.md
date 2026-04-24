@@ -92,9 +92,8 @@ corepack pnpm --filter generator seed:demo-submissions -- --mode <simulate|live>
 
 simulate の前に、Admin UI で次を済ませます。
 
-1. athlete metadata を on-chain 登録する
-2. 必要なら対象画像を使って unit を作成する
-3. seeding 対象の `unitId` を控える
+1. 対象画像と表示情報を使って unit を作成する
+2. seeding 対象の `unitId` を控える
 
 まずは副作用なしで、入力と sender 割当を確認します。
 
