@@ -1,6 +1,7 @@
 # Node / Next.js
 **/node_modules
 **/.pnpm-store
+**/.pnpm-store/**
 **/.next
 **/.open-next
 **/.wrangler
