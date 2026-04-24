@@ -1,0 +1,88 @@
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+import {
+  readDeploymentManifest,
+  toWebPublicEnv,
+  toWranglerVarArgs,
+} from "../../../scripts/deployment-env.mjs";
+
+export const runtimeUrlVarKeys = [
+  "OP_GENERATOR_BASE_URL",
+  "OP_FINALIZE_DISPATCH_URL",
+  "OP_GENERATOR_RUNTIME_URL_OVERRIDE",
+];
+
+export function buildCloudflareDeployArgs({
+  env = process.env,
+  manifest,
+} = {}) {
+  return [
+    "deploy",
+    "--",
+    ...toWranglerVarArgs(toWebPublicEnv(manifest)),
+    ...toRuntimeUrlVarArgs(env),
+  ];
+}
+
+export function buildCloudflareDeployEnv({
+  cwd = process.cwd(),
+  env = process.env,
+} = {}) {
+  return {
+    ...env,
+    PATH: `${path.join(cwd, "scripts")}:${env.PATH ?? ""}`,
+    XDG_CONFIG_HOME: env.XDG_CONFIG_HOME ?? path.join(cwd, ".wrangler"),
+  };
+}
+
+function runCloudflareDeploy({
+  cwd = process.cwd(),
+  env = process.env,
+  spawnImpl = spawn,
+} = {}) {
+  const manifest = readDeploymentManifest();
+  const child = spawnImpl(
+    "opennextjs-cloudflare",
+    buildCloudflareDeployArgs({ env, manifest }),
+    {
+      cwd,
+      env: buildCloudflareDeployEnv({ cwd, env }),
+      shell: process.platform === "win32",
+      stdio: "inherit",
+    },
+  );
+
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+
+    process.exit(code ?? 1);
+  });
+
+  child.on("error", (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+
+  return child;
+}
+
+function toRuntimeUrlVarArgs(env) {
+  return runtimeUrlVarKeys.flatMap((key) => {
+    const value = env?.[key];
+    const normalized = typeof value === "string" ? value.trim() : "";
+    return normalized.length > 0 ? ["--var", `${key}:${normalized}`] : [];
+  });
+}
+
+if (import.meta.url === pathToFileUrl(process.argv[1])) {
+  runCloudflareDeploy();
+}
+
+function pathToFileUrl(value) {
+  return value ? pathToFileURL(path.resolve(value)).href : "";
+}

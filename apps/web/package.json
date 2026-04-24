@@ -15,7 +15,7 @@
     "build:cf": "node ./scripts/run-cloudflare-build.mjs",
     "start": "OP_GENERATOR_RUNTIME_STATE_PATH=${OP_GENERATOR_RUNTIME_STATE_PATH:-$PWD/.cache/generator-runtime.json} next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests && node --test scripts/check-build-public-env.test.mjs",
+    "test": "vitest run --passWithNoTests && node --test scripts/check-build-public-env.test.mjs scripts/run-cloudflare-deploy.test.mjs",
     "test:watch": "vitest --passWithNoTests",
     "test:e2e:readiness": "playwright test tests/e2e/readiness-regression.spec.ts",
     "test:e2e:live": "playwright test --config=playwright.live.config.ts",
@@ -27,7 +27,7 @@
     "generator:tunnel": "node ./scripts/run-generator-stack-tunnel.mjs",
     "generator:smoke": "node ./scripts/run-generator-stack-dispatch-smoke.mjs",
     "preview": "pnpm run build:cf && OP_GENERATOR_RUNTIME_STATE_PATH=${OP_GENERATOR_RUNTIME_STATE_PATH:-$PWD/.cache/generator-runtime.json} PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare preview -- --ip 0.0.0.0",
-    "deploy": "pnpm run build:cf && PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare deploy -- --keep-vars",
+    "deploy": "pnpm run build:cf && node ./scripts/run-cloudflare-deploy.mjs",
     "upload": "pnpm run build:cf && PATH=$PWD/scripts:$PATH XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} opennextjs-cloudflare upload",
     "cf-typegen": "XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$PWD/.wrangler} wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
