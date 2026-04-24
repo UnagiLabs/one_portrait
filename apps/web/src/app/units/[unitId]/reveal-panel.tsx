@@ -57,16 +57,32 @@ export function RevealPanel({
           />
 
           {placement && highlightVisible ? (
-            <div
-              className="pointer-events-none absolute box-border border-[2px] border-[var(--ember)] bg-[rgba(212,50,14,0.12)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_0_0_1px_rgba(212,50,14,0.4)]"
-              data-testid="placement-highlight"
-              style={{
-                left: `${(placement.x / unitTileGrid.cols) * 100}%`,
-                top: `${(placement.y / unitTileGrid.rows) * 100}%`,
-                width: `${100 / unitTileGrid.cols}%`,
-                height: `${100 / unitTileGrid.rows}%`,
-              }}
-            />
+            <>
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                data-testid="placement-guide-line"
+                viewBox="0 0 100 100"
+              >
+                <path
+                  d="M 8 92 L 92 8"
+                  fill="none"
+                  stroke="var(--ember)"
+                  strokeDasharray="4 4"
+                  strokeWidth="1.5"
+                />
+              </svg>
+              <div
+                className="pointer-events-none absolute box-border border-[2px] border-[var(--ember)] bg-[rgba(212,50,14,0.12)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_0_0_1px_rgba(212,50,14,0.4)]"
+                data-testid="placement-highlight"
+                style={{
+                  left: `${(placement.x / unitTileGrid.cols) * 100}%`,
+                  top: `${(placement.y / unitTileGrid.rows) * 100}%`,
+                  width: `${100 / unitTileGrid.cols}%`,
+                  height: `${100 / unitTileGrid.rows}%`,
+                }}
+              />
+            </>
           ) : null}
         </div>
 

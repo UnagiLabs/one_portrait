@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { RevealPanel } from "./reveal-panel";
 
 describe("RevealPanel", () => {
-  it("shows the original photo and the red tile frame by default", () => {
+  it("shows the original photo, red tile frame, and guide line by default", () => {
     render(
       <RevealPanel
         displayName="Demo Athlete One"
@@ -37,9 +37,10 @@ describe("RevealPanel", () => {
     expect(
       screen.getByTestId("placement-highlight").getAttribute("style"),
     ).toContain(`height: ${100 / unitTileGrid.rows}%`);
+    expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
   });
 
-  it("toggles the highlight visibility", () => {
+  it("toggles the highlight and guide visibility", () => {
     render(
       <RevealPanel
         displayName="Demo Athlete One"
@@ -51,9 +52,26 @@ describe("RevealPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /hide highlight/i }));
     expect(screen.queryByTestId("placement-highlight")).toBeNull();
+    expect(screen.queryByTestId("placement-guide-line")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /show highlight/i }));
     expect(screen.getByTestId("placement-highlight")).toBeTruthy();
+    expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
+  });
+
+  it("does not render the highlight or guide when placement is unavailable", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl={null}
+        placement={null}
+      />,
+    );
+
+    expect(screen.queryByTestId("placement-highlight")).toBeNull();
+    expect(screen.queryByTestId("placement-guide-line")).toBeNull();
+    expect(screen.getByText(/Original photo unavailable/i)).toBeTruthy();
   });
 
   it("keeps the fallback copy when the original photo is unavailable", () => {
