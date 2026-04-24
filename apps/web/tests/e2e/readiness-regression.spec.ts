@@ -7,6 +7,11 @@ import {
   TINY_JPEG_NAME,
 } from "./fixtures/tiny-jpeg";
 
+const DEMO_UNIT_ID =
+  "0x00000000000000000000000000000000000000000000000000000000000000d2";
+const DEMO_SECOND_UNIT_ID =
+  "0x00000000000000000000000000000000000000000000000000000000000000d4";
+
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
@@ -141,7 +146,9 @@ test.describe("readiness regression", () => {
     await installDefaultMocks(page);
     await page.setViewportSize({ width: 390, height: 844 });
 
-    await page.goto("/?op_e2e_home_card_state=1:waiting,2:unavailable");
+    await page.goto(
+      `/?op_e2e_home_card_state=${DEMO_UNIT_ID}:waiting,${DEMO_SECOND_UNIT_ID}:unavailable`,
+    );
 
     await expect(page.getByText(/待機中|No active unit/i)).toBeVisible();
     await expect(
