@@ -111,6 +111,8 @@ import { ParticipationAccess } from "./participation-access";
 import { UnitFullStateProvider } from "./unit-full-state";
 
 const FILE_INPUT_LABEL = "写真を選択";
+const CONSENT_LABEL =
+  /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
 
 function makeFile(name = "photo.jpg", size = 1024): File {
   const blob = new Blob([new Uint8Array(size)], { type: "image/jpeg" });
@@ -381,7 +383,7 @@ describe("ParticipationAccess", () => {
     expect(fileInput.disabled).toBe(true);
 
     const consent = screen.getByRole("checkbox", {
-      name: /同意/,
+      name: CONSENT_LABEL,
     }) as HTMLInputElement;
     expect(consent.checked).toBe(false);
     fireEvent.click(consent);
@@ -398,7 +400,7 @@ describe("ParticipationAccess", () => {
       </UnitFullStateProvider>,
     );
 
-    expect(screen.queryByRole("checkbox", { name: /同意/ })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: CONSENT_LABEL })).toBeNull();
     expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
     expect(screen.queryByRole("button", { name: /投稿を確定/ })).toBeNull();
     expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
@@ -423,7 +425,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
 
     const file = makeFile();
     const fileInput = screen.getByLabelText(
@@ -460,7 +462,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
 
     fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
       target: { files: [makeFile()] },
@@ -500,7 +502,7 @@ describe("ParticipationAccess", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
     fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
       target: { files: [makeFile("big.jpg", 11 * 1024 * 1024)] },
     });
@@ -561,7 +563,7 @@ describe("ParticipationAccess", () => {
     async function advanceToPreview(
       preprocessPhoto: ReturnType<typeof vi.fn<PreprocessMock>>,
     ): Promise<void> {
-      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
       fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
         target: { files: [makeFile()] },
       });
@@ -1327,7 +1329,7 @@ describe("ParticipationAccess", () => {
         screen.getByText(new RegExp(`41\\s*/\\s*${unitTileCount}`)),
       ).toBeTruthy();
 
-      fireEvent.click(screen.getByRole("checkbox", { name: /同意/ }));
+      fireEvent.click(screen.getByRole("checkbox", { name: CONSENT_LABEL }));
       fireEvent.change(screen.getByLabelText(FILE_INPUT_LABEL), {
         target: { files: [makeFile()] },
       });

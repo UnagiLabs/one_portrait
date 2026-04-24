@@ -68,6 +68,9 @@ type PutBlobFn = (
   deps: { readonly env: WalrusEnv },
 ) => Promise<WalrusPutResult>;
 
+const CONSENT_COPY =
+  "I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation.";
+
 /**
  * Recoverable error context.
  *
@@ -492,12 +495,7 @@ function ParticipationAccessEnabled({
                   }}
                   type="checkbox"
                 />
-                <span>
-                  投稿した原画像は Walrus に保存され、blob_id
-                  を知る人は誰でも取得できます。 また、参加の証として
-                  Soulbound（譲渡不可）の Kakera NFT
-                  が自分のウォレットに発行されることに同意します。
-                </span>
+                <span>{CONSENT_COPY}</span>
               </label>
 
               <label className="grid gap-2 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">

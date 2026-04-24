@@ -11,6 +11,9 @@ import {
   TINY_JPEG_NAME,
 } from "./fixtures/tiny-jpeg";
 
+const CONSENT_LABEL =
+  /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
+
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
@@ -20,7 +23,7 @@ async function submitPhoto(page: Page): Promise<void> {
 
   await page
     .getByRole("checkbox", {
-      name: /投稿した原画像は Walrus に保存され/,
+      name: CONSENT_LABEL,
     })
     .check();
 
@@ -45,7 +48,7 @@ async function submitPhotoWithExpectedWallet(
 
   await page
     .getByRole("checkbox", {
-      name: /投稿した原画像は Walrus に保存され/,
+      name: CONSENT_LABEL,
     })
     .check();
 

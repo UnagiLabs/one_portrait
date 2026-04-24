@@ -7,6 +7,9 @@ import {
   TINY_JPEG_NAME,
 } from "./fixtures/tiny-jpeg";
 
+const CONSENT_LABEL =
+  /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
+
 async function prepareSubmission(page: Page): Promise<string> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
@@ -16,7 +19,7 @@ async function prepareSubmission(page: Page): Promise<string> {
 
   await page
     .getByRole("checkbox", {
-      name: /投稿した原画像は Walrus に保存され/,
+      name: CONSENT_LABEL,
     })
     .check();
 
@@ -50,7 +53,7 @@ test.describe("waiting room submit guards", () => {
       page.getByText(/zkLogin アドレスを確認できました/),
     ).toBeVisible();
 
-    const consent = page.getByRole("checkbox", { name: /同意/ });
+    const consent = page.getByRole("checkbox", { name: CONSENT_LABEL });
     const fileInput = page.locator('input[type="file"]');
 
     await expect(consent).not.toBeChecked();
@@ -71,7 +74,7 @@ test.describe("waiting room submit guards", () => {
     await expect(
       page.getByText(/zkLogin アドレスを確認できました/),
     ).toBeVisible();
-    await page.getByRole("checkbox", { name: /同意/ }).check();
+    await page.getByRole("checkbox", { name: CONSENT_LABEL }).check();
 
     await expect(page.locator('input[type="file"]')).toBeEnabled();
     await expect(page.getByRole("button", { name: "投稿を確定" })).toHaveCount(
