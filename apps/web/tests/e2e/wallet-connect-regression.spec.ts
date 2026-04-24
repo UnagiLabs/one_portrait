@@ -8,7 +8,7 @@ test.describe("wallet connect regression", () => {
 
     await page.goto("/");
 
-    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByRole("button", { name: "Login" }).click();
     await page.getByRole("button", { name: "Sui wallet" }).click();
 
     const connectDialog = page.getByRole("dialog", {
