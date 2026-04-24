@@ -11,7 +11,6 @@ import type { SuiNetwork } from "./env";
 import type { SeedingDigestStatus } from "./seeding-reconciliation";
 
 export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
-  readonly displayMaxSlots: number;
   readonly masterId: string | null;
   readonly status: "filled" | "finalized" | "pending";
 };
@@ -80,9 +79,9 @@ export function createUnitSnapshotLoader(
     const snapshot = await readUnitSnapshot(client, unitId);
 
     return {
-      displayMaxSlots: snapshot.displayMaxSlots,
       unitId,
       athleteId: snapshot.athleteId,
+      displayMaxSlots: snapshot.displayMaxSlots,
       targetWalrusBlobId: snapshot.targetWalrusBlobId,
       submissions: snapshot.submissions,
       status: snapshot.status,
@@ -502,7 +501,7 @@ function readOptionalIntegerField(
   value: unknown,
   label: string,
 ): number | null {
-  if (value === undefined || value === null) {
+  if (value === null || value === undefined) {
     return null;
   }
 

@@ -74,7 +74,33 @@ describe("getUnitProgress", () => {
     });
   });
 
-  it("maps finalized status and exposes masterId", async () => {
+  it("uses display_max_slots and prefilled progress for demo units", async () => {
+    const client = clientReturning(
+      unitData({
+        display_max_slots: "2000",
+        max_slots: "5",
+        submissions: [
+          { fields: { walrus_blob_id: [], submission_no: "1" } },
+          { fields: { walrus_blob_id: [], submission_no: "2" } },
+        ],
+      }),
+    );
+
+    const view = await getUnitProgress(UNIT_ID, { client });
+
+    expect(view.submittedCount).toBe(1997);
+    expect(view.maxSlots).toBe(2000);
+  });
+
+  it("maps Move status u8 1 to 'filled'", async () => {
+    const client = clientReturning(unitData({ status: 1 }));
+
+    const view = await getUnitProgress(UNIT_ID, { client });
+
+    expect(view.status).toBe("filled");
+  });
+
+  it("maps Move status u8 2 to 'finalized' and exposes masterId", async () => {
     const client = clientReturning(
       unitData({
         status: 2,

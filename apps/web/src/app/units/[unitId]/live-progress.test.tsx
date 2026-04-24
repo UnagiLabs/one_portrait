@@ -80,6 +80,39 @@ describe("LiveProgress", () => {
     ).toBeTruthy();
   });
 
+  it("renders demo-style display counts when the server sends prefilled progress", () => {
+    let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+    useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+      capturedOnSubmitted = args.onSubmitted;
+    });
+
+    render(
+      <LiveProgress
+        packageId="0xpkg"
+        unitId="0xunit-1"
+        initialSubmittedCount={1995}
+        maxSlots={2000}
+      />,
+    );
+
+    expect(screen.getByText(/1995\s*\/\s*2000/)).toBeTruthy();
+
+    act(() => {
+      capturedOnSubmitted?.({
+        kind: "submitted",
+        unitId: "0xunit-1",
+        athletePublicId: "1",
+        submitter: "0xabc",
+        walrusBlobId: [],
+        submissionNo: 1,
+        submittedCount: 1996,
+        maxSlots: 2000,
+      });
+    });
+
+    expect(screen.getByText(/1996\s*\/\s*2000/)).toBeTruthy();
+  });
+
   it("ignores older SubmittedEvent deliveries that would decrease the count", () => {
     let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
     useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {

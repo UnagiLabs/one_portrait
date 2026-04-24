@@ -3,6 +3,7 @@
 ## 目的
 
 この runbook は、デモ前に実送信と finalize の主線を確認するための手順です。  
+demo 本番では、まずこの runbook を正本として使います。  
 対象は `Google login -> photo preprocess -> Walrus PUT -> Sponsored submit_photo -> Kakera 確認` と、  
 `preview Worker -> external generator -> finalize` です。  
 stub E2E と UI demo では代用しません。

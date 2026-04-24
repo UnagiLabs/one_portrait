@@ -21,6 +21,7 @@ export type SuiNetwork = (typeof suiNetworks)[number];
 export type GeneratorRuntimeEnv = {
   readonly adminCapId: string;
   readonly adminPrivateKey: string;
+  readonly demoFinalizeManifestPath: string | null;
   readonly packageId: string;
   readonly suiNetwork: SuiNetwork;
   readonly walrusAggregatorBaseUrl: string;
@@ -60,6 +61,9 @@ export function loadGeneratorRuntimeEnv(
     packageId: values.PACKAGE_ID,
     adminCapId: values.ADMIN_CAP_ID,
     adminPrivateKey: values.ADMIN_SUI_PRIVATE_KEY,
+    demoFinalizeManifestPath: normalizeOptionalValue(
+      source.OP_DEMO_FINALIZE_MANIFEST,
+    ),
     walrusPublisherBaseUrl: values.WALRUS_PUBLISHER,
     walrusAggregatorBaseUrl: values.WALRUS_AGGREGATOR,
   };
@@ -93,6 +97,10 @@ function readRequiredValues<const Keys extends readonly string[]>(
 function normalizeRequiredValue(value: string | undefined): string | null {
   const normalized = typeof value === "string" ? value.trim() : "";
   return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeOptionalValue(value: string | undefined): string | null {
+  return normalizeRequiredValue(value);
 }
 
 function isSuiNetwork(value: string): value is SuiNetwork {

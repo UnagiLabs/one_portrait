@@ -33,26 +33,25 @@ export async function getUnitProgress(
   const status: UnitStatus = normalizeUnitStatus(fields.status);
   const realSubmittedCount = countSubmissions(fields.submissions);
   const realMaxSlots = parseIntegerField(fields.max_slots, "max_slots");
-  const maxSlots = parseIntegerField(
-    fields.display_max_slots,
-    "display_max_slots",
-  );
+  const displayMaxSlots =
+    parseOptionalIntegerField(fields.display_max_slots) ?? realMaxSlots;
+  const submittedCount =
+    Math.max(0, displayMaxSlots - realMaxSlots) + realSubmittedCount;
   const athletePublicId = String(
     parseIntegerField(fields.athlete_id, "athlete_id"),
   );
   const masterId = extractOptionalId(fields.master_id);
-  const submittedCount = maxSlots - realMaxSlots + realSubmittedCount;
 
   return {
     unitId: data.objectId,
     athletePublicId,
     displayName: readVectorU8AsString(fields.display_name, "display_name"),
+    submittedCount,
     masterId,
-    maxSlots,
+    maxSlots: displayMaxSlots,
     realMaxSlots,
     realSubmittedCount,
     status,
-    submittedCount,
     thumbnailUrl: readVectorU8AsString(fields.thumbnail_url, "thumbnail_url"),
   };
 }
@@ -72,6 +71,16 @@ function parseIntegerField(value: unknown, fieldName: string): number {
     return Number(value);
   }
   throw new Error(`Unit.${fieldName} is not a numeric value: ${String(value)}`);
+}
+
+function parseOptionalIntegerField(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && /^[0-9]+$/.test(value)) {
+    return Number(value);
+  }
+  return null;
 }
 
 function readVectorU8AsString(value: unknown, label: string): string {

@@ -60,6 +60,7 @@ export type FinalizeRunnerDeps = {
 };
 
 export type DefaultFinalizeRunnerDeps = {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly generateFinalizeMosaic?: (
     prepared: PreparedFinalizeInput,
@@ -97,9 +98,9 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         submissions: prepared.submissions,
         targetTiles,
       });
-      const finalizePlacements = filterFinalizePlacements(
+      const finalizePlacements = filterPlacementsForFinalize(
         placements,
-        snapshot.submissions,
+        prepared.submissions,
       );
       const mosaicBytes = await deps.composeMosaicPng({
         submissions: prepared.submissions,
@@ -153,14 +154,15 @@ export function createDefaultFinalizeRunner(
       }
 
       const prepared = await prepareFinalizeInput(snapshot, {
+        demoFinalizeManifestPath: deps.demoFinalizeManifestPath,
         walrus: deps.walrusRead,
         sampleAverageColor:
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
       });
       const mosaicResult = await buildFinalizeMosaic(prepared);
-      const finalizePlacements = filterFinalizePlacements(
+      const finalizePlacements = filterPlacementsForFinalize(
         mosaicResult.placements,
-        snapshot.submissions,
+        prepared.submissions,
       );
       const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
       const finalized = await deps.finalizeTransaction({
@@ -181,12 +183,14 @@ export function createDefaultFinalizeRunner(
 }
 
 export function createFinalizeRunnerFromEndpoints(input: {
+  readonly demoFinalizeManifestPath?: string | null;
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
   readonly walrusAggregatorBaseUrl: string;
   readonly walrusPublisherBaseUrl: string;
 }): FinalizeRunner {
   return createDefaultFinalizeRunner({
+    demoFinalizeManifestPath: input.demoFinalizeManifestPath,
     readUnitSnapshot: input.readUnitSnapshot,
     finalizeTransaction: input.finalizeTransaction,
     walrusRead: createWalrusReadClient({
@@ -201,23 +205,17 @@ export function createFinalizeRunnerFromEndpoints(input: {
 
 export type { GeneratorFinalizeSnapshot };
 
-function filterFinalizePlacements(
+function filterPlacementsForFinalize(
   placements: readonly MosaicPlacement[],
-  submissions: GeneratorUnitSnapshot["submissions"],
+  submissions: PreparedFinalizeInput["submissions"],
 ): MosaicPlacement[] {
-  const realSubmissionKeys = new Set(
-    submissions.map((submission) => submissionIdentity(submission)),
+  const realWalrusBlobIds = new Set(
+    submissions
+      .filter((submission) => submission.isDummy !== true)
+      .map((submission) => submission.walrusBlobId),
   );
 
   return placements.filter((placement) =>
-    realSubmissionKeys.has(submissionIdentity(placement)),
+    realWalrusBlobIds.has(placement.walrusBlobId),
   );
-}
-
-function submissionIdentity(input: {
-  readonly submissionNo: number;
-  readonly submitter: string;
-  readonly walrusBlobId: string;
-}): string {
-  return `${input.submissionNo}:${input.submitter}:${input.walrusBlobId}`;
 }
