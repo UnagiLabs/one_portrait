@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createCreateUnitTransactionExecutor,
+  createFinalizeTransactionExecutor,
   createSeedingSnapshotLoader,
   createUnitSnapshotLoader,
 } from "../src";
@@ -186,7 +187,7 @@ describe("createCreateUnitTransactionExecutor", () => {
         signAndExecuteTransaction,
         waitForTransaction,
       } as unknown as GeneratorSuiWriteClient,
-      packageId: "0xpackage",
+      packageId: PACKAGE_ID,
       privateKey: signer.getSecretKey(),
     });
 
@@ -217,7 +218,124 @@ describe("createCreateUnitTransactionExecutor", () => {
   });
 });
 
+describe("createFinalizeTransactionExecutor", () => {
+  it("uses finalize_empty for zero-placement demo units", async () => {
+    const signer = Ed25519Keypair.generate();
+    const signAndExecuteTransaction = vi.fn(async () => ({
+      digest: "0xfinalize",
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+    }));
+    const finalize = createFinalizeTransactionExecutor({
+      adminCapId:
+        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      client: {
+        signAndExecuteTransaction,
+        waitForTransaction: vi.fn(),
+      } as unknown as GeneratorSuiWriteClient,
+      packageId: PACKAGE_ID,
+      privateKey: signer.getSecretKey(),
+    });
+
+    await expect(
+      finalize({
+        mosaicBlobId: "mosaic-blob-zero",
+        placements: [],
+        unitId:
+          "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      }),
+    ).resolves.toEqual({ digest: "0xfinalize" });
+
+    const command = firstTransactionCommand(signAndExecuteTransaction);
+    expect(command?.MoveCall).toMatchObject({
+      package: PACKAGE_ID,
+      module: "admin_api",
+      function: "finalize_empty",
+    });
+    expect(command?.MoveCall?.arguments).toHaveLength(3);
+  });
+
+  it("keeps the existing finalize entrypoint when placements are present", async () => {
+    const signer = Ed25519Keypair.generate();
+    const signAndExecuteTransaction = vi.fn(async () => ({
+      digest: "0xfinalize",
+      effects: {
+        status: {
+          status: "success",
+        },
+      },
+    }));
+    const finalize = createFinalizeTransactionExecutor({
+      adminCapId:
+        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      client: {
+        signAndExecuteTransaction,
+        waitForTransaction: vi.fn(),
+      } as unknown as GeneratorSuiWriteClient,
+      packageId: PACKAGE_ID,
+      privateKey: signer.getSecretKey(),
+    });
+
+    await expect(
+      finalize({
+        mosaicBlobId: "mosaic-blob",
+        placements: [
+          {
+            walrusBlobId: "submission-1",
+            submissionNo: 1,
+            submitter:
+              "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            x: 0,
+            y: 1,
+            targetColor: { red: 1, green: 2, blue: 3 },
+          },
+        ],
+        unitId:
+          "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      }),
+    ).resolves.toEqual({ digest: "0xfinalize" });
+
+    const command = firstTransactionCommand(signAndExecuteTransaction);
+    expect(command?.MoveCall).toMatchObject({
+      package: PACKAGE_ID,
+      module: "admin_api",
+      function: "finalize",
+    });
+    expect(command?.MoveCall?.arguments).toHaveLength(4);
+  });
+});
+
 const UNIT_ID = "0xunit-1";
+const PACKAGE_ID =
+  "0x9999999999999999999999999999999999999999999999999999999999999999";
+
+function firstTransactionCommand(
+  signAndExecuteTransaction: ReturnType<typeof vi.fn>,
+) {
+  const calls = signAndExecuteTransaction.mock.calls as unknown as Array<
+    [
+      {
+        transaction: {
+          getData: () => {
+            commands: Array<{
+              MoveCall?: {
+                package: string;
+                module: string;
+                function: string;
+                arguments: readonly unknown[];
+              };
+            }>;
+          };
+        };
+      },
+    ]
+  >;
+
+  return calls[0]?.[0].transaction.getData().commands[0];
+}
 
 function unitData(fields: Record<string, unknown>) {
   return {

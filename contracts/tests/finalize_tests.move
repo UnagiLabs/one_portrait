@@ -180,11 +180,10 @@ fun finalize_zero_submission_demo_unit_with_empty_placements() {
 
     let admin_cap = scenario.take_from_sender<AdminCap>();
     let mut unit = scenario.take_shared_by_id<Unit>(unit_id);
-    admin_api::finalize(
+    admin_api::finalize_empty(
         &admin_cap,
         &mut unit,
         mosaic_blob_id,
-        vector[],
         scenario.ctx(),
     );
 
