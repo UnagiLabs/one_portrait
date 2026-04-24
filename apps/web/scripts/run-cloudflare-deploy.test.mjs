@@ -9,16 +9,19 @@ import {
   getMissingCloudflareDeployCredentials,
 } from "./run-cloudflare-deploy.mjs";
 
+const NEUTRAL_PACKAGE_ID =
+  "0x1111111111111111111111111111111111111111111111111111111111111111";
+const NEUTRAL_ORIGINAL_PACKAGE_ID =
+  "0x2222222222222222222222222222222222222222222222222222222222222222";
+
 const manifest = {
   adminCapId:
     "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
   enokiPublicApiKey: "enoki-public-manifest",
   googleClientId: "google-manifest",
   network: "testnet",
-  originalPackageId:
-    "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
-  packageId:
-    "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+  originalPackageId: NEUTRAL_ORIGINAL_PACKAGE_ID,
+  packageId: NEUTRAL_PACKAGE_ID,
   registryObjectId:
     "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
   walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
@@ -32,8 +35,12 @@ test("buildCloudflareDeployArgs passes manifest public vars without keep-vars", 
   assert.equal(args.includes("--keep-vars"), false);
   assert.equal(args.includes("NEXT_PUBLIC_SUI_NETWORK:testnet"), true);
   assert.equal(
+    args.includes(`NEXT_PUBLIC_PACKAGE_ID:${manifest.packageId}`),
+    true,
+  );
+  assert.equal(
     args.includes(
-      "NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      `NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:${manifest.originalPackageId}`,
     ),
     true,
   );

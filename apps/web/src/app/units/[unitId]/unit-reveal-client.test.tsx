@@ -41,11 +41,15 @@ vi.mock("../../../lib/sui", () => ({
 
 vi.mock("./live-progress", () => ({
   LiveProgress: ({
+    eventSubscriptionEnabled,
     initialMasterId,
     initialSubmittedCount,
     maxSlots,
     onMosaicReady,
+    packageId,
+    unitId,
   }: {
+    eventSubscriptionEnabled?: boolean;
     initialMasterId?: string | null;
     initialSubmittedCount: number;
     maxSlots: number;
@@ -55,8 +59,17 @@ vi.mock("./live-progress", () => ({
       readonly masterId: string;
       readonly mosaicWalrusBlobId: readonly number[];
     }) => void;
+    packageId: string;
+    unitId: string;
   }) => {
-    liveProgressMock({ initialMasterId, initialSubmittedCount, maxSlots });
+    liveProgressMock({
+      eventSubscriptionEnabled,
+      initialMasterId,
+      initialSubmittedCount,
+      maxSlots,
+      packageId,
+      unitId,
+    });
 
     return (
       <div>
@@ -197,6 +210,29 @@ describe("UnitRevealClient", () => {
       }),
     );
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
+  });
+
+  it("forwards its packageId prop to LiveProgress event subscription", () => {
+    render(
+      <UnitRevealClient
+        displayName="Demo Athlete One"
+        aggregatorBase={AGGREGATOR_BASE}
+        eventSubscriptionEnabled={true}
+        initialMasterId={null}
+        initialSubmittedCount={42}
+        maxSlots={unitTileCount}
+        packageId="0xoriginal-pkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(liveProgressMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventSubscriptionEnabled: true,
+        packageId: "0xoriginal-pkg",
+        unitId: "0xunit-1",
+      }),
+    );
   });
 
   it("reveals the mosaic and highlights the viewer placement after MosaicReadyEvent", async () => {

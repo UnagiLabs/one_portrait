@@ -114,6 +114,44 @@ describe("listRegistryAthletes", () => {
 });
 
 describe("getActiveHomeUnits", () => {
+  it("accepts an original-package Registry while listing latest Unit ids", async () => {
+    const calls: string[] = [];
+    const client = makeClient({
+      getObject: vi.fn(async ({ id }) => {
+        calls.push(id);
+        if (id === REGISTRY_ID) {
+          return {
+            data: registryObject(
+              { unit_ids: [UNIT_ONE] },
+              { type: "0xoriginal::registry::Registry" },
+            ),
+          };
+        }
+        if (id === UNIT_ONE) {
+          return {
+            data: unitObject(UNIT_ONE, 1, "Latest Deployment Athlete", {
+              type: "0xlatest::unit::Unit",
+            }),
+          };
+        }
+        throw new Error(`unexpected id ${id}`);
+      }) as unknown as SuiReadClient["getObject"],
+    });
+
+    await expect(
+      getActiveHomeUnits({ client, registryObjectId: REGISTRY_ID }),
+    ).resolves.toEqual([
+      {
+        displayName: "Latest Deployment Athlete",
+        maxSlots: 2000,
+        submittedCount: 0,
+        thumbnailUrl: "https://example.com/1.png",
+        unitId: UNIT_ONE,
+      },
+    ]);
+    expect(calls).toEqual([REGISTRY_ID, UNIT_ONE]);
+  });
+
   it("returns only pending units from the registry index", async () => {
     const client = makeClient({
       getObject: vi.fn(async ({ id }) => {
@@ -154,16 +192,20 @@ describe("getActiveHomeUnits", () => {
   });
 });
 
-function registryObject(fields: Record<string, unknown>) {
+function registryObject(
+  fields: Record<string, unknown>,
+  options: { readonly type?: string } = {},
+) {
+  const type = options.type ?? "0xpkg::registry::Registry";
   return {
     objectId: REGISTRY_ID,
     digest: "d",
     version: "1",
-    type: "0xpkg::registry::Registry",
+    type,
     content: {
       dataType: "moveObject",
       hasPublicTransfer: false,
-      type: "0xpkg::registry::Registry",
+      type,
       fields: {
         id: { id: REGISTRY_ID },
         ...fields,
@@ -178,15 +220,18 @@ function unitObject(
   displayName: string,
   overrides: Record<string, unknown> = {},
 ) {
+  const type =
+    typeof overrides.type === "string" ? overrides.type : "0xpkg::unit::Unit";
+  const { type: _ignoredType, ...fieldOverrides } = overrides;
   return {
     objectId: unitId,
     digest: "d",
     version: "1",
-    type: "0xpkg::unit::Unit",
+    type,
     content: {
       dataType: "moveObject",
       hasPublicTransfer: false,
-      type: "0xpkg::unit::Unit",
+      type,
       fields: {
         id: { id: unitId },
         display_name: bytes(displayName),
@@ -201,7 +246,7 @@ function unitObject(
           fields: { id: { id: "0xsubmitters" }, size: "0" },
         },
         submissions: [],
-        ...overrides,
+        ...fieldOverrides,
       },
     },
   };
