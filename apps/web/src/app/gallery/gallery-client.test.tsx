@@ -62,6 +62,8 @@ const CATALOG = [
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
   },
 ] as const;
+const WALRUS_AGGREGATOR = "https://aggregator.example.com";
+const OPAQUE_MOSAIC_BLOB_ID = "Bm7qyNqV3RcP6td9XSk4LeF0aZuH5Wj8GxYp1sMn";
 
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
@@ -105,7 +107,7 @@ function completedEntry(
     submissionNo: 17,
     mintedAtMs: 1700000000000,
     masterId: "0xmaster-1",
-    mosaicWalrusBlobId: "walrus-mosaic-1",
+    mosaicWalrusBlobId: OPAQUE_MOSAIC_BLOB_ID,
     placement: {
       x: 12,
       y: 8,
@@ -118,7 +120,7 @@ function completedEntry(
 }
 
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
+  process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReturnValue(null);
   useCurrentWalletMock.mockReturnValue({
     connectionStatus: "disconnected",
@@ -444,7 +446,7 @@ describe("GalleryClient", () => {
       screen
         .getByAltText(/Demo Athlete One completed mosaic/i)
         .getAttribute("src"),
-    ).toContain("/v1/blobs/walrus-mosaic-1");
+    ).toBe(`${WALRUS_AGGREGATOR}/v1/blobs/${OPAQUE_MOSAIC_BLOB_ID}`);
   });
 
   it("adds a unit-page CTA link to completed entries", async () => {

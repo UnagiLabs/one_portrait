@@ -30,6 +30,42 @@ describe("createWalrusWriteClient", () => {
       "https://publisher.example/v1/blobs?epochs=50",
       expect.objectContaining({
         method: "PUT",
+        headers: {
+          "content-type": "image/png",
+        },
+      }),
+    );
+  });
+
+  it("overrides the upload content type when provided", async () => {
+    const fetchFn = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            alreadyCertified: {
+              blobId: "mosaic-blob-webp",
+            },
+          }),
+        ),
+    );
+    const client = createWalrusWriteClient({
+      publisherBaseUrl: "https://publisher.example",
+      aggregatorBaseUrl: "https://aggregator.example",
+      fetchFn,
+    });
+
+    await expect(
+      client.putBlob(new Uint8Array([1, 2, 3]), "image/webp"),
+    ).resolves.toEqual({
+      blobId: "mosaic-blob-webp",
+      aggregatorUrl: "https://aggregator.example/v1/blobs/mosaic-blob-webp",
+    });
+    expect(fetchFn).toHaveBeenCalledWith(
+      "https://publisher.example/v1/blobs?epochs=50",
+      expect.objectContaining({
+        headers: {
+          "content-type": "image/webp",
+        },
       }),
     );
   });

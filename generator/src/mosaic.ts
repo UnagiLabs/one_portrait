@@ -79,6 +79,7 @@ export type GenerateFinalizeMosaicInput = {
 
 export type GeneratedFinalizeMosaic = {
   image: Uint8Array;
+  contentType: typeof FINALIZE_MOSAIC_CONTENT_TYPE;
   width: number;
   height: number;
   placements: FinalizePlacement[];
@@ -116,10 +117,17 @@ type PreparedTile = {
 };
 
 const defaultTileSize = renderedMosaicTileSizePx;
+export const FINALIZE_MOSAIC_TILE_SIZE = 40;
+export const FINALIZE_MOSAIC_CONTENT_TYPE = "image/webp";
+export const FINALIZE_MOSAIC_WEBP_QUALITY = 88;
 const defaultColorMix = 0.26;
 const defaultOverlayOpacity = 0.12;
 const defaultOverlayBlur = 8;
 const defaultGrid = unitTileGrid;
+export const FINALIZE_MOSAIC_WIDTH =
+  defaultGrid.cols * FINALIZE_MOSAIC_TILE_SIZE;
+export const FINALIZE_MOSAIC_HEIGHT =
+  defaultGrid.rows * FINALIZE_MOSAIC_TILE_SIZE;
 const defaultSubjectPriority = 0.7;
 const defaultFacePriority = 0.22;
 const defaultBackgroundPriority = 0.06;
@@ -265,14 +273,18 @@ export async function generateFinalizeMosaic(
     grid:
       input.grid ??
       deriveFinalizeGridFromSubmissionCount(input.submissions.length),
-    tileSize: input.tileSize ?? defaultTileSize,
+    tileSize: input.tileSize ?? FINALIZE_MOSAIC_TILE_SIZE,
     colorMix: input.colorMix,
     overlayOpacity: input.overlayOpacity,
     overlayBlur: input.overlayBlur,
   });
+  const image = await sharp(result.image)
+    .webp({ quality: FINALIZE_MOSAIC_WEBP_QUALITY })
+    .toBuffer();
 
   return {
-    image: new Uint8Array(result.image),
+    image: new Uint8Array(image),
+    contentType: FINALIZE_MOSAIC_CONTENT_TYPE,
     width: result.width,
     height: result.height,
     metrics: result.metrics,

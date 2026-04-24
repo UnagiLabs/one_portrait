@@ -34,7 +34,15 @@ export type {
   TargetAnalysis,
   TargetAnalysisCell,
 } from "./mosaic";
-export { generateFinalizeMosaic, generateMosaic } from "./mosaic";
+export {
+  FINALIZE_MOSAIC_CONTENT_TYPE,
+  FINALIZE_MOSAIC_HEIGHT,
+  FINALIZE_MOSAIC_TILE_SIZE,
+  FINALIZE_MOSAIC_WEBP_QUALITY,
+  FINALIZE_MOSAIC_WIDTH,
+  generateFinalizeMosaic,
+  generateMosaic,
+} from "./mosaic";
 export {
   type PreparedFinalizeInput,
   type PreparedSubmission,

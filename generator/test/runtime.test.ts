@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PreparedFinalizeInput } from "../src";
-import { createDefaultFinalizeRunner, createFinalizeRunner } from "../src";
+import {
+  createDefaultFinalizeRunner,
+  createFinalizeRunner,
+  FINALIZE_MOSAIC_CONTENT_TYPE,
+} from "../src";
 
 describe("createFinalizeRunner", () => {
   it("absorbs units that are already finalized before any heavy work starts", async () => {
@@ -270,6 +274,7 @@ describe("createDefaultFinalizeRunner", () => {
   it("uses the improved mosaic generator result for walrus put and finalize", async () => {
     const generateFinalizeMosaic = vi.fn(async () => ({
       image: new Uint8Array([7, 8, 9]),
+      contentType: "image/webp" as const,
       placements: [
         {
           walrusBlobId: "submission-1",
@@ -314,7 +319,10 @@ describe("createDefaultFinalizeRunner", () => {
       placementCount: 1,
     });
     expect(generateFinalizeMosaic).toHaveBeenCalledTimes(1);
-    expect(putBlob).toHaveBeenCalledWith(new Uint8Array([7, 8, 9]));
+    expect(putBlob).toHaveBeenCalledWith(
+      new Uint8Array([7, 8, 9]),
+      FINALIZE_MOSAIC_CONTENT_TYPE,
+    );
     expect(finalizeTransaction).toHaveBeenCalledWith({
       unitId: "0xunit-1",
       mosaicBlobId: "mosaic-blob",
@@ -351,6 +359,7 @@ describe("createDefaultFinalizeRunner", () => {
       sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
       generateFinalizeMosaic: vi.fn(async () => ({
         image: new Uint8Array([7, 8, 9]),
+        contentType: "image/webp" as const,
         placements: [
           {
             walrusBlobId: "submission-1",

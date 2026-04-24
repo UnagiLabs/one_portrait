@@ -17,7 +17,10 @@ export class WalrusWriteError extends Error {
 }
 
 export type WalrusWriteClient = {
-  putBlob(bytes: Uint8Array): Promise<{
+  putBlob(
+    bytes: Uint8Array,
+    contentType?: string,
+  ): Promise<{
     readonly blobId: string;
     readonly aggregatorUrl: string;
   }>;
@@ -30,7 +33,7 @@ export function createWalrusWriteClient(options: {
   readonly fetchFn?: typeof fetch;
 }): WalrusWriteClient {
   return {
-    async putBlob(bytes: Uint8Array) {
+    async putBlob(bytes: Uint8Array, contentType = "image/png") {
       const fetchFn = options.fetchFn ?? fetch;
       const publisherBaseUrl = trimTrailingSlashes(options.publisherBaseUrl);
       const aggregatorBaseUrl = trimTrailingSlashes(options.aggregatorBaseUrl);
@@ -41,7 +44,7 @@ export function createWalrusWriteClient(options: {
           method: "PUT",
           body: bytes,
           headers: {
-            "content-type": "image/png",
+            "content-type": contentType,
           },
         },
       );
