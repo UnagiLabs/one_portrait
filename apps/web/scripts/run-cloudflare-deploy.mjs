@@ -14,6 +14,11 @@ export const runtimeUrlVarKeys = [
   "OP_GENERATOR_RUNTIME_URL_OVERRIDE",
 ];
 
+export const requiredCloudflareCredentialKeys = [
+  "CLOUDFLARE_API_TOKEN",
+  "CLOUDFLARE_ACCOUNT_ID",
+];
+
 export function buildCloudflareDeployArgs({
   env = process.env,
   manifest,
@@ -37,11 +42,35 @@ export function buildCloudflareDeployEnv({
   };
 }
 
+export function getMissingCloudflareDeployCredentials({
+  env = process.env,
+} = {}) {
+  return requiredCloudflareCredentialKeys.filter((key) => {
+    const value = env?.[key];
+    return typeof value !== "string" || value.trim().length === 0;
+  });
+}
+
+export function assertCloudflareDeployCredentials({ env = process.env } = {}) {
+  const missing = getMissingCloudflareDeployCredentials({ env });
+
+  if (missing.length > 0) {
+    throw new Error(
+      [
+        `Missing required Cloudflare deploy credentials: ${missing.join(", ")}`,
+        "Set these as GitHub Actions repository secrets, or attach the job to the GitHub Environment that owns them.",
+      ].join("\n"),
+    );
+  }
+}
+
 function runCloudflareDeploy({
   cwd = process.cwd(),
   env = process.env,
   spawnImpl = spawn,
 } = {}) {
+  assertCloudflareDeployCredentials({ env });
+
   const manifest = readDeploymentManifest();
   const child = spawnImpl(
     "opennextjs-cloudflare",
@@ -80,7 +109,18 @@ function toRuntimeUrlVarArgs(env) {
 }
 
 if (import.meta.url === pathToFileUrl(process.argv[1])) {
-  runCloudflareDeploy();
+  try {
+    assertCloudflareDeployCredentials();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+
+  if (process.argv.includes("--check")) {
+    console.log("Cloudflare deploy credentials are configured.");
+  } else {
+    runCloudflareDeploy();
+  }
 }
 
 function pathToFileUrl(value) {
