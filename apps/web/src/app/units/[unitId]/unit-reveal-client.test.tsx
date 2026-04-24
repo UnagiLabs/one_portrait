@@ -78,6 +78,8 @@ vi.mock("./live-progress", () => ({
 import { UnitRevealClient } from "./unit-reveal-client";
 
 const AGGREGATOR_BASE = "https://aggregator.example.com";
+const OPAQUE_MOSAIC_BLOB_ID =
+  "H5f6KfQ7zYvX4mN8pRq2tL9cBd3Aes0WjU1VgSnP";
 
 function completedEntry(
   overrides: Partial<
@@ -91,7 +93,7 @@ function completedEntry(
     submissionNo: 42,
     mintedAtMs: 1700000000000,
     masterId: "0xmaster-1",
-    mosaicWalrusBlobId: "mosaic-gallery-blob",
+    mosaicWalrusBlobId: OPAQUE_MOSAIC_BLOB_ID,
     placement: {
       x: 12,
       y: 34,
@@ -192,8 +194,8 @@ describe("UnitRevealClient", () => {
       expect(screen.getByTestId("placement-highlight")).toBeTruthy();
     });
 
-    expect(screen.getByTestId("reveal-image").getAttribute("src")).toContain(
-      "/v1/blobs/mosaic-gallery-blob",
+    expect(screen.getByTestId("reveal-image").getAttribute("src")).toBe(
+      `${AGGREGATOR_BASE}/v1/blobs/${OPAQUE_MOSAIC_BLOB_ID}`,
     );
   });
 
