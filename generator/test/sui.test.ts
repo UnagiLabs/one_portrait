@@ -40,6 +40,26 @@ describe("createUnitSnapshotLoader", () => {
       masterId: null,
     });
   });
+
+  it("accepts upgraded Sui object master_id values returned as plain strings", async () => {
+    const client = {
+      getObject: vi.fn(async ({ id }) => {
+        expect(id).toBe(UNIT_ID);
+        return {
+          data: unitData({
+            master_id: "0xmaster",
+            status: 2,
+          }),
+        };
+      }),
+    } as unknown as GeneratorSuiReadClient;
+
+    const loader = createUnitSnapshotLoader(client);
+    const snapshot = await loader(UNIT_ID);
+
+    expect(snapshot.status).toBe("finalized");
+    expect(snapshot.masterId).toBe("0xmaster");
+  });
 });
 
 describe("createSeedingSnapshotLoader", () => {
