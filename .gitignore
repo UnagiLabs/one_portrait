@@ -23,6 +23,8 @@ apps/web/.cache
 **/.env
 **/.env.local
 **/.env.*.local
+ops/deployments/*.secrets.local.env
+ops/deployments/*.secrets.env
 
 # Logs & OS
 *.log
