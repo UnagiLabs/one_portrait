@@ -1,11 +1,16 @@
 import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
 import Link from "next/link";
 
-const mosaicAspectRatio = `${unitTileGrid.cols} / ${unitTileGrid.rows}`;
-
 import { getAthleteCatalog } from "../lib/catalog";
 import { getDemoUnitProgress, isDemoModeEnabled } from "../lib/demo";
 import { getActiveHomeUnits, RegistrySchemaError } from "../lib/sui";
+import {
+  HomeMosaicReveal,
+  HomeScrollMotion,
+  HomeSubmitSection,
+} from "./home-experience";
+
+const mosaicAspectRatio = `${unitTileGrid.cols} / ${unitTileGrid.rows}`;
 
 function formatProgressCount(value: number): string {
   return String(value);
@@ -152,6 +157,7 @@ export default async function HomePage(
 
   return (
     <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
+      <HomeScrollMotion />
       <section className="relative grid gap-0 border-b border-[var(--rule)] lg:grid-cols-[1.1fr_1fr]">
         <div className="relative flex flex-col justify-between gap-12 border-b border-[var(--rule)] p-8 md:p-14 lg:border-r lg:border-b-0 lg:p-16">
           <div className="grid gap-7">
@@ -182,7 +188,7 @@ export default async function HomePage(
               <HeroMeta k="Transferable" v="Never" />
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <a className="op-btn-primary" href="#arena">
+              <a className="op-btn-primary" href="#portrait-works">
                 <span>Enter The Arena</span>
                 <ArrowRight />
               </a>
@@ -206,15 +212,18 @@ export default async function HomePage(
 
       <section
         aria-label="Available portrait works"
+        id="portrait-works"
         className="op-home-portrait-flow"
       >
         <div className="op-home-portrait-flow-head">
           <div className="grid gap-3">
             <div className="op-eyebrow">
               <span className="bar" />
-              <span>Available portrait works</span>
+              <span>Step 01 — Choose your portrait</span>
             </div>
-            <h2>Choose the portrait you help complete.</h2>
+            <h2 className="op-home-scroll-reveal" data-op-motion="headline">
+              Choose the portrait you help complete.
+            </h2>
           </div>
           <p>
             Each portrait opens as a shared unit. Pick who you stand for, submit
@@ -230,12 +239,16 @@ export default async function HomePage(
         </div>
       </section>
 
+      <HomeSubmitSection />
+
+      <HomeMosaicReveal />
+
       <section className="relative grid gap-10 p-8 md:p-14 lg:p-16" id="arena">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--rule)] pb-5">
           <div className="grid gap-4">
             <div className="op-eyebrow">
               <span className="bar" />
-              <span>Step 01 — Pick your warrior</span>
+              <span>Live registry</span>
             </div>
             <h2 className="font-display text-[clamp(40px,6vw,72px)] leading-[0.95] text-[var(--ink)]">
               Choose{" "}
@@ -366,7 +379,7 @@ function HeroFoot({
 function TeaserPanel(): React.ReactElement {
   return (
     <div
-      className="relative w-[78%]"
+      className="op-home-teaser-panel relative w-[78%]"
       style={{ aspectRatio: mosaicAspectRatio }}
     >
       <div className="absolute -top-7 left-0 flex items-center gap-2.5 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
@@ -387,10 +400,10 @@ function TeaserPanel(): React.ReactElement {
         <img
           alt=""
           aria-hidden
-          className="h-full w-full object-cover"
+          className="op-home-teaser-image h-full w-full object-cover"
           src="/demo/demo_mozaiku.png"
-          style={{ filter: "blur(18px) saturate(1.2) brightness(0.9)" }}
         />
+        <div className="op-home-teaser-scan" aria-hidden />
         <div
           className="pointer-events-none absolute inset-0"
           style={{
