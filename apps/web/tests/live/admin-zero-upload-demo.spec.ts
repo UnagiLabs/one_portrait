@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 const displayName = `Live Zero Demo ${Date.now()}`;
 const thumbnailUrl =
   "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?w=320";
-const targetPng = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAABmJLR0QA/wD/AP+gvaeTAAAAWUlEQVRoge3PQQ3AIADAQMA+LfqX5FGBwVSgeNPM5mZ2fQF8G2AbYBtgG2AbYBtgG2AbYBtgG2AbYBtgG2AbYBtgG2AbYBtgG2AbYBtgG2AbYBtgG2AbYPsF2QExRwLFdQAAAABJRU5ErkJggg==",
+const targetJpeg = Buffer.from(
+  "/9j/4AAQSkZJRgABAQAAAAAAAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCABAAEADAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAbEAACAgMBAAAAAAAAAAAAAAAAFQFiUpGhYf/EABYBAQEBAAAAAAAAAAAAAAAAAAAFCP/EABcRAQEBAQAAAAAAAAAAAAAAAAATFGH/2gAMAwEAAhEDEQA/AKln70ydBru4z96IFxn70QLjP3ogXGfvRAuM/eiBcZ+9EC4z96IF0i0nIrwRtA0nIQNA0nIQNA0nIQNA0nIQNA0nIQNA0nIQNA0nIQNCRZxlGyxBGuM4yjYgXGcZRsQLjOMo2IFxnGUbEC4zjKNiBcZxlGxAuM4yjYgXSTS/SxBF0DS/RA0DS/RA0DS/RA0DS/RA0DS/RA0DS/RA0DS/RA0JFnaNliCPfoztGxAv0Z2jYgX6M7RsQL9Gdo2IF+jO0bEC/RnaNiBfoztGxAv1JM7dK8EW4zt0QLjO3RAuM7dEC4zt0QLjO3RAuM7dEC4zt0QLpFpGRZgjX6NIyEC/RpGQgX6NIyEC/RpGQgX6NIyEC/RpGQgX6NIyEC/Ui0sWII1xpYQLjSwgXGlhAuNLCBcaWEC40sIFxpYQLv/Z",
   "base64",
 );
 
@@ -31,13 +31,22 @@ test("creates and finalizes a zero-upload demo unit from the live admin page", a
   await expect(
     page.getByRole("heading", { name: "デモ管理コンソール" }),
   ).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        await page.getByRole("button", { name: "状態を更新" }).click();
+        return await page.getByText("worker_kv").count();
+      },
+      { timeout: 60_000 },
+    )
+    .toBeGreaterThan(0);
 
   await page.getByLabel("displayName").fill(displayName);
   await page.getByLabel("thumbnail URL").fill(thumbnailUrl);
   await page.getByLabel("対象画像").setInputFiles({
-    name: "target.png",
-    mimeType: "image/png",
-    buffer: targetPng,
+    name: "target.jpg",
+    mimeType: "image/jpeg",
+    buffer: targetJpeg,
   });
   await expect(page.getByText("対象画像をアップロードしました")).toBeVisible({
     timeout: 60_000,
