@@ -64,7 +64,9 @@ export type DefaultFinalizeRunnerDeps = {
   readonly finalizeTransaction: FinalizeRunnerDeps["finalizeTransaction"];
   readonly generateFinalizeMosaic?: (
     prepared: PreparedFinalizeInput,
-  ) => Promise<Pick<GeneratedFinalizeMosaic, "image" | "placements">>;
+  ) => Promise<
+    Pick<GeneratedFinalizeMosaic, "contentType" | "image" | "placements">
+  >;
   readonly readUnitSnapshot: GeneratorUnitSnapshotLoader;
   readonly sampleAverageColor?: AverageColorSampler;
   readonly walrusRead: WalrusReadClient;
@@ -164,7 +166,10 @@ export function createDefaultFinalizeRunner(
         mosaicResult.placements,
         prepared.submissions,
       );
-      const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
+      const mosaic = await deps.walrusWrite.putBlob(
+        mosaicResult.image,
+        mosaicResult.contentType,
+      );
       const finalized = await deps.finalizeTransaction({
         unitId,
         mosaicBlobId: mosaic.blobId,

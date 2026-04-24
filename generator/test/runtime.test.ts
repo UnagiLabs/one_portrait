@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PreparedFinalizeInput } from "../src";
-import { createDefaultFinalizeRunner, createFinalizeRunner } from "../src";
+import {
+  createDefaultFinalizeRunner,
+  createFinalizeRunner,
+  FINALIZE_MOSAIC_CONTENT_TYPE,
+} from "../src";
 
 describe("createFinalizeRunner", () => {
   it("absorbs units that are already finalized before any heavy work starts", async () => {
@@ -193,12 +197,84 @@ describe("createFinalizeRunner", () => {
       placements: [placements[0]],
     });
   });
+
+  it("finalizes a zero-submission demo unit with empty on-chain placements", async () => {
+    const placements = [
+      {
+        walrusBlobId: "demo-dummy:dummy-1.png",
+        submissionNo: 1,
+        submitter: "0xdemo-dummy-0001",
+        x: 0,
+        y: 0,
+        targetColor: { red: 4, green: 5, blue: 6 },
+      },
+    ];
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createFinalizeRunner({
+      readUnitSnapshot: vi.fn(async () => ({
+        displayName: "Demo Athlete Zero",
+        displayMaxSlots: 1,
+        targetWalrusBlobId: "target-blob-zero",
+        unitId: "0xunit-zero",
+        submissions: [],
+        status: "filled" as const,
+        masterId: null,
+      })),
+      prepareInput: vi.fn(async () => ({
+        displayName: "Demo Athlete Zero",
+        unitId: "0xunit-zero",
+        targetWalrusBlobId: "target-blob-zero",
+        targetImageBytes: new Uint8Array([1, 2, 3]),
+        submissions: [
+          {
+            submissionNo: 1,
+            submitter: "0xdemo-dummy-0001",
+            submittedAtMs: 0,
+            walrusBlobId: "demo-dummy:dummy-1.png",
+            averageColor: { red: 4, green: 5, blue: 6 },
+            imageBytes: new Uint8Array([7, 8, 9]),
+            isDummy: true,
+          },
+        ],
+      })),
+      extractTargetTiles: vi.fn(async () => [
+        {
+          index: 0,
+          x: 0,
+          y: 0,
+          averageColor: { red: 1, green: 2, blue: 3 },
+        },
+      ]),
+      assignPlacements: vi.fn(() => placements),
+      composeMosaicPng: vi.fn(async () => new Uint8Array([9, 9, 9])),
+      putMosaic: vi.fn(async () => ({
+        blobId: "mosaic-blob",
+        aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+      })),
+      finalizeTransaction,
+    });
+
+    await expect(runner.run("0xunit-zero")).resolves.toEqual({
+      status: "finalized",
+      unitId: "0xunit-zero",
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 0,
+    });
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-zero",
+      mosaicBlobId: "mosaic-blob",
+      placements: [],
+    });
+  });
 });
 
 describe("createDefaultFinalizeRunner", () => {
   it("uses the improved mosaic generator result for walrus put and finalize", async () => {
     const generateFinalizeMosaic = vi.fn(async () => ({
       image: new Uint8Array([7, 8, 9]),
+      contentType: "image/webp" as const,
       placements: [
         {
           walrusBlobId: "submission-1",
@@ -243,7 +319,10 @@ describe("createDefaultFinalizeRunner", () => {
       placementCount: 1,
     });
     expect(generateFinalizeMosaic).toHaveBeenCalledTimes(1);
-    expect(putBlob).toHaveBeenCalledWith(new Uint8Array([7, 8, 9]));
+    expect(putBlob).toHaveBeenCalledWith(
+      new Uint8Array([7, 8, 9]),
+      FINALIZE_MOSAIC_CONTENT_TYPE,
+    );
     expect(finalizeTransaction).toHaveBeenCalledWith({
       unitId: "0xunit-1",
       mosaicBlobId: "mosaic-blob",
@@ -280,6 +359,7 @@ describe("createDefaultFinalizeRunner", () => {
       sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
       generateFinalizeMosaic: vi.fn(async () => ({
         image: new Uint8Array([7, 8, 9]),
+        contentType: "image/webp" as const,
         placements: [
           {
             walrusBlobId: "submission-1",

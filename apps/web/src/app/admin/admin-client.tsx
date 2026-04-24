@@ -45,7 +45,9 @@ export function AdminClient({
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  const parsedDemoRealUploadCount = parsePositiveInteger(createRealUploadCount);
+  const parsedDemoRealUploadCount = parseNonNegativeInteger(
+    createRealUploadCount,
+  );
   const isDemoRealUploadCountValid =
     parsedDemoRealUploadCount !== null &&
     parsedDemoRealUploadCount < unitTileCount;
@@ -353,11 +355,10 @@ export function AdminClient({
             <p className="text-xs leading-6 text-stone-400">
               {createMode === "demo"
                 ? isDemoRealUploadCountValid
-                  ? `5 枚完了の時点で残り ${effectiveDisplayMaxSlots - effectiveMaxSlots} 枚をダミー画像としてロックし、実投稿分だけを元データとしてモザイク生成します。`.replace(
-                      "5",
-                      String(effectiveMaxSlots),
-                    )
-                  : `デモでは 1 以上 ${unitTileCount - 1} 以下の実アップロード枚数を指定してください。`
+                  ? effectiveMaxSlots === 0
+                    ? `0 枚作成直後に filled として扱い、${effectiveDisplayMaxSlots} 枚すべてをダミー画像としてモザイク生成します。`
+                    : `${effectiveMaxSlots} 枚完了の時点で残り ${effectiveDisplayMaxSlots - effectiveMaxSlots} 枚をダミー画像としてロックし、実投稿分だけを元データとしてモザイク生成します。`
+                  : `デモでは 0 以上 ${unitTileCount - 1} 以下の実アップロード枚数を指定してください。`
                 : "通常では 2,000 枚すべてが実投稿対象です。"}
             </p>
           </fieldset>
@@ -587,13 +588,13 @@ function formatActionDetail(payload: Record<string, unknown>): string {
   return parts.join(" / ");
 }
 
-function parsePositiveInteger(value: string): number | null {
+function parseNonNegativeInteger(value: string): number | null {
   if (!/^[0-9]+$/.test(value.trim())) {
     return null;
   }
 
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  if (!Number.isInteger(parsed) || parsed < 0) {
     return null;
   }
 

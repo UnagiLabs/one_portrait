@@ -50,7 +50,7 @@ public(package) fun create_unit(
     display_max_slots: u64,
     ctx: &mut TxContext,
 ): ID {
-    assert!(max_slots > 0, EINVALID_MAX_SLOTS);
+    assert!(display_max_slots > 0, EINVALID_DISPLAY_MAX_SLOTS);
     assert!(
         display_max_slots >= max_slots,
         EINVALID_DISPLAY_MAX_SLOTS,
@@ -63,7 +63,7 @@ public(package) fun create_unit(
         target_walrus_blob,
         max_slots,
         display_max_slots,
-        status: STATUS_PENDING,
+        status: if (max_slots == 0) { STATUS_FILLED } else { STATUS_PENDING },
         master_id: option::none(),
         submitters: table::new(ctx),
         submissions: vector[],

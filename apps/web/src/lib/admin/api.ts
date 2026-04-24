@@ -36,8 +36,8 @@ export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
     "thumbnailUrl",
   ]);
 
-  const maxSlots = parseMaxSlots(record.maxSlots, "maxSlots");
-  const displayMaxSlots = parseMaxSlots(
+  const maxSlots = parseNonNegativeInteger(record.maxSlots, "maxSlots");
+  const displayMaxSlots = parsePositiveInteger(
     record.displayMaxSlots,
     "displayMaxSlots",
   );
@@ -149,15 +149,29 @@ function parseNonEmptyTrimmedString(value: unknown, fieldName: string): string {
   return parsed;
 }
 
-function parseMaxSlots(value: unknown, fieldName: string): number {
-  const maxSlots =
+function parseNonNegativeInteger(value: unknown, fieldName: string): number {
+  const parsed =
     typeof value === "number"
       ? value
       : typeof value === "string" && /^[0-9]+$/.test(value)
         ? Number(value)
         : NaN;
 
-  if (!Number.isInteger(maxSlots) || maxSlots <= 0) {
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new AdminApiError(
+      400,
+      "invalid_args",
+      `\`${fieldName}\` は 0 以上の整数で送ってください。`,
+    );
+  }
+
+  return parsed;
+}
+
+function parsePositiveInteger(value: unknown, fieldName: string): number {
+  const parsed = parseNonNegativeInteger(value, fieldName);
+
+  if (parsed === 0) {
     throw new AdminApiError(
       400,
       "invalid_args",
@@ -165,5 +179,5 @@ function parseMaxSlots(value: unknown, fieldName: string): number {
     );
   }
 
-  return maxSlots;
+  return parsed;
 }

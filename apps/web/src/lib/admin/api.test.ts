@@ -27,6 +27,36 @@ describe("parseCreateUnitInput", () => {
     });
   });
 
+  it("accepts zero real upload slots for a demo unit", () => {
+    expect(
+      parseCreateUnitInput({
+        blobId: "target-blob-12",
+        displayMaxSlots: 2000,
+        displayName: "Demo Athlete Twelve",
+        maxSlots: 0,
+        thumbnailUrl: "https://example.com/12.png",
+      }),
+    ).toEqual({
+      blobId: "target-blob-12",
+      displayMaxSlots: 2000,
+      displayName: "Demo Athlete Twelve",
+      maxSlots: 0,
+      thumbnailUrl: "https://example.com/12.png",
+    });
+  });
+
+  it("rejects a zero display slot unit", () => {
+    expect(() =>
+      parseCreateUnitInput({
+        blobId: "target-blob-12",
+        displayMaxSlots: 0,
+        displayName: "Demo Athlete Twelve",
+        maxSlots: 0,
+        thumbnailUrl: "https://example.com/12.png",
+      }),
+    ).toThrowError(AdminApiError);
+  });
+
   it("rejects create-unit input that still includes athleteId", () => {
     expect(() =>
       parseCreateUnitInput({

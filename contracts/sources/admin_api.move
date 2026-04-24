@@ -35,3 +35,12 @@ public fun finalize(
 ) {
     unit::finalize(admin_cap, unit, mosaic_blob_id, placements, ctx);
 }
+
+public fun finalize_empty(
+    admin_cap: &AdminCap,
+    unit: &mut Unit,
+    mosaic_blob_id: vector<u8>,
+    ctx: &mut TxContext,
+) {
+    unit::finalize(admin_cap, unit, mosaic_blob_id, vector[], ctx);
+}
