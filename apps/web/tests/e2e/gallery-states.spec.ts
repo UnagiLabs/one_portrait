@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../src/lib/e2e/stub-data";
+import {
+  STUB_KAKERA_OBJECT_ID,
+  STUB_MASTER_ID,
+  STUB_UNIT_ID,
+} from "../../src/lib/e2e/stub-data";
 import { installDefaultMocks } from "./fixtures/mock-network";
 
 test.describe("gallery states", () => {
@@ -31,6 +35,33 @@ test.describe("gallery states", () => {
     ).toBeVisible();
     await expect(page.getByText(/Placed at 12, 8/i)).toBeVisible();
     await expect(page.getByText(`Master ${STUB_MASTER_ID}`)).toBeVisible();
+    await expect(page.getByText("Kakera Object ID")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: STUB_KAKERA_OBJECT_ID }),
+    ).toHaveAttribute(
+      "href",
+      `https://suiscan.xyz/testnet/object/${STUB_KAKERA_OBJECT_ID}`,
+    );
+  });
+
+  test("shows a pending gallery entry with a Kakera object link", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page, { galleryEntryMode: "pending" });
+
+    await page.goto("/gallery");
+
+    await expect(
+      page.getByText("Pending", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByText(/Waiting for reveal/i)).toBeVisible();
+    await expect(page.getByText(/Submission #1/i)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: STUB_KAKERA_OBJECT_ID }),
+    ).toHaveAttribute(
+      "href",
+      `https://suiscan.xyz/testnet/object/${STUB_KAKERA_OBJECT_ID}`,
+    );
   });
 
   test("keeps a completed card visible when the original image fails", async ({
@@ -92,6 +123,12 @@ test.describe("gallery states", () => {
     ).toBeVisible();
     await expect(page.getByText(/Entry unavailable right now/i)).toBeVisible();
     await expect(page.getByText(/Submission #1/i)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: STUB_KAKERA_OBJECT_ID }),
+    ).toHaveAttribute(
+      "href",
+      `https://suiscan.xyz/testnet/object/${STUB_KAKERA_OBJECT_ID}`,
+    );
     await expect(
       page.getByRole("heading", { level: 1, name: /Participation gallery/i }),
     ).toBeVisible();

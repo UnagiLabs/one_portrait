@@ -78,10 +78,15 @@ export type InstallMockOptions = {
   /**
    * Deterministic gallery switch used by the E2E suite:
    * - `empty` keeps the original no-Kakera path
+   * - `pending` returns one hydrated pending entry
    * - `completed` returns one hydrated completed entry
    * - `hydration_error` returns one Kakera but makes the Unit lookup fail
    */
-  readonly galleryEntryMode?: "empty" | "completed" | "hydration_error";
+  readonly galleryEntryMode?:
+    | "empty"
+    | "pending"
+    | "completed"
+    | "hydration_error";
   /**
    * Deterministic original-image switch for completed cards.
    * Only the original blob request fails; the mosaic request still resolves.
