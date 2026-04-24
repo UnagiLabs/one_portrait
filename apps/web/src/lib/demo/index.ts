@@ -33,6 +33,8 @@ const demoGalleryEntries = [
     unitId: demoUnitId,
     displayName: "Demo Athlete One",
     walrusBlobId: "demo-original-one",
+    kakeraObjectId:
+      "0x00000000000000000000000000000000000000000000000000000000000000d5",
     submissionNo: 347,
     mintedAtMs: 1_800_000_000_000,
     masterId: demoMasterId,
@@ -50,6 +52,8 @@ const demoGalleryEntries = [
       "0x00000000000000000000000000000000000000000000000000000000000000d4",
     displayName: "Demo Athlete Two",
     walrusBlobId: "demo-original-two",
+    kakeraObjectId:
+      "0x00000000000000000000000000000000000000000000000000000000000000d6",
     submissionNo: 88,
     mintedAtMs: 1_790_000_000_000,
     masterId: null,
