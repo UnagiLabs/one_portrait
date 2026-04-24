@@ -224,7 +224,10 @@ function defaultRunDockerRemove({ containerName }) {
   });
 }
 
-function attachDockerContainerCleanup(child, { containerName, runDockerRemove }) {
+function attachDockerContainerCleanup(
+  child,
+  { containerName, runDockerRemove },
+) {
   if (!child || typeof child.kill !== "function") {
     return;
   }
