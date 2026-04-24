@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createCreateUnitTransactionExecutor,
-  createUnitSnapshotLoader,
   createSeedingSnapshotLoader,
+  createUnitSnapshotLoader,
 } from "../src";
 import type {
   GeneratorSuiReadClient,

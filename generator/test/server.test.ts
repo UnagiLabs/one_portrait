@@ -43,7 +43,8 @@ mocks.createFinalizeRunnerFromEndpointsMock.mockImplementation(() => ({
 }));
 
 vi.mock("../src/runtime", () => ({
-  createFinalizeRunnerFromEndpoints: mocks.createFinalizeRunnerFromEndpointsMock,
+  createFinalizeRunnerFromEndpoints:
+    mocks.createFinalizeRunnerFromEndpointsMock,
 }));
 
 vi.mock("../src/sui", () => ({
