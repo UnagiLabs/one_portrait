@@ -1,5 +1,3 @@
-import { isValidSuiObjectId } from "@mysten/sui/utils";
-
 export type AdminApiErrorCode =
   | "admin_unavailable"
   | "forbidden"
@@ -22,53 +20,43 @@ export class AdminApiError extends Error {
 
 export type CreateUnitRouteInput = {
   readonly athleteId: number;
+  readonly displayMaxSlots: number;
+  readonly displayName: string;
   readonly blobId: string;
   readonly maxSlots: number;
-};
-
-export type RotateUnitRouteInput = {
-  readonly athleteId: number;
-  readonly unitId: string;
-};
-
-export type UpsertAthleteMetadataRouteInput = {
-  readonly athleteId: number;
-  readonly displayName: string;
-  readonly slug: string;
   readonly thumbnailUrl: string;
 };
 
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
-  assertExactKeys(record, ["athleteId", "blobId", "maxSlots"]);
+  assertExactKeys(record, [
+    "athleteId",
+    "blobId",
+    "displayMaxSlots",
+    "displayName",
+    "maxSlots",
+    "thumbnailUrl",
+  ]);
+
+  const maxSlots = parseMaxSlots(record.maxSlots, "maxSlots");
+  const displayMaxSlots = parseMaxSlots(
+    record.displayMaxSlots,
+    "displayMaxSlots",
+  );
+  if (displayMaxSlots < maxSlots) {
+    throw new AdminApiError(
+      400,
+      "invalid_args",
+      "`displayMaxSlots` は `maxSlots` 以上で送ってください。",
+    );
+  }
 
   return {
     athleteId: parseAthleteId(record.athleteId),
-    blobId: parseBlobId(record.blobId),
-    maxSlots: parseMaxSlots(record.maxSlots),
-  };
-}
-
-export function parseRotateUnitInput(input: unknown): RotateUnitRouteInput {
-  const record = asRecord(input);
-  assertExactKeys(record, ["athleteId", "unitId"]);
-
-  return {
-    athleteId: parseAthleteId(record.athleteId),
-    unitId: parseObjectId(record.unitId, "unitId"),
-  };
-}
-
-export function parseUpsertAthleteMetadataInput(
-  input: unknown,
-): UpsertAthleteMetadataRouteInput {
-  const record = asRecord(input);
-  assertExactKeys(record, ["athleteId", "displayName", "slug", "thumbnailUrl"]);
-
-  return {
-    athleteId: parseAthleteId(record.athleteId),
+    displayMaxSlots,
     displayName: parseNonEmptyTrimmedString(record.displayName, "displayName"),
-    slug: parseNonEmptyTrimmedString(record.slug, "slug"),
+    blobId: parseBlobId(record.blobId),
+    maxSlots,
     thumbnailUrl: parseNonEmptyTrimmedString(
       record.thumbnailUrl,
       "thumbnailUrl",
@@ -183,7 +171,7 @@ function parseNonEmptyTrimmedString(value: unknown, fieldName: string): string {
   return parsed;
 }
 
-function parseMaxSlots(value: unknown): number {
+function parseMaxSlots(value: unknown, fieldName: string): number {
   const maxSlots =
     typeof value === "number"
       ? value
@@ -195,21 +183,9 @@ function parseMaxSlots(value: unknown): number {
     throw new AdminApiError(
       400,
       "invalid_args",
-      "`maxSlots` は 1 以上の整数で送ってください。",
+      `\`${fieldName}\` は 1 以上の整数で送ってください。`,
     );
   }
 
   return maxSlots;
-}
-
-function parseObjectId(value: unknown, fieldName: string): string {
-  const objectId = typeof value === "string" ? value.trim() : "";
-  if (!isValidSuiObjectId(objectId)) {
-    throw new AdminApiError(
-      400,
-      "invalid_args",
-      `\`${fieldName}\` の形式が不正です。`,
-    );
-  }
-  return objectId;
 }

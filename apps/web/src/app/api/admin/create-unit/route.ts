@@ -20,9 +20,12 @@ export async function POST(request: Request): Promise<Response> {
       "/admin/create-unit",
       {
         athleteId: input.athleteId,
+        displayMaxSlots: input.displayMaxSlots,
+        displayName: input.displayName,
         blobId: input.blobId,
         maxSlots: input.maxSlots,
         registryObjectId,
+        thumbnailUrl: input.thumbnailUrl,
       },
       {
         env: cloudflareEnv,
