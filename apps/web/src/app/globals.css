@@ -489,8 +489,17 @@ a {
   line-height: 1.56;
 }
 
+.op-home-portrait-rail-shell {
+  position: relative;
+}
+
 .op-home-portrait-rail {
   overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   mask-image: linear-gradient(
     90deg,
     transparent,
@@ -500,12 +509,61 @@ a {
   );
 }
 
+.op-home-portrait-rail::-webkit-scrollbar {
+  display: none;
+}
+
 .op-home-portrait-track {
   display: flex;
   gap: 16px;
   width: max-content;
   padding: 6px 24px 20px;
-  animation: op-home-portrait-flow 48s linear infinite;
+}
+
+.op-home-portrait-nav {
+  position: absolute;
+  top: calc(50% - 7px);
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(245, 239, 227, 0.2);
+  border-radius: 999px;
+  background: rgba(10, 6, 4, 0.72);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px rgba(255, 122, 26, 0.08) inset,
+    0 14px 40px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.op-home-portrait-nav:hover {
+  border-color: rgba(255, 122, 26, 0.7);
+  background: rgba(24, 12, 6, 0.9);
+  color: var(--fire-1);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.op-home-portrait-nav:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 3px;
+}
+
+.op-home-portrait-nav.is-prev {
+  left: 14px;
+}
+
+.op-home-portrait-nav.is-next {
+  right: 14px;
 }
 
 .op-home-portrait-card {
@@ -1860,6 +1918,20 @@ a {
     height: 250px;
   }
 
+  .op-home-portrait-nav {
+    top: calc(50% - 6px);
+    width: 30px;
+    height: 40px;
+  }
+
+  .op-home-portrait-nav.is-prev {
+    left: 8px;
+  }
+
+  .op-home-portrait-nav.is-next {
+    right: 8px;
+  }
+
   .op-home-submit {
     grid-template-columns: 1fr;
     padding: 24px;
@@ -1978,7 +2050,6 @@ a {
   .op-hero-title .accent,
   .op-hero-title .line,
   .op-corners,
-  .op-home-portrait-track,
   .op-home-scroll-flip,
   .op-home-scroll-reveal,
   .op-home-teaser-image,
