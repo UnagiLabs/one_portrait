@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Check deployment manifest drift
+        run: corepack pnpm run check:deployment
+
       - name: Biome check
         run: corepack pnpm run lint
 
