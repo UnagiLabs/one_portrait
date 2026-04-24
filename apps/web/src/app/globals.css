@@ -390,6 +390,161 @@ a {
   cursor: default;
 }
 
+/* Flowing portrait work rail */
+.op-home-portrait-flow {
+  display: grid;
+  gap: 30px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+  padding: 42px 0 50px;
+  background:
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(77, 162, 255, 0.08),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 82% 84%,
+      rgba(255, 122, 26, 0.12),
+      transparent 34%
+    ),
+    rgba(5, 3, 2, 0.68);
+}
+
+.op-home-portrait-flow-head {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.op-home-portrait-flow-head h2 {
+  max-width: 720px;
+  font-family: "Anton", sans-serif;
+  font-size: clamp(36px, 5vw, 68px);
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-home-portrait-flow-head p {
+  max-width: 390px;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  line-height: 1.56;
+}
+
+.op-home-portrait-rail {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    black 9%,
+    black 91%,
+    transparent
+  );
+}
+
+.op-home-portrait-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  padding: 6px 24px 20px;
+  animation: op-home-portrait-flow 48s linear infinite;
+}
+
+.op-home-portrait-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 250px;
+  height: 380px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 122, 26, 0.08), transparent 42%), #0a0604;
+  box-shadow: 0 28px 86px -56px rgba(255, 122, 26, 0.62);
+}
+
+.op-home-portrait-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 48%, rgba(5, 3, 2, 0.92)),
+    linear-gradient(
+      100deg,
+      rgba(255, 122, 26, 0.1),
+      transparent 44%,
+      rgba(77, 162, 255, 0.1)
+    );
+}
+
+.op-home-portrait-card img {
+  position: absolute;
+  inset: 12px -36px auto;
+  width: calc(100% + 72px);
+  height: 286px;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 28px 64px rgba(0, 0, 0, 0.7));
+  transition: transform 0.24s ease;
+}
+
+.op-home-portrait-card:hover img {
+  transform: translateY(-7px) scale(1.04);
+}
+
+.op-home-portrait-card-body {
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.op-home-portrait-card-body span {
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-home-portrait-card-body span.is-live {
+  color: var(--ember);
+}
+
+.op-home-portrait-card-body h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Anton", sans-serif;
+  font-size: 1.9rem;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-home-portrait-card-meter {
+  height: 2px;
+  overflow: hidden;
+  background: rgba(245, 239, 227, 0.12);
+}
+
+.op-home-portrait-card-meter i {
+  display: block;
+  width: 58%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--fire-1));
+  box-shadow: 0 0 18px rgba(255, 122, 26, 0.5);
+}
+
 /* Kakera-style card */
 .op-kakera-card {
   position: relative;
@@ -536,5 +691,855 @@ a {
     gap: 14px;
     font-size: 11px;
     letter-spacing: 0.12em;
+  }
+}
+
+/* Demo film route */
+.op-demo {
+  min-height: 100vh;
+  overflow: hidden;
+  background: #050302;
+  color: var(--ink);
+}
+
+.op-demo section {
+  position: relative;
+}
+
+.op-demo-hero {
+  min-height: 100svh;
+  display: grid;
+  align-items: end;
+  padding: 40px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(5, 3, 2, 0.96),
+      rgba(5, 3, 2, 0.58) 42%,
+      rgba(5, 3, 2, 0.1)
+    ),
+    radial-gradient(
+      circle at 78% 38%,
+      rgba(255, 122, 26, 0.24),
+      transparent 34%
+    ),
+    #050302;
+}
+
+.op-demo-hero::after,
+.op-demo-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(245, 239, 227, 0.04) 0,
+    rgba(245, 239, 227, 0.04) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.25;
+}
+
+.op-demo-hero-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.op-demo-hero-athlete {
+  position: absolute;
+  bottom: 0;
+  width: min(520px, 44vw);
+  max-height: 88vh;
+  object-fit: contain;
+  object-position: bottom center;
+  opacity: 0.5;
+  filter: grayscale(0.32) brightness(0.72)
+    drop-shadow(0 34px 70px rgba(0, 0, 0, 0.7));
+}
+
+.op-demo-hero-athlete.primary {
+  right: 14%;
+  z-index: 1;
+  animation: op-demo-float 5.8s ease-in-out infinite;
+}
+
+.op-demo-hero-athlete.left {
+  right: 43%;
+  z-index: 1;
+  transform: scale(0.88);
+}
+
+.op-demo-hero-athlete.mid-left {
+  right: 28%;
+  z-index: 1;
+  transform: translateY(32px) scale(0.76);
+}
+
+.op-demo-hero-athlete.right {
+  right: -2%;
+  z-index: 1;
+  transform: scale(0.92);
+}
+
+.op-demo-grid-glow {
+  position: absolute;
+  right: 5%;
+  top: 8%;
+  width: min(620px, 54vw);
+  aspect-ratio: 4 / 5;
+  border: 1px solid rgba(255, 122, 26, 0.18);
+  background:
+    linear-gradient(rgba(255, 122, 26, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 122, 26, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 72%);
+  opacity: 0.76;
+  animation: op-demo-grid-scan 7s linear infinite;
+}
+
+.op-demo-hero-copy {
+  position: relative;
+  z-index: 3;
+  max-width: 640px;
+  display: grid;
+  gap: 24px;
+  padding-bottom: 42px;
+}
+
+.op-demo-title {
+  font-family: "Anton", "Impact", sans-serif;
+  font-size: 7rem;
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-shadow: 0 0 48px rgba(212, 50, 14, 0.24);
+}
+
+.op-demo-title span {
+  display: block;
+  color: var(--ember);
+  font-family: "DM Serif Display", serif;
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.op-demo-lede {
+  max-width: 520px;
+  color: var(--ink-dim);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.op-demo-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.op-demo-stat {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px;
+  border-left: 1px solid var(--rule);
+}
+
+.op-demo-stat:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.op-demo-stat span {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-demo-stat strong {
+  font-family: "Anton", sans-serif;
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.op-demo-roster {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  gap: 36px;
+  overflow: hidden;
+  padding: 56px 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(77, 162, 255, 0.1), transparent 32%),
+    radial-gradient(circle at 85% 70%, rgba(212, 50, 14, 0.16), transparent 34%),
+    #070504;
+}
+
+.op-demo-section-head {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.op-demo-section-head h2,
+.op-demo-submit-copy h2,
+.op-demo-kakera-copy h2 {
+  max-width: 780px;
+  font-family: "Anton", sans-serif;
+  font-size: 4.5rem;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-demo-athlete-track {
+  display: flex;
+  gap: 18px;
+  width: max-content;
+  padding: 12px 24px 28px;
+  animation: op-demo-roster-move 38s linear infinite;
+}
+
+.op-demo-athlete-card {
+  position: relative;
+  width: 280px;
+  height: 430px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 122, 26, 0.08), transparent 42%),
+    rgba(10, 6, 4, 0.82);
+  box-shadow: 0 32px 90px -52px rgba(255, 122, 26, 0.62);
+}
+
+.op-demo-athlete-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent 55%, rgba(5, 3, 2, 0.92)),
+    linear-gradient(
+      90deg,
+      rgba(255, 122, 26, 0.12),
+      transparent 45%,
+      rgba(77, 162, 255, 0.1)
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.op-demo-athlete-card img {
+  position: absolute;
+  inset: 18px -40px auto;
+  width: calc(100% + 80px);
+  height: 310px;
+  object-fit: contain;
+  object-position: bottom center;
+  transition: transform 0.28s ease;
+}
+
+.op-demo-athlete-card:hover img {
+  transform: translateY(-8px) scale(1.05);
+}
+
+.op-demo-athlete-card div {
+  position: absolute;
+  z-index: 2;
+  left: 20px;
+  right: 20px;
+  bottom: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.op-demo-athlete-card p,
+.op-demo-athlete-card span {
+  margin: 0;
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-demo-athlete-card h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Anton", sans-serif;
+  font-size: 2rem;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-demo-submit {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1fr);
+  gap: 48px;
+  align-items: center;
+  padding: 56px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(77, 162, 255, 0.14),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 84% 58%,
+      rgba(255, 122, 26, 0.18),
+      transparent 36%
+    ),
+    #050302;
+}
+
+.op-demo-submit-copy {
+  display: grid;
+  gap: 22px;
+}
+
+.op-demo-submit-copy p:not(.op-eyebrow) {
+  max-width: 540px;
+  color: var(--ink-dim);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.op-demo-submit-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(220px, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.op-demo-phone {
+  position: relative;
+  overflow: hidden;
+  min-height: 520px;
+  border: 1px solid rgba(245, 239, 227, 0.16);
+  background:
+    linear-gradient(180deg, rgba(245, 239, 227, 0.06), transparent 40%), #080504;
+  box-shadow:
+    0 0 0 8px rgba(245, 239, 227, 0.03),
+    0 34px 90px -48px rgba(77, 162, 255, 0.7);
+}
+
+.op-demo-phone::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 72px;
+  height: 4px;
+  transform: translateX(-50%);
+  background: rgba(245, 239, 227, 0.18);
+}
+
+.op-demo-upload-preview {
+  position: absolute;
+  inset: 42px 18px 188px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.16);
+  background: #050302;
+}
+
+.op-demo-upload-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.op-demo-upload-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent 62%, rgba(5, 3, 2, 0.36)),
+    radial-gradient(circle at 52% 42%, transparent 42%, rgba(5, 3, 2, 0.18));
+  pointer-events: none;
+}
+
+.op-demo-upload-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -20%;
+  height: 26%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 122, 26, 0.18),
+    rgba(255, 209, 102, 0.32),
+    transparent
+  );
+  mix-blend-mode: screen;
+  animation: op-demo-upload-scan 3.4s ease-in-out infinite;
+}
+
+.op-demo-selfie-grid {
+  position: absolute;
+  inset: 42px 18px 118px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.op-demo-selfie-grid.compact {
+  inset: auto 18px 112px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+
+.op-demo-selfie {
+  position: relative;
+  overflow: hidden;
+  min-height: 102px;
+  border: 1px solid rgba(245, 239, 227, 0.12);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), transparent 42%),
+    var(--fan-bg);
+}
+
+.op-demo-selfie-grid.compact .op-demo-selfie {
+  min-height: 40px;
+}
+
+.op-demo-selfie::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 34%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--fan-skin);
+  box-shadow:
+    0 -12px 0 -4px var(--fan-hair),
+    0 42px 0 24px var(--fan-cloth);
+}
+
+.op-demo-selfie span {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 43% 36%,
+      rgba(5, 3, 2, 0.68) 0 2px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 57% 36%,
+      rgba(5, 3, 2, 0.68) 0 2px,
+      transparent 2px
+    ),
+    linear-gradient(transparent 65%, rgba(0, 0, 0, 0.28));
+}
+
+.op-demo-submit-status {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+}
+
+.op-demo-submit-status span,
+.op-demo-submit-steps span {
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-demo-submit-status strong {
+  color: var(--ink);
+  font-family: "Anton", sans-serif;
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.op-demo-submit-steps {
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+}
+
+.op-demo-submit-steps div {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 18px;
+  background: rgba(10, 6, 4, 0.82);
+}
+
+.op-demo-submit-steps strong {
+  color: var(--ink);
+  font-family: "Anton", sans-serif;
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-demo-reveal {
+  min-height: 100svh;
+  overflow: hidden;
+  background: #050302;
+}
+
+.op-demo-reveal-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.op-demo-reveal-overlay {
+  position: relative;
+  z-index: 2;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 40px;
+  pointer-events: none;
+}
+
+.op-demo-reveal-copy {
+  max-width: 560px;
+  display: grid;
+  gap: 18px;
+  padding-top: 36px;
+}
+
+.op-demo-reveal-copy h2 {
+  font-family: "Anton", sans-serif;
+  font-size: 7.5rem;
+  line-height: 0.86;
+  letter-spacing: 0;
+  color: var(--ember);
+  text-shadow: 0 0 60px rgba(255, 122, 26, 0.26);
+}
+
+.op-demo-reveal-copy h2 span {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 3.4rem;
+}
+
+.op-demo-reveal-copy p:not(.op-eyebrow) {
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1.55;
+}
+
+.op-demo-reveal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  pointer-events: auto;
+}
+
+.op-demo-reveal-controls span {
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-demo-kakera {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
+  gap: 48px;
+  align-items: center;
+  padding: 56px;
+  background:
+    radial-gradient(
+      circle at 72% 42%,
+      rgba(20, 184, 138, 0.16),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 20% 18%,
+      rgba(255, 122, 26, 0.15),
+      transparent 34%
+    ),
+    #050302;
+}
+
+.op-demo-kakera-copy {
+  display: grid;
+  gap: 22px;
+}
+
+.op-demo-kakera-copy p:not(.op-eyebrow) {
+  max-width: 520px;
+  color: var(--ink-dim);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.op-demo-kakera-card {
+  position: relative;
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid rgba(20, 184, 138, 0.34);
+  background:
+    linear-gradient(145deg, rgba(20, 184, 138, 0.12), transparent 34%),
+    rgba(5, 3, 2, 0.82);
+  box-shadow: 0 0 90px -42px rgba(20, 184, 138, 0.82);
+}
+
+.op-demo-kakera-media {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  background:
+    linear-gradient(rgba(20, 184, 138, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 138, 0.11) 1px, transparent 1px),
+    #030504;
+  background-size: 24px 24px;
+}
+
+.op-demo-kakera-media img {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 120%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 32px 70px rgba(0, 0, 0, 0.72));
+}
+
+.op-demo-kakera-card dl {
+  margin: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+}
+
+.op-demo-kakera-card div:has(> dt) {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  background: #050302;
+}
+
+.op-demo-kakera-card dt {
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-demo-kakera-card dd {
+  margin: 0;
+  color: var(--ok);
+  font-family: "Anton", sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0;
+  text-align: right;
+}
+
+@keyframes op-demo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes op-demo-grid-scan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 80px;
+  }
+}
+
+@keyframes op-demo-roster-move {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes op-home-portrait-flow {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes op-demo-upload-scan {
+  0%,
+  18% {
+    transform: translateY(0);
+  }
+  72%,
+  100% {
+    transform: translateY(470%);
+  }
+}
+
+@media (max-width: 900px) {
+  .op-home-portrait-flow-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .op-home-portrait-card {
+    width: 220px;
+    height: 340px;
+  }
+
+  .op-home-portrait-card img {
+    height: 250px;
+  }
+
+  .op-demo-hero,
+  .op-demo-submit,
+  .op-demo-reveal-overlay,
+  .op-demo-kakera {
+    padding: 24px;
+  }
+
+  .op-demo-hero {
+    align-items: start;
+    padding-top: 54px;
+  }
+
+  .op-demo-hero-athlete {
+    width: 68vw;
+  }
+
+  .op-demo-hero-athlete.primary {
+    right: 5%;
+  }
+
+  .op-demo-hero-athlete.left {
+    right: 40%;
+  }
+
+  .op-demo-hero-athlete.mid-left {
+    right: 18%;
+    opacity: 0.28;
+  }
+
+  .op-demo-hero-athlete.right {
+    right: -26%;
+  }
+
+  .op-demo-title,
+  .op-demo-reveal-copy h2 {
+    font-size: 4.5rem;
+  }
+
+  .op-demo-section-head h2,
+  .op-demo-submit-copy h2,
+  .op-demo-kakera-copy h2 {
+    font-size: 3rem;
+  }
+
+  .op-demo-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .op-demo-stat,
+  .op-demo-stat:first-child {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    padding-left: 0;
+  }
+
+  .op-demo-stat:first-child {
+    border-top: 0;
+  }
+
+  .op-demo-athlete-card {
+    width: 230px;
+    height: 360px;
+  }
+
+  .op-demo-athlete-card img {
+    height: 260px;
+  }
+
+  .op-demo-reveal-copy {
+    padding-top: 12px;
+  }
+
+  .op-demo-reveal-copy h2 span {
+    font-size: 2.2rem;
+  }
+
+  .op-demo-reveal-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .op-demo-submit {
+    grid-template-columns: 1fr;
+  }
+
+  .op-demo-submit-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .op-demo-phone {
+    min-height: 430px;
+  }
+
+  .op-demo-upload-preview {
+    bottom: 168px;
+  }
+
+  .op-demo-kakera {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .op-home-portrait-track,
+  .op-demo-hero-athlete.primary,
+  .op-demo-grid-glow,
+  .op-demo-athlete-track {
+    animation: none;
   }
 }

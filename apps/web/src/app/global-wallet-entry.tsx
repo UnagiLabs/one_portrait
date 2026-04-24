@@ -30,7 +30,7 @@ export function GlobalWalletEntry(): React.ReactElement {
   if (!state.submitEnabled) {
     return (
       <button className="op-btn-outline" disabled type="button">
-        ログイン準備中
+        Login soon
       </button>
     );
   }
@@ -112,7 +112,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
             type="button"
           >
             <GoogleGlyph />
-            <span className="ml-2">ログイン</span>
+            <span className="ml-2">Login</span>
           </button>
 
           {open ? (

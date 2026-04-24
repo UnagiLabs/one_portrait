@@ -10,7 +10,7 @@ type AppShellProps = {
   readonly children: ReactNode;
 };
 
-const HIDDEN_HEADER_PATHS = new Set(["/auth/enoki/callback"]);
+const HIDDEN_HEADER_PATHS = new Set(["/auth/enoki/callback", "/demo"]);
 
 export function AppShell({ children }: AppShellProps): React.ReactElement {
   const pathname = usePathname();

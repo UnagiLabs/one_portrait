@@ -116,14 +116,14 @@ describe("GlobalWalletEntry", () => {
 
     render(<GlobalWalletEntry />);
 
-    const button = screen.getByRole("button", { name: "ログイン準備中" });
+    const button = screen.getByRole("button", { name: "Login soon" });
     expect(button.getAttribute("disabled")).not.toBeNull();
   });
 
   it("shows Google zkLogin and Sui wallet choices from the login menu", () => {
     render(<GlobalWalletEntry />);
 
-    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
 
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
@@ -132,7 +132,7 @@ describe("GlobalWalletEntry", () => {
   it("keeps the Sui wallet connect modal controlled", async () => {
     render(<GlobalWalletEntry />);
 
-    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
 
     const initialProps = connectModalMock.mock.calls.at(-1)?.[0];
     expect(initialProps?.open).toBe(false);
@@ -154,7 +154,7 @@ describe("GlobalWalletEntry", () => {
 
     render(<GlobalWalletEntry />);
 
-    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
     fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     await waitFor(() => {
@@ -167,7 +167,7 @@ describe("GlobalWalletEntry", () => {
   it("closes the login menu and keeps the Sui wallet modal open", () => {
     render(<GlobalWalletEntry />);
 
-    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
     fireEvent.click(screen.getByRole("button", { name: "Sui wallet" }));
 
     expect(screen.queryByRole("button", { name: "Google zkLogin" })).toBeNull();
@@ -179,7 +179,7 @@ describe("GlobalWalletEntry", () => {
   it("keeps the Sui wallet modal mounted through wallet selection pointer flow", () => {
     render(<GlobalWalletEntry />);
 
-    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
     fireEvent.click(screen.getByRole("button", { name: "Sui wallet" }));
 
     const walletOption = screen.getByRole("button", {
