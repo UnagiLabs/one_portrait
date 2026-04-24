@@ -243,7 +243,7 @@ describe("HomePage", () => {
     render(ui);
 
     const link = screen.getAllByRole("link", {
-      name: /Demo Athlete One portrait upload page/i,
+      name: /Demo Athlete One portrait page/i,
     })[0];
     expect(link?.getAttribute("href")).toBe(
       "/units/0xunit-1?athleteName=Demo+Athlete+One",
@@ -276,7 +276,7 @@ describe("HomePage", () => {
     render(ui);
 
     const secondAthleteLinks = screen.getAllByRole("link", {
-      name: /Demo Athlete Two portrait upload page/i,
+      name: /Demo Athlete Two portrait page/i,
     });
     expect(secondAthleteLinks).toHaveLength(2);
     for (const link of secondAthleteLinks) {
@@ -335,17 +335,20 @@ describe("HomePage", () => {
       const cardElement = card as HTMLElement;
       expect(cardElement.getAttribute("data-complete")).toBe("true");
       expect(cardElement.getAttribute("data-live")).toBeNull();
-      expect(cardElement.closest("a")).toBeNull();
+      const link = cardElement.closest("a");
+      expect(link?.getAttribute("href")).toBe(
+        "/units/0xunit-complete?athleteName=Demo+Athlete+One",
+      );
       expect(within(cardElement).getAllByText("Complete").length).toBe(2);
       expect(within(cardElement).queryByText("Live")).toBeNull();
       expect(within(cardElement).getByText("347 / 2000")).toBeTruthy();
     }
 
     expect(
-      screen.queryByRole("link", {
-        name: /Demo Athlete One portrait upload page/i,
+      screen.getAllByRole("link", {
+        name: /Demo Athlete One portrait page/i,
       }),
-    ).toBeNull();
+    ).toHaveLength(2);
   });
 
   it("keeps E2E degraded home card states distinct in the portrait rail", async () => {

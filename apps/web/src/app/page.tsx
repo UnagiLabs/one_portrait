@@ -83,7 +83,7 @@ function buildPortraitWorkRail(
     return {
       ...work,
       href:
-        !isComplete && entry.progress.unitId !== null
+        entry.progress.kind === "active" && entry.progress.unitId !== null
           ? buildWaitingRoomHref(entry.progress.unitId, work.displayName)
           : undefined,
       progressLabel,
@@ -282,7 +282,7 @@ function PortraitWorkCard({
 
   return (
     <Link
-      aria-label={`${work.displayName} portrait upload page`}
+      aria-label={`${work.displayName} portrait page`}
       className="op-home-portrait-card-link"
       href={work.href}
     >
