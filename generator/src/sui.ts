@@ -133,9 +133,11 @@ export function createFinalizeTransactionExecutor(input: {
           tx.object(args.unitId),
           encodedMosaicBlobId,
           tx.pure(
-            bcs.vector(bcs.vector(bcs.u8())).serialize(
-              encodedPlacements.map((placement) => placement.blobId),
-            ),
+            bcs
+              .vector(bcs.vector(bcs.u8()))
+              .serialize(
+                encodedPlacements.map((placement) => placement.blobId),
+              ),
           ),
           tx.pure(
             bcs
@@ -148,14 +150,18 @@ export function createFinalizeTransactionExecutor(input: {
               .serialize(encodedPlacements.map((placement) => placement.y)),
           ),
           tx.pure(
-            bcs.vector(bcs.Address).serialize(
-              encodedPlacements.map((placement) => placement.submitter),
-            ),
+            bcs
+              .vector(bcs.Address)
+              .serialize(
+                encodedPlacements.map((placement) => placement.submitter),
+              ),
           ),
           tx.pure(
-            bcs.vector(bcs.u64()).serialize(
-              encodedPlacements.map((placement) => placement.submissionNo),
-            ),
+            bcs
+              .vector(bcs.u64())
+              .serialize(
+                encodedPlacements.map((placement) => placement.submissionNo),
+              ),
           ),
         ],
       });

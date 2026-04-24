@@ -582,7 +582,8 @@ function ParticipationAccessEnabled({
                 投稿が完了しました。
               </p>
               <p className="text-sm text-[var(--ink-dim)]">
-                この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。
+                この Unit ページで reveal と finalize
+                の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。
               </p>
 
               {/* biome-ignore lint: local object URL preview, next/image N/A. */}
