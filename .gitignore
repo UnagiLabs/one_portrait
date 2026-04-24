@@ -11,6 +11,9 @@ generator/artifacts
 generator/assets/datasets
 generator/assets/demo-tiles
 generator/assets/archives
+!generator/assets/archives/
+generator/assets/archives/*
+!generator/assets/archives/merged-generator-tiles.tar.gz
 generator/.cache
 generator/.venv
 apps/web/.cache
