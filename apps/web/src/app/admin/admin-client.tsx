@@ -1,5 +1,6 @@
 "use client";
 
+import { unitTileCount } from "@one-portrait/shared";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 
 import type { AdminAthleteEntry } from "../../lib/admin/athletes";
@@ -17,44 +18,45 @@ type AdminClientProps = {
   readonly initialHealth: AdminHealthSummary;
 };
 
+type CreateUnitMode = "demo" | "normal";
+
+const DEFAULT_DEMO_REAL_UPLOAD_COUNT = "5";
+
 export function AdminClient({
   initialAthletes,
   initialHealth,
 }: AdminClientProps): React.ReactElement {
   const [athletes, setAthletes] = useState(initialAthletes);
   const [health, setHealth] = useState(initialHealth);
-  const [metadataAthleteId, setMetadataAthleteId] = useState(
+  const [createAthleteId, setCreateAthleteId] = useState(
     initialAthletes[0]?.athletePublicId ?? "",
   );
-  const [metadataDisplayName, setMetadataDisplayName] = useState(
-    initialAthletes[0]?.metadataState === "ready"
-      ? initialAthletes[0].displayName
-      : "",
+  const [createDisplayName, setCreateDisplayName] = useState(
+    initialAthletes[0]?.displayName ?? "",
   );
-  const [metadataSlug, setMetadataSlug] = useState(
-    initialAthletes[0]?.metadataState === "ready"
-      ? initialAthletes[0].slug
-      : "",
+  const [createThumbnailUrl, setCreateThumbnailUrl] = useState(
+    initialAthletes[0]?.thumbnailUrl ?? "",
   );
-  const [metadataThumbnailUrl, setMetadataThumbnailUrl] = useState(
-    initialAthletes[0]?.metadataState === "ready"
-      ? initialAthletes[0].thumbnailUrl
-      : "",
+  const [createMode, setCreateMode] = useState<CreateUnitMode>("normal");
+  const [createRealUploadCount, setCreateRealUploadCount] = useState(
+    DEFAULT_DEMO_REAL_UPLOAD_COUNT,
   );
-  const [selectedAthleteId, setSelectedAthleteId] = useState(
-    initialAthletes[0]?.athletePublicId ?? "",
-  );
-  const [maxSlots, setMaxSlots] = useState("2000");
   const [targetBlobId, setTargetBlobId] = useState("");
   const [targetPreviewUrl, setTargetPreviewUrl] = useState<string | null>(null);
-  const [rotateAthleteId, setRotateAthleteId] = useState(
-    initialAthletes[0]?.athletePublicId ?? "",
-  );
-  const [rotateUnitId, setRotateUnitId] = useState("");
   const [lastAction, setLastAction] = useState<ActionResult | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  const parsedDemoRealUploadCount = parsePositiveInteger(createRealUploadCount);
+  const isDemoRealUploadCountValid =
+    parsedDemoRealUploadCount !== null &&
+    parsedDemoRealUploadCount < unitTileCount;
+  const effectiveDisplayMaxSlots = unitTileCount;
+  const effectiveMaxSlots =
+    createMode === "demo"
+      ? (parsedDemoRealUploadCount ?? 0)
+      : effectiveDisplayMaxSlots;
 
   async function refreshAll(): Promise<void> {
     setIsRefreshing(true);
@@ -87,18 +89,29 @@ export function AdminClient({
     }
   }
 
-  function loadMetadataDraft(athleteId: string): void {
+  function loadCreateDraft(entryKey: string): void {
     const athlete = athletes.find(
-      (entry) => entry.athletePublicId === athleteId,
+      (entry) => (entry.entryId ?? entry.athletePublicId) === entryKey,
     );
-    setMetadataAthleteId(athleteId);
-    setMetadataDisplayName(
-      athlete?.metadataState === "ready" ? athlete.displayName : "",
-    );
-    setMetadataSlug(athlete?.metadataState === "ready" ? athlete.slug : "");
-    setMetadataThumbnailUrl(
-      athlete?.metadataState === "ready" ? athlete.thumbnailUrl : "",
-    );
+    if (!athlete) {
+      return;
+    }
+
+    setCreateAthleteId(athlete.athletePublicId);
+    setCreateDisplayName(athlete.displayName);
+    setCreateThumbnailUrl(athlete.thumbnailUrl);
+
+    if (
+      athlete.currentUnit &&
+      athlete.currentUnit.displayMaxSlots > athlete.currentUnit.maxSlots
+    ) {
+      setCreateMode("demo");
+      setCreateRealUploadCount(String(athlete.currentUnit.maxSlots));
+      return;
+    }
+
+    setCreateMode("normal");
+    setCreateRealUploadCount(DEFAULT_DEMO_REAL_UPLOAD_COUNT);
   }
 
   async function handleTargetUpload(
@@ -140,55 +153,19 @@ export function AdminClient({
     }
   }
 
-  async function handleMetadataSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPendingAction("metadata");
-
-    try {
-      const payload = await postJson("/api/admin/upsert-athlete-metadata", {
-        athleteId: Number(metadataAthleteId),
-        displayName: metadataDisplayName,
-        slug: metadataSlug,
-        thumbnailUrl: metadataThumbnailUrl,
-      });
-
-      if (!selectedAthleteId) {
-        setSelectedAthleteId(metadataAthleteId);
-      }
-      if (!rotateAthleteId) {
-        setRotateAthleteId(metadataAthleteId);
-      }
-
-      setLastAction({
-        detail: formatActionDetail(payload),
-        summary: "athlete metadata を更新しました",
-      });
-      await refreshAll();
-    } catch (error) {
-      setLastAction({
-        detail: error instanceof Error ? error.message : String(error),
-        summary: "athlete metadata の更新に失敗しました",
-      });
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   async function handleCreateUnit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPendingAction("create");
 
     try {
       const payload = await postJson("/api/admin/create-unit", {
-        athleteId: Number(selectedAthleteId),
+        athleteId: Number(createAthleteId),
         blobId: targetBlobId,
-        maxSlots: Number(maxSlots),
+        displayMaxSlots: effectiveDisplayMaxSlots,
+        displayName: createDisplayName,
+        maxSlots: effectiveMaxSlots,
+        thumbnailUrl: createThumbnailUrl,
       });
-
-      setRotateAthleteId(selectedAthleteId);
-      if (typeof payload.unitId === "string") {
-        setRotateUnitId(payload.unitId);
-      }
 
       setLastAction({
         detail: formatActionDetail(payload),
@@ -199,31 +176,6 @@ export function AdminClient({
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
         summary: "ユニットの作成に失敗しました",
-      });
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function handleRotateUnit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPendingAction("rotate");
-
-    try {
-      const payload = await postJson("/api/admin/rotate-unit", {
-        athleteId: Number(rotateAthleteId),
-        unitId: rotateUnitId,
-      });
-
-      setLastAction({
-        detail: formatActionDetail(payload),
-        summary: "ユニットを切り替えました",
-      });
-      await refreshAll();
-    } catch (error) {
-      setLastAction({
-        detail: error instanceof Error ? error.message : String(error),
-        summary: "ユニットの切り替えに失敗しました",
       });
     } finally {
       setPendingAction(null);
@@ -303,50 +255,49 @@ export function AdminClient({
         </section>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
-          <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">
-              athlete metadata を登録
-            </h2>
-            <p className="text-sm leading-6 text-stone-300">
-              先に displayName、slug、thumbnail URL を on-chain 登録します。
-              unit 作成前の必須ステップです。
-            </p>
-          </div>
+      <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
+        <div className="grid gap-1">
+          <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
+          <p className="text-sm leading-6 text-stone-300">
+            選手表示情報と対象画像をまとめて登録し、新しい unit を作成します。
+            デモでは表示 2,000 枚のまま、実投稿枚数だけを絞れます。
+          </p>
+        </div>
 
-          {athletes.length > 0 ? (
-            <label className="grid gap-2 text-sm text-stone-200">
-              既存 athlete から読み込む
-              <select
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                onChange={(event) => loadMetadataDraft(event.target.value)}
-                value={metadataAthleteId}
-              >
-                {athletes.map((athlete) => (
-                  <option
-                    key={athlete.athletePublicId}
-                    value={athlete.athletePublicId}
-                  >
-                    #{athlete.athletePublicId} {athlete.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+        {athletes.length > 0 ? (
+          <label className="grid gap-2 text-sm text-stone-200">
+            既存 unit から入力をコピー
+            <select
+              className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
+              onChange={(event) => loadCreateDraft(event.target.value)}
+              value=""
+            >
+              <option value="">選択してください</option>
+              {athletes.map((athlete) => (
+                <option
+                  key={athlete.entryId ?? athlete.athletePublicId}
+                  value={athlete.entryId ?? athlete.athletePublicId}
+                >
+                  #{athlete.athletePublicId} {athlete.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => void handleMetadataSubmit(event)}
-          >
+        <form
+          className="grid gap-5"
+          onSubmit={(event) => void handleCreateUnit(event)}
+        >
+          <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm text-stone-200">
               athlete ID
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
                 inputMode="numeric"
-                onChange={(event) => setMetadataAthleteId(event.target.value)}
+                onChange={(event) => setCreateAthleteId(event.target.value)}
                 placeholder="例: 7"
-                value={metadataAthleteId}
+                value={createAthleteId}
               />
             </label>
 
@@ -354,192 +305,143 @@ export function AdminClient({
               displayName
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                onChange={(event) => setMetadataDisplayName(event.target.value)}
+                onChange={(event) => setCreateDisplayName(event.target.value)}
                 placeholder="Demo Athlete Seven"
-                value={metadataDisplayName}
+                value={createDisplayName}
               />
             </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              slug
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
-                onChange={(event) => setMetadataSlug(event.target.value)}
-                placeholder="demo-athlete-seven"
-                value={metadataSlug}
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              thumbnail URL
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
-                onChange={(event) =>
-                  setMetadataThumbnailUrl(event.target.value)
-                }
-                placeholder="https://example.com/7.png"
-                value={metadataThumbnailUrl}
-              />
-            </label>
-
-            <button
-              className="rounded-full border border-cyan-200/40 bg-cyan-300 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={
-                pendingAction === "metadata" ||
-                metadataAthleteId.trim().length === 0 ||
-                metadataDisplayName.trim().length === 0 ||
-                metadataSlug.trim().length === 0 ||
-                metadataThumbnailUrl.trim().length === 0
-              }
-              type="submit"
-            >
-              {pendingAction === "metadata"
-                ? "更新中..."
-                : "metadata を登録 / 更新"}
-            </button>
-          </form>
-        </section>
-
-        <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
-          <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
-            <p className="text-sm leading-6 text-stone-300">
-              metadata 登録済みの athlete ID を指定して、新しい unit
-              を作成します。
-            </p>
           </div>
 
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => void handleCreateUnit(event)}
-          >
-            <label className="grid gap-2 text-sm text-stone-200">
-              athlete ID
+          <label className="grid gap-2 text-sm text-stone-200">
+            thumbnail URL
+            <input
+              className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
+              onChange={(event) => setCreateThumbnailUrl(event.target.value)}
+              placeholder="https://example.com/7.png"
+              value={createThumbnailUrl}
+            />
+          </label>
+
+          <fieldset className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+            <legend className="px-2 text-sm font-medium text-stone-100">
+              作成モード
+            </legend>
+            <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-stone-900/70 p-4 text-sm text-stone-200">
               <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setSelectedAthleteId(event.target.value)}
-                placeholder="例: 7"
-                value={selectedAthleteId}
+                checked={createMode === "normal"}
+                name="create-unit-mode"
+                onChange={() => setCreateMode("normal")}
+                type="radio"
               />
+              <span className="grid gap-1">
+                <span className="font-medium text-white">通常</span>
+                <span>表示 2,000 枚 / 実投稿 2,000 枚で作成します。</span>
+              </span>
             </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              対象画像
+            <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-stone-900/70 p-4 text-sm text-stone-200">
               <input
-                accept="image/*"
-                className="rounded-2xl border border-dashed border-white/20 bg-stone-900 px-4 py-3"
-                onChange={(event) => void handleTargetUpload(event)}
-                type="file"
+                checked={createMode === "demo"}
+                name="create-unit-mode"
+                onChange={() => setCreateMode("demo")}
+                type="radio"
               />
+              <span className="grid gap-2">
+                <span className="font-medium text-white">デモ</span>
+                <span>
+                  表示は 2,000 枚のまま、実際にアップロードさせる枚数だけを指定します。
+                </span>
+                <label className="grid gap-2 text-sm text-stone-200">
+                  実アップロード枚数
+                  <input
+                    aria-label="デモ実アップロード枚数"
+                    className="rounded-2xl border border-white/10 bg-stone-950 px-4 py-3"
+                    disabled={createMode !== "demo"}
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      setCreateRealUploadCount(event.target.value)
+                    }
+                    value={createRealUploadCount}
+                  />
+                </label>
+              </span>
             </label>
-
-            {targetPreviewUrl ? (
-              // biome-ignore lint/performance/noImgElement: operator preview
-              <img
-                alt="アップロードした対象画像のプレビュー"
-                className="h-48 w-full rounded-2xl border border-white/10 object-cover"
-                src={targetPreviewUrl}
-              />
-            ) : null}
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              対象 blob ID
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
-                onChange={(event) => setTargetBlobId(event.target.value)}
-                placeholder="先にアップロードするか、blob ID を直接入力してください"
-                value={targetBlobId}
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              最大スロット数
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setMaxSlots(event.target.value)}
-                value={maxSlots}
-              />
-            </label>
-
-            <button
-              className="rounded-full border border-amber-200/40 bg-amber-300 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={
-                isUploading ||
-                pendingAction === "create" ||
-                selectedAthleteId.trim().length === 0 ||
-                targetBlobId.trim().length === 0
-              }
-              type="submit"
-            >
-              {isUploading
-                ? "対象画像をアップロード中..."
-                : pendingAction === "create"
-                  ? "作成中..."
-                  : "ユニットを作成"}
-            </button>
-          </form>
-        </section>
-
-        <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
-          <div className="grid gap-1">
-            <h2 className="font-serif text-2xl text-white">
-              ユニットを切り替え
-            </h2>
-            <p className="text-sm leading-6 text-stone-300">
-              athlete ID と next unit ID を指定して current unit を更新します。
+            <p className="text-xs leading-6 text-stone-400">
+              {createMode === "demo"
+                ? isDemoRealUploadCountValid
+                  ? `5 枚完了の時点で残り ${effectiveDisplayMaxSlots - effectiveMaxSlots} 枚をダミー画像としてロックし、実投稿分だけを元データとしてモザイク生成します。`.replace(
+                      "5",
+                      String(effectiveMaxSlots),
+                    )
+                  : `デモでは 1 以上 ${unitTileCount - 1} 以下の実アップロード枚数を指定してください。`
+                : "通常では 2,000 枚すべてが実投稿対象です。"}
             </p>
-          </div>
+          </fieldset>
 
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => void handleRotateUnit(event)}
+          <label className="grid gap-2 text-sm text-stone-200">
+            対象画像
+            <input
+              accept="image/*"
+              className="rounded-2xl border border-dashed border-white/20 bg-stone-900 px-4 py-3"
+              onChange={(event) => void handleTargetUpload(event)}
+              type="file"
+            />
+          </label>
+
+          {targetPreviewUrl ? (
+            // biome-ignore lint/performance/noImgElement: operator preview
+            <img
+              alt="アップロードした対象画像のプレビュー"
+              className="h-48 w-full rounded-2xl border border-white/10 object-cover"
+              src={targetPreviewUrl}
+            />
+          ) : null}
+
+          <label className="grid gap-2 text-sm text-stone-200">
+            対象 blob ID
+            <input
+              className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
+              onChange={(event) => setTargetBlobId(event.target.value)}
+              placeholder="先にアップロードするか、blob ID を直接入力してください"
+              value={targetBlobId}
+            />
+          </label>
+
+          <dl className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+            <InfoRow
+              label="表示スロット"
+              value={String(effectiveDisplayMaxSlots)}
+            />
+            <InfoRow label="実投稿上限" value={String(effectiveMaxSlots)} />
+          </dl>
+
+          <button
+            className="rounded-full border border-amber-200/40 bg-amber-300 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={
+              isUploading ||
+              pendingAction === "create" ||
+              createAthleteId.trim().length === 0 ||
+              createDisplayName.trim().length === 0 ||
+              createThumbnailUrl.trim().length === 0 ||
+              targetBlobId.trim().length === 0 ||
+              (createMode === "demo" && !isDemoRealUploadCountValid)
+            }
+            type="submit"
           >
-            <label className="grid gap-2 text-sm text-stone-200">
-              athlete ID
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setRotateAthleteId(event.target.value)}
-                placeholder="例: 7"
-                value={rotateAthleteId}
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
-              次のユニット ID
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
-                onChange={(event) => setRotateUnitId(event.target.value)}
-                placeholder="0x..."
-                value={rotateUnitId}
-              />
-            </label>
-
-            <button
-              className="rounded-full border border-white/15 bg-white/90 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={
-                pendingAction === "rotate" ||
-                rotateAthleteId.trim().length === 0 ||
-                rotateUnitId.trim().length === 0
-              }
-              type="submit"
-            >
-              {pendingAction === "rotate"
-                ? "切り替え中..."
-                : "ユニットを切り替え"}
-            </button>
-          </form>
-        </section>
-      </div>
+            {isUploading
+              ? "対象画像をアップロード中..."
+              : pendingAction === "create"
+                ? "作成中..."
+                : "ユニットを作成"}
+          </button>
+        </form>
+      </section>
 
       <section className="grid gap-4">
         <div className="grid gap-1">
           <h2 className="font-serif text-2xl text-white">現在の状態</h2>
           <p className="text-sm leading-6 text-stone-300">
-            on-chain metadata と current unit の状態を確認し、filled のまま停止
-            した unit で finalize を再試行できます。
+            作成済み unit の表示進捗と実投稿数を確認し、filled のまま停止した
+            unit で finalize を再試行できます。
           </p>
         </div>
 
@@ -547,8 +449,7 @@ export function AdminClient({
           {athletes.map((athlete) => (
             <AdminAthleteCard
               athlete={athlete}
-              key={athlete.athletePublicId}
-              onEditMetadata={loadMetadataDraft}
+              key={athlete.entryId ?? athlete.athletePublicId}
               onFinalize={handleFinalize}
               pendingAction={pendingAction}
             />
@@ -597,16 +498,18 @@ function InfoRow({
 
 function AdminAthleteCard({
   athlete,
-  onEditMetadata,
   onFinalize,
   pendingAction,
 }: {
   readonly athlete: AdminAthleteEntry;
-  readonly onEditMetadata: (athleteId: string) => void;
   readonly onFinalize: (unitId: string) => Promise<void>;
   readonly pendingAction: string | null;
 }): React.ReactElement {
   const currentUnit = athlete.currentUnit;
+  const modeLabel =
+    currentUnit && currentUnit.displayMaxSlots > currentUnit.maxSlots
+      ? "demo"
+      : "normal";
 
   return (
     <article className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-stone-950/60 p-5">
@@ -623,34 +526,20 @@ function AdminAthleteCard({
         </div>
       </div>
 
-      <dl className="grid gap-2 text-sm text-stone-200">
-        <InfoRow label="athlete ID" value={athlete.athletePublicId} />
-        <InfoRow
-          label="metadata"
-          value={
-            athlete.metadataState === "ready"
-              ? "registered"
-              : "missing / register before create-unit"
-          }
-        />
-      </dl>
-
-      <button
-        className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/20"
-        onClick={() => onEditMetadata(athlete.athletePublicId)}
-        type="button"
-      >
-        metadata フォームに反映
-      </button>
-
       {currentUnit ? (
         <>
           <dl className="grid gap-2 text-sm text-stone-200">
+            <InfoRow label="athlete ID" value={athlete.athletePublicId} />
             <InfoRow label="ユニット ID" value={currentUnit.unitId} />
             <InfoRow
-              label="進行状況"
-              value={`${currentUnit.submittedCount} / ${currentUnit.maxSlots}`}
+              label="表示進行"
+              value={`${currentUnit.submittedCount} / ${currentUnit.displayMaxSlots}`}
             />
+            <InfoRow
+              label="実投稿数"
+              value={`${currentUnit.realSubmittedCount} / ${currentUnit.maxSlots}`}
+            />
+            <InfoRow label="モード" value={modeLabel} />
             <InfoRow label="ステータス" value={currentUnit.status} />
             <InfoRow label="対象 blob" value={currentUnit.targetWalrusBlobId} />
           </dl>
@@ -667,9 +556,7 @@ function AdminAthleteCard({
         </>
       ) : (
         <p className="text-sm leading-6 text-stone-300">
-          {athlete.lookupState === "missing"
-            ? "この athlete にはまだ current unit が登録されていません。"
-            : "current unit の状態を一時的に取得できません。"}
+          unit の状態を一時的に取得できません。
         </p>
       )}
     </article>
@@ -718,4 +605,17 @@ function formatActionDetail(payload: Record<string, unknown>): string {
   ].filter((value): value is string => value !== null);
 
   return parts.join(" / ");
+}
+
+function parsePositiveInteger(value: string): number | null {
+  if (!/^[0-9]+$/.test(value.trim())) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
 }

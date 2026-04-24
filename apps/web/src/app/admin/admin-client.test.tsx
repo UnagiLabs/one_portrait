@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { unitTileCount } from "@one-portrait/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -36,7 +37,7 @@ describe("AdminClient", () => {
     putTargetBlobToWalrusMock.mockReset();
   });
 
-  it("renders initial athlete cards and health", () => {
+  it("renders initial unit cards and health", () => {
     render(
       <AdminClient
         initialAthletes={[
@@ -56,9 +57,10 @@ describe("AdminClient", () => {
               unitId: "0xunit-1",
             },
             displayName: "Demo Athlete One",
+            entryId: "0xunit-1",
             lookupState: "ready",
             metadataState: "ready",
-            slug: "demo-athlete-one",
+            slug: "unit-unit-1",
             thumbnailUrl: "https://example.com/1.png",
           },
         ]}
@@ -70,7 +72,8 @@ describe("AdminClient", () => {
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
     expect(screen.getByText(/target-blob-1/)).toBeTruthy();
-    expect(screen.getByText(/registered/)).toBeTruthy();
+    expect(screen.getAllByText(/2000 \/ 2000/)).toHaveLength(2);
+    expect(screen.getByText("normal")).toBeTruthy();
     expect(screen.getAllByText("ok")).toHaveLength(3);
     expect(screen.getByText("https://generator.example.com")).toBeTruthy();
     expect(screen.getByText("runtime_state")).toBeTruthy();
@@ -90,22 +93,7 @@ describe("AdminClient", () => {
       blobId: "target-blob-9",
     });
 
-    render(
-      <AdminClient
-        initialAthletes={[
-          {
-            athletePublicId: "1",
-            currentUnit: null,
-            displayName: "Athlete #1",
-            lookupState: "missing",
-            metadataState: "missing",
-            slug: "athlete-1",
-            thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
-          },
-        ]}
-        initialHealth={HEALTH_OK}
-      />,
-    );
+    render(<AdminClient initialAthletes={[]} initialHealth={HEALTH_OK} />);
 
     const input = screen.getByLabelText(/対象画像/) as HTMLInputElement;
     const file = new File(["target"], "target.jpg", { type: "image/jpeg" });
@@ -124,91 +112,11 @@ describe("AdminClient", () => {
     ).toBeTruthy();
   });
 
-  it("submits athlete metadata and records the latest action", async () => {
+  it("submits a normal unit with full display slots", async () => {
     vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+    let createPayload: Record<string, unknown> | null = null;
 
-      if (url.endsWith("/api/admin/upsert-athlete-metadata")) {
-        return new Response(
-          JSON.stringify({
-            athleteId: 7,
-            digest: "0xmetadata",
-            status: "upserted",
-          }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        );
-      }
-
-      if (url.endsWith("/api/admin/status")) {
-        return new Response(
-          JSON.stringify({
-            athletes: [
-              {
-                athletePublicId: "7",
-                currentUnit: null,
-                displayName: "Demo Athlete Seven",
-                lookupState: "missing",
-                metadataState: "ready",
-                slug: "demo-athlete-seven",
-                thumbnailUrl: "https://example.com/7.png",
-              },
-            ],
-          }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        );
-      }
-
-      return new Response(JSON.stringify(HEALTH_OK), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      });
-    });
-
-    render(<AdminClient initialAthletes={[]} initialHealth={HEALTH_OK} />);
-
-    const athleteIdInput = screen.getAllByLabelText(/^athlete ID$/i)[0];
-    if (!athleteIdInput) {
-      throw new Error("metadata athlete ID input not found");
-    }
-
-    fireEvent.change(athleteIdInput, {
-      target: { value: "7" },
-    });
-    fireEvent.change(screen.getByLabelText(/displayName/), {
-      target: { value: "Demo Athlete Seven" },
-    });
-    fireEvent.change(screen.getByLabelText(/^slug$/i), {
-      target: { value: "demo-athlete-seven" },
-    });
-    fireEvent.change(screen.getByLabelText(/thumbnail URL/i), {
-      target: { value: "https://example.com/7.png" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: /metadata を登録 \/ 更新/ }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("athlete metadata を更新しました")).toBeTruthy();
-    });
-    expect(screen.getByText(/ダイジェスト: 0xmetadata/)).toBeTruthy();
-    expect(screen.getByText(/athlete ID: 7/)).toBeTruthy();
-  });
-
-  it("submits create-unit and records the latest action", async () => {
-    vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url =
         typeof input === "string"
           ? input
@@ -217,12 +125,15 @@ describe("AdminClient", () => {
             : input.url;
 
       if (url.endsWith("/api/admin/create-unit")) {
+        createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
+          string,
+          unknown
+        >;
         return new Response(
           JSON.stringify({
             digest: "0xcreate",
             status: "created",
-            unitId:
-              "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            unitId: "0xunit-created",
           }),
           {
             headers: { "content-type": "application/json" },
@@ -232,25 +143,10 @@ describe("AdminClient", () => {
       }
 
       if (url.endsWith("/api/admin/status")) {
-        return new Response(
-          JSON.stringify({
-            athletes: [
-              {
-                athletePublicId: "1",
-                currentUnit: null,
-                displayName: "Demo Athlete One",
-                lookupState: "missing",
-                metadataState: "ready",
-                slug: "demo-athlete-one",
-                thumbnailUrl: "https://example.com/1.png",
-              },
-            ],
-          }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        );
+        return new Response(JSON.stringify({ athletes: [] }), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
       }
 
       return new Response(JSON.stringify(HEALTH_OK), {
@@ -263,13 +159,14 @@ describe("AdminClient", () => {
       <AdminClient
         initialAthletes={[
           {
-            athletePublicId: "1",
+            athletePublicId: "7",
             currentUnit: null,
-            displayName: "Demo Athlete One",
-            lookupState: "missing",
+            displayName: "Demo Athlete Seven",
+            entryId: "draft-7",
+            lookupState: "ready",
             metadataState: "ready",
-            slug: "demo-athlete-one",
-            thumbnailUrl: "https://example.com/1.png",
+            slug: "unit-draft-7",
+            thumbnailUrl: "https://example.com/7.png",
           },
         ]}
         initialHealth={HEALTH_OK}
@@ -277,13 +174,103 @@ describe("AdminClient", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
-      target: { value: "target-blob-1" },
+      target: { value: "target-blob-7" },
     });
     fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
 
     await waitFor(() => {
       expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
     });
-    expect(screen.getByText(/ダイジェスト: 0xcreate/)).toBeTruthy();
+    expect(createPayload).toEqual({
+      athleteId: 7,
+      blobId: "target-blob-7",
+      displayMaxSlots: unitTileCount,
+      displayName: "Demo Athlete Seven",
+      maxSlots: unitTileCount,
+      thumbnailUrl: "https://example.com/7.png",
+    });
+  });
+
+  it("submits a demo unit with reduced real upload count", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    let createPayload: Record<string, unknown> | null = null;
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/admin/create-unit")) {
+        createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
+          string,
+          unknown
+        >;
+        return new Response(
+          JSON.stringify({
+            digest: "0xcreate-demo",
+            status: "created",
+            unitId: "0xunit-demo",
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      if (url.endsWith("/api/admin/status")) {
+        return new Response(JSON.stringify({ athletes: [] }), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+
+    render(
+      <AdminClient
+        initialAthletes={[
+          {
+            athletePublicId: "12",
+            currentUnit: null,
+            displayName: "Demo Athlete Twelve",
+            entryId: "draft-12",
+            lookupState: "ready",
+            metadataState: "ready",
+            slug: "unit-draft-12",
+            thumbnailUrl: "https://example.com/12.png",
+          },
+        ]}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: /デモ/ }));
+    fireEvent.change(screen.getByLabelText("デモ実アップロード枚数"), {
+      target: { value: "5" },
+    });
+    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+      target: { value: "target-blob-demo" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+    });
+    expect(createPayload).toEqual({
+      athleteId: 12,
+      blobId: "target-blob-demo",
+      displayMaxSlots: unitTileCount,
+      displayName: "Demo Athlete Twelve",
+      maxSlots: 5,
+      thumbnailUrl: "https://example.com/12.png",
+    });
   });
 });
