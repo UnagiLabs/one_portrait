@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { RevealPanel } from "./reveal-panel";
 
 describe("RevealPanel", () => {
-  it("shows the original photo and the red tile frame by default", () => {
+  it("shows the original photo, red tile frame, and guide line by default", () => {
     render(
       <RevealPanel
         displayName="Demo Athlete One"
@@ -37,9 +37,26 @@ describe("RevealPanel", () => {
     expect(
       screen.getByTestId("placement-highlight").getAttribute("style"),
     ).toContain(`height: ${100 / unitTileGrid.rows}%`);
+    expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
   });
 
-  it("toggles the highlight visibility", () => {
+  it("starts the placement guide replay identifier at its initial value", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl="https://example.com/original.png"
+        placement={{ x: 12, y: 34, submitter: "0xviewer", submissionNo: 42 }}
+      />,
+    );
+
+    expect(screen.getByTestId("placement-guide").dataset.replayId).toBe("0");
+    expect(screen.getByTestId("placement-highlight").dataset.replayId).toBe(
+      "0",
+    );
+  });
+
+  it("toggles the highlight and guide visibility", () => {
     render(
       <RevealPanel
         displayName="Demo Athlete One"
@@ -51,9 +68,51 @@ describe("RevealPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /hide highlight/i }));
     expect(screen.queryByTestId("placement-highlight")).toBeNull();
+    expect(screen.queryByTestId("placement-guide-line")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /show highlight/i }));
     expect(screen.getByTestId("placement-highlight")).toBeTruthy();
+    expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
+    expect(screen.getByTestId("placement-guide").dataset.replayId).toBe("1");
+    expect(screen.getByTestId("placement-highlight").dataset.replayId).toBe(
+      "1",
+    );
+  });
+
+  it("uses breakpoint classes to hide the guide below the two-column layout", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl="https://example.com/original.png"
+        placement={{ x: 12, y: 34, submitter: "0xviewer", submissionNo: 42 }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("placement-guide").classList.contains("hidden"),
+    ).toBe(true);
+    expect(
+      screen.getByTestId("placement-guide").classList.contains("lg:block"),
+    ).toBe(true);
+    expect(
+      screen.getByTestId("placement-guide").getAttribute("preserveAspectRatio"),
+    ).toBe("none");
+  });
+
+  it("does not render the highlight or guide when placement is unavailable", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl={null}
+        placement={null}
+      />,
+    );
+
+    expect(screen.queryByTestId("placement-highlight")).toBeNull();
+    expect(screen.queryByTestId("placement-guide-line")).toBeNull();
+    expect(screen.getByText(/Original photo unavailable/i)).toBeTruthy();
   });
 
   it("keeps the fallback copy when the original photo is unavailable", () => {
