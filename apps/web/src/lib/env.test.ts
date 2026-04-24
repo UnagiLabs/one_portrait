@@ -24,6 +24,7 @@ describe("loadPublicEnv", () => {
     expect(env).toEqual({
       suiNetwork: "testnet",
       packageId: "0xpkg",
+      originalPackageId: "0xpkg",
       registryObjectId: "0xreg",
     });
   });
@@ -38,6 +39,7 @@ describe("loadPublicEnv", () => {
   it("trims surrounding whitespace from values", () => {
     const env = loadPublicEnv({
       NEXT_PUBLIC_SUI_NETWORK: "  testnet  ",
+      NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "  0xoriginal  ",
       NEXT_PUBLIC_PACKAGE_ID: "  0xpkg  ",
       NEXT_PUBLIC_REGISTRY_OBJECT_ID: "  0xreg  ",
     });
@@ -45,6 +47,7 @@ describe("loadPublicEnv", () => {
     expect(env).toEqual({
       suiNetwork: "testnet",
       packageId: "0xpkg",
+      originalPackageId: "0xoriginal",
       registryObjectId: "0xreg",
     });
   });
@@ -95,6 +98,7 @@ describe("loadPublicEnv", () => {
     expect(env).toEqual({
       suiNetwork: "testnet",
       packageId: null,
+      originalPackageId: null,
       registryObjectId: "0xreg",
     });
   });

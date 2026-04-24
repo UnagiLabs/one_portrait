@@ -15,6 +15,7 @@ describe("deployment manifest", () => {
     const manifest = parseDeploymentManifest(VALID_MANIFEST);
 
     expect(toWebPublicEnv(manifest)).toMatchObject({
+      NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: VALID_MANIFEST.originalPackageId,
       NEXT_PUBLIC_PACKAGE_ID: VALID_MANIFEST.packageId,
       NEXT_PUBLIC_REGISTRY_OBJECT_ID: VALID_MANIFEST.registryObjectId,
       NEXT_PUBLIC_SUI_NETWORK: "testnet",

@@ -17,6 +17,7 @@ const suiAddressPattern = /^0x[0-9a-fA-F]{64}$/;
 const requiredManifestKeys = [
   "network",
   "packageId",
+  "originalPackageId",
   "registryObjectId",
   "adminCapId",
   "walrusPublisher",
@@ -28,6 +29,7 @@ const requiredManifestKeys = [
 export const webPublicEnvKeys = [
   "NEXT_PUBLIC_SUI_NETWORK",
   "NEXT_PUBLIC_PACKAGE_ID",
+  "NEXT_PUBLIC_ORIGINAL_PACKAGE_ID",
   "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
   "NEXT_PUBLIC_ENOKI_API_KEY",
   "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
@@ -110,6 +112,7 @@ export function parseDeploymentManifest(input, source = "deployment manifest") {
   const manifest = {
     network: normalizeString(input.network),
     packageId: normalizeString(input.packageId),
+    originalPackageId: normalizeString(input.originalPackageId),
     registryObjectId: normalizeString(input.registryObjectId),
     adminCapId: normalizeString(input.adminCapId),
     walrusPublisher: normalizeString(input.walrusPublisher),
@@ -126,7 +129,12 @@ export function parseDeploymentManifest(input, source = "deployment manifest") {
     );
   }
 
-  for (const key of ["packageId", "registryObjectId", "adminCapId"]) {
+  for (const key of [
+    "packageId",
+    "originalPackageId",
+    "registryObjectId",
+    "adminCapId",
+  ]) {
     if (!suiAddressPattern.test(manifest[key])) {
       throw new InvalidDeploymentManifestError(
         `${source} has invalid ${key}: ${manifest[key]}. Expected a 32-byte Sui object id.`,
@@ -152,6 +160,7 @@ export function parseDeploymentManifest(input, source = "deployment manifest") {
 
 export function toWebPublicEnv(manifest) {
   return {
+    NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: manifest.originalPackageId,
     NEXT_PUBLIC_SUI_NETWORK: manifest.network,
     NEXT_PUBLIC_PACKAGE_ID: manifest.packageId,
     NEXT_PUBLIC_REGISTRY_OBJECT_ID: manifest.registryObjectId,

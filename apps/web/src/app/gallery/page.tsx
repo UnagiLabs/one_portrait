@@ -69,7 +69,8 @@ function safePackageId(e2eGalleryState: string | undefined): string | null {
   }
 
   try {
-    return loadPublicEnv(process.env).packageId;
+    const env = loadPublicEnv(process.env);
+    return env.originalPackageId ?? env.packageId;
   } catch {
     return null;
   }
