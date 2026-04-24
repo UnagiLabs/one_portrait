@@ -63,8 +63,7 @@ const CATALOG = [
   },
 ] as const;
 const WALRUS_AGGREGATOR = "https://aggregator.example.com";
-const OPAQUE_MOSAIC_BLOB_ID =
-  "Bm7qyNqV3RcP6td9XSk4LeF0aZuH5Wj8GxYp1sMn";
+const OPAQUE_MOSAIC_BLOB_ID = "Bm7qyNqV3RcP6td9XSk4LeF0aZuH5Wj8GxYp1sMn";
 
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
