@@ -38,6 +38,99 @@ type HomeEntry = {
       };
 };
 
+type PortraitWork = {
+  readonly id: string;
+  readonly name: string;
+  readonly region: string;
+  readonly status: string;
+  readonly src: string;
+};
+
+const portraitWorks: readonly PortraitWork[] = [
+  {
+    id: "yuya-wakamatsu",
+    name: "Yuya Wakamatsu",
+    region: "Japan",
+    status: "Active portrait",
+    src: "/demo/one-athletes/Yuya_Wakamatsu-avatar-champ-500x345-1.png",
+  },
+  {
+    id: "takeru",
+    name: "Takeru",
+    region: "Japan",
+    status: "Opening soon",
+    src: "/demo/one-athletes/Takeru-500x345-1.png",
+  },
+  {
+    id: "rodtang-jitmuangnon",
+    name: "Rodtang Jitmuangnon",
+    region: "Thailand",
+    status: "Active portrait",
+    src: "/demo/one-athletes/Rodtang_Jitmuangnon-Avatar-500x345-1.png",
+  },
+  {
+    id: "ayaka-miura",
+    name: "Ayaka Miura",
+    region: "Japan",
+    status: "Waiting room",
+    src: "/demo/one-athletes/Ayaka_Miura-avatar-500x345-1.png",
+  },
+  {
+    id: "itsuki-hirata",
+    name: "Itsuki Hirata",
+    region: "Japan",
+    status: "Opening soon",
+    src: "/demo/one-athletes/Itsuki_Hirata-avatar-500x345-4.png",
+  },
+  {
+    id: "jonathan-haggerty",
+    name: "Jonathan Haggerty",
+    region: "United Kingdom",
+    status: "Active portrait",
+    src: "/demo/one-athletes/Jonathan_Haggerty-avatar-500x345-4.png",
+  },
+  {
+    id: "ritu-phogat",
+    name: "Ritu Phogat",
+    region: "India",
+    status: "Waiting room",
+    src: "/demo/one-athletes/Ritu_Phogat-avatar-500x345-1.png",
+  },
+  {
+    id: "toma-kuroda",
+    name: "Toma Kuroda",
+    region: "Japan",
+    status: "Opening soon",
+    src: "/demo/one-athletes/Toma_Kuroda-avatar-500x345-1.png",
+  },
+  {
+    id: "yuki-yoza",
+    name: "Yuki Yoza",
+    region: "Japan",
+    status: "Waiting room",
+    src: "/demo/one-athletes/Yuki_Yoza-avatar-500x345-1.png",
+  },
+  {
+    id: "chihiro-sawada",
+    name: "Chihiro Sawada",
+    region: "Japan",
+    status: "Opening soon",
+    src: "/demo/one-athletes/Chihiro_Sawada-avatar-500x345-3.png",
+  },
+  {
+    id: "avazbek-kholmirzaev",
+    name: "Avazbek Kholmirzaev",
+    region: "Uzbekistan",
+    status: "Waiting room",
+    src: "/demo/one-athletes/Avazbek_Kholmirzaev-Avatar-500x345-1.png",
+  },
+];
+
+const portraitWorkRail = [
+  ...portraitWorks.map((work) => ({ ...work, railId: `first-${work.id}` })),
+  ...portraitWorks.map((work) => ({ ...work, railId: `second-${work.id}` })),
+] as const;
+
 export default async function HomePage(
   props: HomePageProps = {},
 ): Promise<React.ReactElement> {
@@ -111,6 +204,32 @@ export default async function HomePage(
         </div>
       </section>
 
+      <section
+        aria-label="Available portrait works"
+        className="op-home-portrait-flow"
+      >
+        <div className="op-home-portrait-flow-head">
+          <div className="grid gap-3">
+            <div className="op-eyebrow">
+              <span className="bar" />
+              <span>Available portrait works</span>
+            </div>
+            <h2>Choose the portrait you help complete.</h2>
+          </div>
+          <p>
+            Each portrait opens as a shared unit. Pick who you stand for, submit
+            one photo, and become part of the final reveal.
+          </p>
+        </div>
+        <div className="op-home-portrait-rail">
+          <div className="op-home-portrait-track">
+            {portraitWorkRail.map((work) => (
+              <PortraitWorkCard key={work.railId} work={work} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="relative grid gap-10 p-8 md:p-14 lg:p-16" id="arena">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--rule)] pb-5">
           <div className="grid gap-4">
@@ -152,6 +271,29 @@ export default async function HomePage(
         )}
       </section>
     </main>
+  );
+}
+
+function PortraitWorkCard({
+  work,
+}: {
+  readonly work: PortraitWork & { readonly railId: string };
+}): React.ReactElement {
+  return (
+    <article className="op-home-portrait-card">
+      {/* biome-ignore lint/performance/noImgElement: temporary public portrait artwork */}
+      <img alt={work.name} src={work.src} />
+      <div className="op-home-portrait-card-body">
+        <div className="flex items-center justify-between gap-4">
+          <span>{work.region}</span>
+          <span className="is-live">{work.status}</span>
+        </div>
+        <h3>{work.name}</h3>
+        <div className="op-home-portrait-card-meter">
+          <i />
+        </div>
+      </div>
+    </article>
   );
 }
 

@@ -57,6 +57,105 @@ test("local build merges env files when process.env is missing the values", () =
   });
 });
 
+test("local build prefers deployment manifest public env over .env.local", () => {
+  const repoRoot = createTempDir();
+  const cwd = path.join(repoRoot, "apps/web");
+  fs.mkdirSync(cwd, { recursive: true });
+  writeFile(
+    cwd,
+    ".env.local",
+    [
+      "NEXT_PUBLIC_SUI_NETWORK=devnet",
+      "NEXT_PUBLIC_REGISTRY_OBJECT_ID=0xreg-from-env-local",
+      "NEXT_PUBLIC_PACKAGE_ID=0xpkg-from-env-local",
+    ].join("\n"),
+  );
+  writeFile(
+    path.join(repoRoot, "ops/deployments"),
+    "testnet.json",
+    JSON.stringify(
+      {
+        adminCapId:
+          "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+        enokiPublicApiKey: "enoki-public-manifest",
+        googleClientId: "google-manifest",
+        network: "testnet",
+        packageId:
+          "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+        registryObjectId:
+          "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
+        walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
+        walrusPublisher: "https://publisher.walrus-testnet.walrus.space",
+      },
+      null,
+      2,
+    ),
+  );
+
+  const source = loadBuildPublicEnvSource({
+    cwd,
+    env: {},
+    mode: "local",
+  });
+
+  assert.equal(source.NEXT_PUBLIC_SUI_NETWORK, "testnet");
+  assert.equal(
+    source.NEXT_PUBLIC_REGISTRY_OBJECT_ID,
+    "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
+  );
+  assert.equal(
+    source.NEXT_PUBLIC_PACKAGE_ID,
+    "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+  );
+});
+
+test("local build warns about duplicated canonical public env without values", () => {
+  const repoRoot = createTempDir();
+  const cwd = path.join(repoRoot, "apps/web");
+  fs.mkdirSync(cwd, { recursive: true });
+  writeFile(
+    cwd,
+    ".env.local",
+    "NEXT_PUBLIC_PACKAGE_ID=0xenvlocal-secret-shaped-value\n",
+  );
+  writeFile(
+    path.join(repoRoot, "ops/deployments"),
+    "testnet.json",
+    JSON.stringify(
+      {
+        adminCapId:
+          "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+        enokiPublicApiKey: "enoki-public-manifest",
+        googleClientId: "google-manifest",
+        network: "testnet",
+        packageId:
+          "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+        registryObjectId:
+          "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
+        walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
+        walrusPublisher: "https://publisher.walrus-testnet.walrus.space",
+      },
+      null,
+      2,
+    ),
+  );
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  try {
+    loadBuildPublicEnvSource({ cwd, env: {}, mode: "local" });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  const warning = warnings.join("\n");
+  assert.match(warning, /NEXT_PUBLIC_PACKAGE_ID/);
+  assert.match(warning, /ops\/deployments\/testnet\.json/);
+  assert.doesNotMatch(warning, /0xenvlocal-secret-shaped-value/);
+  assert.doesNotMatch(warning, /0x8568f91/);
+});
+
 test("local build fails when the read-only minimum keys are missing", () => {
   const cwd = createTempDir();
   writeFile(cwd, ".env.local", "NEXT_PUBLIC_SUI_NETWORK=testnet\n");
@@ -230,5 +329,6 @@ function createTempDir() {
 }
 
 function writeFile(dir, name, content) {
+  fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, name), content);
 }

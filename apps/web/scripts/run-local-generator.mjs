@@ -1,11 +1,13 @@
 import { spawn, spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
 import {
+  readDeploymentSecretsEnv,
+  readEnvFile,
   readOptionalDeploymentManifest,
   toGeneratorEnv,
+  toWebPublicEnv,
+  warnDuplicatedCanonicalEnv,
 } from "../../../scripts/deployment-env.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,14 +18,35 @@ const generatorRoot = path.join(repoRoot, "generator");
 const generatorDockerfilePath = path.join(generatorRoot, "Dockerfile");
 const generatorImageTag = "one-portrait-generator:local";
 
-export function loadWebScriptEnv({ env = process.env } = {}) {
-  const manifest = readOptionalDeploymentManifest({ repoRoot });
+export function loadWebScriptEnv({
+  env = process.env,
+  repoRoot: envRepoRoot = repoRoot,
+  webRoot: envWebRoot = webRoot,
+  warn = console.warn,
+} = {}) {
+  const envLocal = readEnvFile(path.join(envWebRoot, ".env.local"));
+  const manifest = readOptionalDeploymentManifest({ repoRoot: envRepoRoot });
+  const manifestEnv = manifest
+    ? {
+        ...toWebPublicEnv(manifest),
+        ...toGeneratorEnv(manifest),
+      }
+    : {};
+  const secretsEnv = readDeploymentSecretsEnv({ repoRoot: envRepoRoot });
+
+  warnDuplicatedCanonicalEnv({
+    localEnv: envLocal,
+    manifestEnv,
+    secretsEnv,
+    warn,
+  });
 
   return {
-    ...readEnvFile(path.join(webRoot, ".env")),
-    ...readEnvFile(path.join(webRoot, ".env.local")),
+    ...readEnvFile(path.join(envWebRoot, ".env")),
+    ...envLocal,
     ...env,
-    ...(manifest ? toGeneratorEnv(manifest) : {}),
+    ...manifestEnv,
+    ...secretsEnv,
   };
 }
 
@@ -39,10 +62,15 @@ export function startLocalGenerator({
   env = process.env,
   spawnImpl = spawn,
   cwd = repoRoot,
+  webRoot: envWebRoot = webRoot,
   imageTag = generatorImageTag,
   runDockerBuild = defaultRunDockerBuild,
 } = {}) {
-  const mergedEnv = loadWebScriptEnv({ env });
+  const mergedEnv = loadWebScriptEnv({
+    env,
+    repoRoot: cwd,
+    webRoot: envWebRoot,
+  });
   const localPort = resolveLocalGeneratorPort(mergedEnv);
 
   runDockerBuild({
@@ -106,43 +134,6 @@ if (isExecutedDirectly()) {
   child.once("close", (code, signal) => {
     finalize({ code, signal });
   });
-}
-
-function readEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const entries = {};
-
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const separatorIndex = trimmed.indexOf("=");
-    if (separatorIndex <= 0) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, separatorIndex).trim();
-    const rawValue = trimmed.slice(separatorIndex + 1).trim();
-    entries[key] = stripQuotes(rawValue);
-  }
-
-  return entries;
-}
-
-function stripQuotes(value) {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  return value;
 }
 
 function normalizePortEnvValue(value) {

@@ -19,7 +19,11 @@ export async function startSmokeDev({
 }) {
   cleanupStaleNextDevLock(path.join(cwd, ".next", "dev", "lock"));
   assertNormalDevEnvironment({ cwd, env });
-  const mergedEnv = loadWebScriptEnv({ env });
+  const mergedEnv = loadWebScriptEnv({
+    env,
+    repoRoot: path.resolve(cwd, "..", ".."),
+    webRoot: cwd,
+  });
 
   const child = spawnImpl(nextDevBin, ["dev"], {
     cwd,

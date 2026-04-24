@@ -67,7 +67,7 @@ describe("getAdminHealth", () => {
     vi.stubEnv("OP_GENERATOR_BASE_URL", "https://generator.example.com");
     vi.stubEnv(
       "OP_GENERATOR_RUNTIME_STATE_PATH",
-      "/tmp/missing-generator-runtime.json",
+      "/tmp/one-portrait-missing-generator-runtime.json",
     );
     vi.stubGlobal("fetch", fetchMock);
 

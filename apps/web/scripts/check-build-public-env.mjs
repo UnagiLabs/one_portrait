@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
 import {
+  readEnvFile,
   readOptionalDeploymentManifest,
   toWebPublicEnv,
+  warnDuplicatedCanonicalEnv,
 } from "../../../scripts/deployment-env.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -143,9 +144,9 @@ function buildMissingMessage(mode, missing) {
     return [
       "Missing required public env variable(s) for local build:",
       missing.join(", "),
-      "Local build reads process.env plus apps/web/.env, apps/web/.env.production, apps/web/.env.local, and apps/web/.env.production.local.",
+      "Local build reads apps/web/.env*, process.env, then ops/deployments/testnet.json.",
       `Required local keys: ${requiredKeys}.`,
-      "Set them in apps/web/.env.local (see apps/web/.env.example).",
+      "Set shared testnet values in ops/deployments/testnet.json; use apps/web/.env.local only for personal overrides.",
     ].join("\n");
   }
 
@@ -168,53 +169,20 @@ function buildInvalidMessage(mode, key, value) {
 
 function readLocalBuildEnvFiles(cwd) {
   const merged = {};
+  const envLocal = readEnvFile(path.join(cwd, ".env.local"));
 
-  for (const fileName of [
-    ".env",
-    ".env.production",
-    ".env.local",
-    ".env.production.local",
-  ]) {
-    Object.assign(merged, readEnvFile(path.join(cwd, fileName)));
-  }
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env")));
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env.production")));
+  Object.assign(merged, envLocal);
+  Object.assign(merged, readEnvFile(path.join(cwd, ".env.production.local")));
+
+  warnDuplicatedCanonicalEnv({
+    localEnv: envLocal,
+    manifestEnv: readManifestWebPublicEnv(cwd),
+    secretsEnv: {},
+  });
 
   return merged;
-}
-
-function readEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const values = {};
-  const content = fs.readFileSync(filePath, "utf8");
-
-  for (const line of content.split(/\r?\n/u)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const withoutExport = trimmed.startsWith("export ")
-      ? trimmed.slice("export ".length).trim()
-      : trimmed;
-    const separator = withoutExport.indexOf("=");
-
-    if (separator <= 0) {
-      continue;
-    }
-
-    const key = withoutExport.slice(0, separator).trim();
-    const rawValue = withoutExport.slice(separator + 1).trim();
-
-    if (!key) {
-      continue;
-    }
-
-    values[key] = stripWrappingQuotes(rawValue);
-  }
-
-  return values;
 }
 
 function readWranglerBuildEnvFile(cwd) {
@@ -330,17 +298,6 @@ function stripJsonComments(value) {
   }
 
   return result;
-}
-
-function stripWrappingQuotes(value) {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  return value;
 }
 
 function isMissingValue(value) {

@@ -43,6 +43,16 @@ export const generatorEnvKeys = [
   "WALRUS_AGGREGATOR",
 ];
 
+export const deploymentSecretEnvKeys = [
+  "ADMIN_SUI_PRIVATE_KEY",
+  "OP_FINALIZE_DISPATCH_SECRET",
+  "ENOKI_PRIVATE_API_KEY",
+];
+
+export const deploymentManifestRelativePath = "ops/deployments/testnet.json";
+export const deploymentSecretsRelativePath =
+  "ops/deployments/testnet.secrets.local.env";
+
 export class InvalidDeploymentManifestError extends Error {
   constructor(message) {
     super(message);
@@ -57,7 +67,7 @@ export function resolveDeploymentManifestPath({
   return path.resolve(
     manifestPath ??
       process.env.OP_DEPLOYMENT_MANIFEST ??
-      path.join(repoRoot, "ops", "deployments", "testnet.json"),
+      path.join(repoRoot, deploymentManifestRelativePath),
   );
 }
 
@@ -162,6 +172,88 @@ export function toGeneratorEnv(manifest) {
   };
 }
 
+export function readDeploymentSecretsEnv({
+  repoRoot = defaultRepoRoot,
+  secretsPath,
+} = {}) {
+  const resolvedPath = path.resolve(
+    secretsPath ?? path.join(repoRoot, deploymentSecretsRelativePath),
+  );
+  return pickStringValues(readEnvFile(resolvedPath), deploymentSecretEnvKeys);
+}
+
+export function readEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+
+  const values = {};
+  const content = fs.readFileSync(filePath, "utf8");
+
+  for (const line of content.split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const withoutExport = trimmed.startsWith("export ")
+      ? trimmed.slice("export ".length).trim()
+      : trimmed;
+    const separator = withoutExport.indexOf("=");
+
+    if (separator <= 0) {
+      continue;
+    }
+
+    const key = withoutExport.slice(0, separator).trim();
+    const rawValue = withoutExport.slice(separator + 1).trim();
+    if (key) {
+      values[key] = stripWrappingQuotes(rawValue);
+    }
+  }
+
+  return values;
+}
+
+export function warnDuplicatedCanonicalEnv({
+  localEnv,
+  manifestEnv,
+  secretsEnv,
+  warn = console.warn,
+} = {}) {
+  const warnings = [];
+
+  for (const key of [
+    ...webPublicEnvKeys,
+    ...generatorEnvKeys,
+    ...deploymentSecretEnvKeys,
+  ]) {
+    if (typeof localEnv?.[key] !== "string") {
+      continue;
+    }
+
+    if (typeof secretsEnv?.[key] === "string") {
+      warnings.push({ key, source: deploymentSecretsRelativePath });
+      continue;
+    }
+
+    if (typeof manifestEnv?.[key] === "string") {
+      warnings.push({ key, source: deploymentManifestRelativePath });
+    }
+  }
+
+  if (warnings.length === 0) {
+    return;
+  }
+
+  const details = warnings
+    .map(({ key, source }) => `${key} -> ${source}`)
+    .join(", ");
+  warn(
+    `[deployment-env] apps/web/.env.local contains canonical deployment key(s). ${details}. Canonical deployment values take precedence; values are not printed.`,
+  );
+}
+
 export function checkPublishedTomlDrift({
   repoRoot = defaultRepoRoot,
   manifest = readDeploymentManifest({ repoRoot }),
@@ -183,7 +275,9 @@ export function checkPublishedTomlDrift({
 }
 
 function readTomlString(content, key) {
-  const match = content.match(new RegExp(`^${escapeRegExp(key)}\\s*=\\s*"([^"]+)"`, "m"));
+  const match = content.match(
+    new RegExp(`^${escapeRegExp(key)}\\s*=\\s*"([^"]+)"`, "m"),
+  );
   return match?.[1] ?? null;
 }
 
@@ -210,6 +304,30 @@ function isMissingString(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function pickStringValues(source, keys) {
+  const values = {};
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string") {
+      values[key] = value;
+    }
+  }
+
+  return values;
+}
+
+function stripWrappingQuotes(value) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
 }
 
 if (import.meta.url === pathToFileUrl(process.argv[1])) {
