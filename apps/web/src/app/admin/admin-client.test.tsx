@@ -21,6 +21,16 @@ vi.mock("../../lib/walrus/put-target", () => ({
 
 import { AdminClient } from "./admin-client";
 
+const CATALOG = Array.from({ length: 11 }, (_, index) => {
+  const athleteNumber = index + 1;
+
+  return {
+    displayName: `Catalog Athlete ${athleteNumber}`,
+    slug: `catalog-athlete-${athleteNumber}`,
+    thumbnailUrl: `https://example.com/catalog-${athleteNumber}.png`,
+  };
+});
+
 const HEALTH_OK = {
   currentUrl: "https://generator.example.com",
   dispatchAuthorization: { httpStatus: 200, status: "ok" } as const,
@@ -46,6 +56,7 @@ describe("AdminClient", () => {
   it("renders initial unit cards and health", () => {
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[
           {
             currentUnit: {
@@ -86,6 +97,7 @@ describe("AdminClient", () => {
   it("renders admin health warning details", () => {
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[]}
         initialHealth={{
           ...HEALTH_OK,
@@ -153,6 +165,7 @@ describe("AdminClient", () => {
 
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[
           {
             currentUnit: {
@@ -202,7 +215,13 @@ describe("AdminClient", () => {
       blobId: "target-blob-9",
     });
 
-    render(<AdminClient initialAthletes={[]} initialHealth={HEALTH_OK} />);
+    render(
+      <AdminClient
+        initialAthletes={[]}
+        initialCatalog={CATALOG}
+        initialHealth={HEALTH_OK}
+      />,
+    );
 
     const input = screen.getByLabelText(/Target image/) as HTMLInputElement;
     const file = new File(["target"], "target.jpg", { type: "image/jpeg" });
@@ -266,6 +285,7 @@ describe("AdminClient", () => {
 
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[
           {
             currentUnit: null,
@@ -282,6 +302,8 @@ describe("AdminClient", () => {
     );
 
     expect(screen.queryByLabelText(/unit ID/)).toBeNull();
+    expect(screen.queryByLabelText("displayName")).toBeNull();
+    expect(screen.queryByLabelText("thumbnail URL")).toBeNull();
     fireEvent.change(screen.getByLabelText(/Target blob ID/), {
       target: { value: "target-blob-7" },
     });
@@ -294,11 +316,10 @@ describe("AdminClient", () => {
     expect(screen.getByText(/Status: created/)).toBeTruthy();
     expect(screen.queryByText(/unit ID: 7/)).toBeNull();
     expect(createPayload).toEqual({
+      athleteSlug: "catalog-athlete-1",
       blobId: "target-blob-7",
       displayMaxSlots: unitTileCount,
-      displayName: "Demo Athlete Seven",
       maxSlots: unitTileCount,
-      thumbnailUrl: "https://example.com/7.png",
     });
   });
 
@@ -349,6 +370,7 @@ describe("AdminClient", () => {
 
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[
           {
             currentUnit: null,
@@ -377,11 +399,10 @@ describe("AdminClient", () => {
       expect(screen.getByText("Unit created")).toBeTruthy();
     });
     expect(createPayload).toEqual({
+      athleteSlug: "catalog-athlete-1",
       blobId: "target-blob-demo",
       displayMaxSlots: unitTileCount,
-      displayName: "Demo Athlete Twelve",
       maxSlots: 5,
-      thumbnailUrl: "https://example.com/12.png",
     });
   });
 
@@ -432,6 +453,7 @@ describe("AdminClient", () => {
 
     render(
       <AdminClient
+        initialCatalog={CATALOG}
         initialAthletes={[
           {
             currentUnit: null,
@@ -463,11 +485,102 @@ describe("AdminClient", () => {
       screen.getByText(/Treat as filled immediately after creating 0 photos/),
     ).toBeTruthy();
     expect(createPayload).toEqual({
+      athleteSlug: "catalog-athlete-1",
       blobId: "target-blob-demo-zero",
       displayMaxSlots: unitTileCount,
-      displayName: "Demo Athlete Zero",
       maxSlots: 0,
-      thumbnailUrl: "https://example.com/0.png",
     });
+  });
+
+  it("renders all fixed catalog athletes as create choices and previews the selected athlete", () => {
+    render(
+      <AdminClient
+        initialAthletes={[]}
+        initialCatalog={CATALOG}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    const select = screen.getByLabelText("Athlete");
+
+    expect(screen.queryByLabelText("displayName")).toBeNull();
+    expect(screen.queryByLabelText("thumbnail URL")).toBeNull();
+    expect(select.querySelectorAll("option")).toHaveLength(11);
+
+    for (const athlete of CATALOG) {
+      expect(
+        screen.getByRole("option", { name: athlete.displayName }),
+      ).toBeTruthy();
+    }
+
+    fireEvent.change(select, { target: { value: "catalog-athlete-7" } });
+
+    expect(screen.getAllByText("Catalog Athlete 7")).toHaveLength(2);
+    expect(
+      screen.getByAltText("Catalog Athlete 7 preview").getAttribute("src"),
+    ).toBe("https://example.com/catalog-7.png");
+  });
+
+  it("keeps the fixed create choices after refresh updates current status", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/admin/status")) {
+        return new Response(
+          JSON.stringify({
+            athletes: [
+              {
+                currentUnit: null,
+                displayName: "Only Status Athlete",
+                entryId: "status-only",
+                lookupState: "ready",
+                metadataState: "ready",
+                slug: "status-only",
+                thumbnailUrl: "https://example.com/status-only.png",
+              },
+            ],
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+
+    render(
+      <AdminClient
+        initialAthletes={[]}
+        initialCatalog={CATALOG}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Refresh status/ }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Only Status Athlete" }));
+    });
+
+    const select = screen.getByLabelText("Athlete");
+    expect(select.querySelectorAll("option")).toHaveLength(11);
+    expect(
+      screen.getByRole("option", { name: "Catalog Athlete 11" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("option", { name: "Only Status Athlete" }),
+    ).toBeNull();
   });
 });

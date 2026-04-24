@@ -6,6 +6,7 @@ import {
   parseCreateUnitInput,
 } from "../../../../lib/admin/api";
 import { relayAdminPost } from "../../../../lib/admin/dispatch";
+import { getAthleteBySlug } from "../../../../lib/catalog";
 import { getRequestCloudflareEnv } from "../../../../lib/cloudflare-context";
 import { loadPublicEnv } from "../../../../lib/env";
 
@@ -14,17 +15,25 @@ export async function POST(request: Request): Promise<Response> {
     assertAdminMutationRequest(request);
     const cloudflareEnv = getRequestCloudflareEnv() ?? undefined;
     const input = parseCreateUnitInput(await request.json());
+    const athlete = await getAthleteBySlug(input.athleteSlug);
+    if (!athlete) {
+      throw new AdminApiError(
+        400,
+        "invalid_args",
+        "`athleteSlug` does not match a catalog athlete.",
+      );
+    }
     const { registryObjectId } = loadPublicEnv(process.env);
 
     return await relayAdminPost(
       "/admin/create-unit",
       {
         displayMaxSlots: input.displayMaxSlots,
-        displayName: input.displayName,
+        displayName: athlete.displayName,
         blobId: input.blobId,
         maxSlots: input.maxSlots,
         registryObjectId,
-        thumbnailUrl: input.thumbnailUrl,
+        thumbnailUrl: athlete.thumbnailUrl,
       },
       {
         env: cloudflareEnv,

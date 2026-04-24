@@ -1,9 +1,8 @@
 /**
  * Catalog type boundary for ONE Portrait.
  *
- * The catalog layer owns demo/display metadata for known Units.
- * Live chain data now carries its own display name and thumbnail on Unit,
- * so `unitId` is the only catalog key.
+ * The catalog layer owns demo/display metadata for known athletes.
+ * A catalog entry may be used before a Unit exists, so `unitId` is optional.
  */
 
 /**
@@ -14,14 +13,18 @@
  * {@link AthleteChainRef}.
  */
 export type AthleteCatalogEntry = {
-  /** Object ID of the current demo/display Unit. */
-  readonly unitId: string;
+  /** Object ID of the current demo/display Unit, when one exists. */
+  readonly unitId?: string;
   /** URL-safe identifier used in routes like `/athletes/[slug]`. */
   readonly slug: string;
   /** Human-readable name shown in UI. */
   readonly displayName: string;
   /** Absolute URL for the athlete thumbnail (served from Walrus or CDN). */
   readonly thumbnailUrl: string;
+  /** Region label shown in catalog-driven UI. */
+  readonly region?: string;
+  /** Short availability label shown in catalog-driven UI. */
+  readonly status?: string;
 };
 
 /**

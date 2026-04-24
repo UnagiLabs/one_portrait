@@ -7,30 +7,29 @@ import {
 } from "./index";
 
 describe("getAthleteCatalog", () => {
-  it("returns at least two athlete entries for MVP demo", async () => {
+  it("returns the 11 home rail athlete entries", async () => {
     const catalog = await getAthleteCatalog();
 
     expect(Array.isArray(catalog)).toBe(true);
-    expect(catalog.length).toBeGreaterThanOrEqual(2);
+    expect(catalog).toHaveLength(11);
   });
 
-  it("gives every entry the required unit display fields", async () => {
+  it("gives every entry the required home rail display fields", async () => {
     const catalog = await getAthleteCatalog();
 
     for (const entry of catalog) {
-      expect(entry.unitId).toMatch(/^0x[0-9a-f]+$/i);
       expect(entry.displayName.length).toBeGreaterThan(0);
       expect(entry.slug.length).toBeGreaterThan(0);
       expect(entry.thumbnailUrl.length).toBeGreaterThan(0);
+      expect(entry.region?.length).toBeGreaterThan(0);
+      expect(entry.status?.length).toBeGreaterThan(0);
     }
   });
 
-  it("has unique unitId and slug across entries", async () => {
+  it("has unique slugs across entries", async () => {
     const catalog = await getAthleteCatalog();
-    const ids = new Set(catalog.map((entry) => entry.unitId));
     const slugs = new Set(catalog.map((entry) => entry.slug));
 
-    expect(ids.size).toBe(catalog.length);
     expect(slugs.size).toBe(catalog.length);
   });
 });
@@ -60,6 +59,10 @@ describe("getAthleteByUnitId", () => {
     const first = catalog[0];
     if (!first) {
       expect.unreachable("catalog should not be empty");
+      return;
+    }
+    if (!first.unitId) {
+      expect.unreachable("first catalog entry should have a unitId");
       return;
     }
 
@@ -108,17 +111,15 @@ describe("AthleteChainRef", () => {
 });
 
 describe("AthleteCatalogEntry", () => {
-  it("is structurally independent from AthleteChainRef", () => {
+  it("keeps unitId optional for catalog-only home rail entries", () => {
     const entry: AthleteCatalogEntry = {
-      unitId: "0x42",
       slug: "example",
       displayName: "Example Athlete",
       thumbnailUrl: "https://example.invalid/thumb.jpg",
-    };
-    const ref: AthleteChainRef = {
-      unitId: "0x42",
+      region: "Example Region",
+      status: "Opening soon",
     };
 
-    expect(entry.unitId).toBe(ref.unitId);
+    expect(entry.unitId).toBeUndefined();
   });
 });

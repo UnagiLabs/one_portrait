@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { loadAdminAthletes } from "../../lib/admin/athletes";
 import { getAdminHealth } from "../../lib/admin/health";
+import { getAthleteCatalog } from "../../lib/catalog";
 
 import { AdminClient } from "./admin-client";
 
@@ -12,6 +13,7 @@ export default async function AdminPage(): Promise<React.ReactElement> {
     loadInitialAthletes(),
     getAdminHealth(),
   ]);
+  const catalog = await getAthleteCatalog();
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#2e2210,_#13100b_55%,_#060504)] px-6 py-16 text-stone-100">
@@ -39,7 +41,11 @@ export default async function AdminPage(): Promise<React.ReactElement> {
           </p>
         </header>
 
-        <AdminClient initialAthletes={athletes} initialHealth={health} />
+        <AdminClient
+          initialAthletes={athletes}
+          initialCatalog={catalog}
+          initialHealth={health}
+        />
       </div>
     </main>
   );
