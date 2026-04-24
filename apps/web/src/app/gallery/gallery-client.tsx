@@ -665,6 +665,7 @@ function createUnavailableEntry(kakera: OwnedKakera): GalleryUnavailableEntry {
     unitId: kakera.unitId,
     displayName: `Unit ${kakera.unitId.slice(0, 10)}...`,
     walrusBlobId: kakera.walrusBlobId,
+    kakeraObjectId: kakera.objectId,
     submissionNo: kakera.submissionNo,
     mintedAtMs: kakera.mintedAtMs,
     status: { kind: "unavailable" },
