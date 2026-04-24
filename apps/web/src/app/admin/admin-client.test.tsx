@@ -216,7 +216,7 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("target-blob-9")).toBeTruthy();
     });
-    expect(screen.getByAltText("Uploaded target image preview")).toBeTruthy();
+    expect(screen.getByAltText("Uploaded target preview")).toBeTruthy();
   });
 
   it("submits a normal unit with full display slots", async () => {

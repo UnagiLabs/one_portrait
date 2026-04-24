@@ -395,7 +395,7 @@ export function AdminClient({
           {targetPreviewUrl ? (
             // biome-ignore lint/performance/noImgElement: operator preview
             <img
-              alt="Uploaded target image preview"
+              alt="Uploaded target preview"
               className="h-48 w-full rounded-2xl border border-white/10 object-cover"
               src={targetPreviewUrl}
             />
