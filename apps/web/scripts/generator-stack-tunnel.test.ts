@@ -150,6 +150,103 @@ describe("runGeneratorStackTunnel", () => {
     expect(generatorChild.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
+  it("writes named tunnel remote runtime after external health and keeps it fresh", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      publicBaseUrl: "https://generator.example",
+      publicHostname: "generator.example",
+      tunnelName: "one-portrait-generator",
+      tunnelMode: "named",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      env: {
+        OP_FINALIZE_DISPATCH_URL: "https://generator.example",
+        OP_LOCAL_TUNNEL_NAME: "one-portrait-generator",
+      },
+      heartbeatIntervalMs: 10,
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    try {
+      await settle();
+      localHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      });
+      await settle();
+
+      expect(writeRemoteGeneratorRuntimeMock).not.toHaveBeenCalled();
+
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+
+      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: "named",
+          url: "https://generator.example",
+        }),
+      );
+      expect(
+        writeRemoteGeneratorRuntimeMock.mock.invocationCallOrder[0],
+      ).toBeGreaterThan(waitForHealth.mock.invocationCallOrder[1]);
+      expect(logger.info).toHaveBeenCalledWith("[generator-stack][ready]");
+      expect(
+        logger.info.mock.invocationCallOrder.find(
+          (_order, index) =>
+            logger.info.mock.calls[index]?.[0] === "[generator-stack][ready]",
+        ),
+      ).toBeGreaterThan(
+        writeRemoteGeneratorRuntimeMock.mock.invocationCallOrder[0],
+      );
+
+      await delay(25);
+
+      expect(writeRemoteGeneratorRuntimeMock.mock.calls.length).toBeGreaterThan(
+        1,
+      );
+      expect(
+        writeRemoteGeneratorRuntimeMock.mock.calls.every(
+          ([input]) =>
+            input.mode === "named" && input.url === "https://generator.example",
+        ),
+      ).toBe(true);
+    } finally {
+      tunnelChild.emit("exit", 1, null);
+      await runPromise;
+    }
+  });
+
   it("keeps waiting on local health timeouts until interrupted by SIGINT", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
@@ -696,6 +793,94 @@ describe("runGeneratorStackTunnel", () => {
     }
   });
 
+  it("waits for quick tunnel external health before writing remote runtime", async () => {
+    const logger = createLogger();
+    const processImpl = createProcessMock();
+    const generatorChild = createChildProcess("generator");
+    const tunnelChild = createChildProcess("tunnel");
+    const appRootPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "one-portrait-quick-tunnel-order-"),
+    );
+    const localHealth = createDeferred();
+    const externalHealth = createDeferred();
+
+    const preflight = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      localPort: 8080,
+      ok: true,
+      tunnelMode: "quick",
+    });
+    const startLocalGenerator = vi.fn().mockResolvedValue({
+      child: generatorChild,
+    });
+    const spawnImpl = vi.fn().mockReturnValue(tunnelChild);
+    const waitForHealth = vi.fn(({ label }: { label: string }) => {
+      if (label === "local") {
+        return localHealth.promise;
+      }
+
+      return externalHealth.promise;
+    });
+
+    const runPromise = runGeneratorStackTunnel({
+      appRootPath,
+      env: {},
+      heartbeatIntervalMs: 10,
+      logger,
+      preflight,
+      processImpl,
+      spawnImpl,
+      startLocalGenerator,
+      waitForHealth,
+    });
+
+    try {
+      await settle();
+      localHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][local][ready]",
+        ok: true,
+      });
+      await settle();
+
+      tunnelChild.stdout.emit(
+        "data",
+        "Quick Tunnel ready: https://fresh-runtime.trycloudflare.com\n",
+      );
+      await settle();
+
+      expect(waitForHealth).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          label: "external",
+          url: "https://fresh-runtime.trycloudflare.com/health",
+        }),
+      );
+      expect(writeRemoteGeneratorRuntimeMock).not.toHaveBeenCalled();
+
+      externalHealth.resolve({
+        exitCode: 0,
+        marker: "[generator-stack][health][external][ready]",
+        ok: true,
+      });
+      await settle();
+
+      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: "quick",
+          url: "https://fresh-runtime.trycloudflare.com",
+        }),
+      );
+      expect(
+        writeRemoteGeneratorRuntimeMock.mock.invocationCallOrder[0],
+      ).toBeGreaterThan(waitForHealth.mock.invocationCallOrder[1]);
+    } finally {
+      tunnelChild.emit("exit", 1, null);
+      await runPromise;
+      fs.rmSync(appRootPath, { force: true, recursive: true });
+    }
+  });
+
   it("respects a custom runtime state path from merged env", async () => {
     const logger = createLogger();
     const processImpl = createProcessMock();
@@ -951,5 +1136,11 @@ function createProcessMock() {
 async function settle() {
   await new Promise((resolve) => {
     setImmediate(resolve);
+  });
+}
+
+async function delay(ms: number) {
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
