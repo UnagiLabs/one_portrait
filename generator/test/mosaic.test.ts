@@ -133,7 +133,9 @@ describe("generateMosaic", () => {
     expect(result.width).toBe(10);
     expect(result.height).toBe(20);
     expect(result.placements).toHaveLength(2);
-    expect(result.placements.map((placement) => [placement.x, placement.y])).toEqual([
+    expect(
+      result.placements.map((placement) => [placement.x, placement.y]),
+    ).toEqual([
       [0, 0],
       [0, 1],
     ]);

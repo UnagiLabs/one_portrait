@@ -323,9 +323,7 @@ function deriveFinalizeGridFromSubmissionCount(count: number): MosaicGrid {
 
     if (
       score < bestScore ||
-      (score === bestScore &&
-        bestGrid !== null &&
-        rows > bestGrid.rows)
+      (score === bestScore && bestGrid !== null && rows > bestGrid.rows)
     ) {
       bestGrid = { cols, rows };
       bestScore = score;
