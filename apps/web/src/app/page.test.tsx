@@ -306,6 +306,47 @@ describe("HomePage", () => {
     expect(screen.queryByText("1998 / 2000")).toBeNull();
   });
 
+  it("shows matched active entries that reached max slots as Complete in the UI guard after getActiveHomeUnits filters filled units", async () => {
+    const firstAthlete = CATALOG[0];
+    getActiveHomeUnitsMock.mockResolvedValue([
+      {
+        displayName: firstAthlete.displayName,
+        maxSlots: unitTileCount,
+        submittedCount: unitTileCount,
+        thumbnailUrl: firstAthlete.thumbnailUrl,
+        unitId: "0xunit-complete",
+      },
+    ]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    const firstAthleteCards = screen
+      .getAllByRole("heading", {
+        level: 3,
+        name: firstAthlete.displayName,
+      })
+      .map((heading) => heading.closest(".op-home-portrait-card"));
+    expect(firstAthleteCards).toHaveLength(2);
+
+    for (const card of firstAthleteCards) {
+      expect(card).toBeTruthy();
+      const cardElement = card as HTMLElement;
+      expect(cardElement.getAttribute("data-complete")).toBe("true");
+      expect(cardElement.getAttribute("data-live")).toBeNull();
+      expect(cardElement.closest("a")).toBeNull();
+      expect(within(cardElement).getAllByText("Complete").length).toBe(2);
+      expect(within(cardElement).queryByText("Live")).toBeNull();
+      expect(within(cardElement).getByText("2000 / 2000")).toBeTruthy();
+    }
+
+    expect(
+      screen.queryByRole("link", {
+        name: /Demo Athlete One portrait upload page/i,
+      }),
+    ).toBeNull();
+  });
+
   it("keeps E2E degraded home card states distinct in the portrait rail", async () => {
     process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
 
