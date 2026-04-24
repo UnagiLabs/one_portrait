@@ -99,6 +99,7 @@ const athleteAssets: readonly AthleteAsset[] = [
 ];
 
 const mosaicSrc = "/demo/demo_mozaiku.png";
+const fanUploadSrc = "/demo/fan-upload-dogs.png";
 const revealDurationMs = 15000;
 const rosterLoop = [...athleteAssets, ...athleteAssets].map(
   (athlete, index) => ({
@@ -258,7 +259,12 @@ export function DemoClient(): React.ReactElement {
 
         <div className="op-demo-submit-panel">
           <div className="op-demo-phone">
-            <div className="op-demo-selfie-grid" aria-hidden>
+            <div className="op-demo-upload-preview">
+              {/* biome-ignore lint/performance/noImgElement: public demo upload asset */}
+              <img src={fanUploadSrc} alt="Two dogs in a stroller" />
+              <div className="op-demo-upload-scan" aria-hidden />
+            </div>
+            <div className="op-demo-selfie-grid compact" aria-hidden>
               {fanTileStyles.map((style) => (
                 <div
                   className="op-demo-selfie"
@@ -277,8 +283,8 @@ export function DemoClient(): React.ReactElement {
               ))}
             </div>
             <div className="op-demo-submit-status">
-              <span>Preview ready</span>
-              <strong>1 photo / 1 Kakera</strong>
+              <span>Selected photo</span>
+              <strong>Ready for Walrus</strong>
             </div>
           </div>
 

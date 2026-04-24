@@ -390,6 +390,161 @@ a {
   cursor: default;
 }
 
+/* Flowing portrait work rail */
+.op-home-portrait-flow {
+  display: grid;
+  gap: 30px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+  padding: 42px 0 50px;
+  background:
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(77, 162, 255, 0.08),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 82% 84%,
+      rgba(255, 122, 26, 0.12),
+      transparent 34%
+    ),
+    rgba(5, 3, 2, 0.68);
+}
+
+.op-home-portrait-flow-head {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.op-home-portrait-flow-head h2 {
+  max-width: 720px;
+  font-family: "Anton", sans-serif;
+  font-size: clamp(36px, 5vw, 68px);
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-home-portrait-flow-head p {
+  max-width: 390px;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  line-height: 1.56;
+}
+
+.op-home-portrait-rail {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    black 9%,
+    black 91%,
+    transparent
+  );
+}
+
+.op-home-portrait-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  padding: 6px 24px 20px;
+  animation: op-home-portrait-flow 48s linear infinite;
+}
+
+.op-home-portrait-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 250px;
+  height: 380px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 122, 26, 0.08), transparent 42%), #0a0604;
+  box-shadow: 0 28px 86px -56px rgba(255, 122, 26, 0.62);
+}
+
+.op-home-portrait-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 48%, rgba(5, 3, 2, 0.92)),
+    linear-gradient(
+      100deg,
+      rgba(255, 122, 26, 0.1),
+      transparent 44%,
+      rgba(77, 162, 255, 0.1)
+    );
+}
+
+.op-home-portrait-card img {
+  position: absolute;
+  inset: 12px -36px auto;
+  width: calc(100% + 72px);
+  height: 286px;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 28px 64px rgba(0, 0, 0, 0.7));
+  transition: transform 0.24s ease;
+}
+
+.op-home-portrait-card:hover img {
+  transform: translateY(-7px) scale(1.04);
+}
+
+.op-home-portrait-card-body {
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.op-home-portrait-card-body span {
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.op-home-portrait-card-body span.is-live {
+  color: var(--ember);
+}
+
+.op-home-portrait-card-body h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Anton", sans-serif;
+  font-size: 1.9rem;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.op-home-portrait-card-meter {
+  height: 2px;
+  overflow: hidden;
+  background: rgba(245, 239, 227, 0.12);
+}
+
+.op-home-portrait-card-meter i {
+  display: block;
+  width: 58%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--fire-1));
+  box-shadow: 0 0 18px rgba(255, 122, 26, 0.5);
+}
+
 /* Kakera-style card */
 .op-kakera-card {
   position: relative;
@@ -891,12 +1046,60 @@ a {
   background: rgba(245, 239, 227, 0.18);
 }
 
+.op-demo-upload-preview {
+  position: absolute;
+  inset: 42px 18px 188px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.16);
+  background: #050302;
+}
+
+.op-demo-upload-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.op-demo-upload-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent 62%, rgba(5, 3, 2, 0.36)),
+    radial-gradient(circle at 52% 42%, transparent 42%, rgba(5, 3, 2, 0.18));
+  pointer-events: none;
+}
+
+.op-demo-upload-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -20%;
+  height: 26%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 122, 26, 0.18),
+    rgba(255, 209, 102, 0.32),
+    transparent
+  );
+  mix-blend-mode: screen;
+  animation: op-demo-upload-scan 3.4s ease-in-out infinite;
+}
+
 .op-demo-selfie-grid {
   position: absolute;
   inset: 42px 18px 118px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+.op-demo-selfie-grid.compact {
+  inset: auto 18px 112px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
 }
 
 .op-demo-selfie {
@@ -907,6 +1110,10 @@ a {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.2), transparent 42%),
     var(--fan-bg);
+}
+
+.op-demo-selfie-grid.compact .op-demo-selfie {
+  min-height: 40px;
 }
 
 .op-demo-selfie::before {
@@ -1191,7 +1398,41 @@ a {
   }
 }
 
+@keyframes op-home-portrait-flow {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes op-demo-upload-scan {
+  0%,
+  18% {
+    transform: translateY(0);
+  }
+  72%,
+  100% {
+    transform: translateY(470%);
+  }
+}
+
 @media (max-width: 900px) {
+  .op-home-portrait-flow-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .op-home-portrait-card {
+    width: 220px;
+    height: 340px;
+  }
+
+  .op-home-portrait-card img {
+    height: 250px;
+  }
+
   .op-demo-hero,
   .op-demo-submit,
   .op-demo-reveal-overlay,
@@ -1285,12 +1526,17 @@ a {
     min-height: 430px;
   }
 
+  .op-demo-upload-preview {
+    bottom: 168px;
+  }
+
   .op-demo-kakera {
     grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .op-home-portrait-track,
   .op-demo-hero-athlete.primary,
   .op-demo-grid-glow,
   .op-demo-athlete-track {
