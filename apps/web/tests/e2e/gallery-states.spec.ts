@@ -9,7 +9,7 @@ test.describe("gallery states", () => {
 
     await page.goto("/gallery");
 
-    await expect(page.getByText("Empty")).toBeVisible();
+    await expect(page.getByText("Empty", { exact: true })).toBeVisible();
     await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Check again" }),
@@ -109,7 +109,7 @@ test.describe("gallery states", () => {
 
     await page.getByRole("button", { name: "Check again" }).click();
 
-    await expect(page.getByText("Empty")).toBeVisible();
+    await expect(page.getByText("Empty", { exact: true })).toBeVisible();
     await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
   });
 

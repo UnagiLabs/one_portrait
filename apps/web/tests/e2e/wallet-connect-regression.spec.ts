@@ -43,7 +43,7 @@ test.describe("wallet connect regression", () => {
       .getByRole("button", { name: "ONE Portrait E2E Sui Stub" })
       .click();
 
-    await expect(page.getByText("Empty")).toBeVisible();
+    await expect(page.getByText("Empty", { exact: true })).toBeVisible();
     await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
   });
 });
