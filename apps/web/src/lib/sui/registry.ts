@@ -82,7 +82,9 @@ export async function listRegistryAthletes(
     }),
   );
 
-  return entries.filter((entry): entry is RegistryAthleteView => entry !== null);
+  return entries.filter(
+    (entry): entry is RegistryAthleteView => entry !== null,
+  );
 }
 
 export async function getActiveHomeUnits(

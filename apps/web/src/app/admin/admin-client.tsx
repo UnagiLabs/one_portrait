@@ -348,7 +348,8 @@ export function AdminClient({
               <span className="grid gap-2">
                 <span className="font-medium text-white">デモ</span>
                 <span>
-                  表示は 2,000 枚のまま、実際にアップロードさせる枚数だけを指定します。
+                  表示は 2,000
+                  枚のまま、実際にアップロードさせる枚数だけを指定します。
                 </span>
                 <label className="grid gap-2 text-sm text-stone-200">
                   実アップロード枚数

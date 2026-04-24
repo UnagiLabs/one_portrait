@@ -5,10 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../../../lib/demo";
-import {
-  STUB_MASTER_ID,
-  STUB_UNIT_ID,
-} from "../../../lib/e2e/stub-data";
+import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../../lib/e2e/stub-data";
 
 const {
   getUnitProgressMock,
@@ -140,7 +137,9 @@ afterEach(() => {
 
 describe("UnitPage", () => {
   it("renders the initial progress count fetched on the server", async () => {
-    getUnitProgressMock.mockResolvedValue(buildProgress({ submittedCount: 72 }));
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 72 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -162,7 +161,9 @@ describe("UnitPage", () => {
   });
 
   it("passes the server-derived public props to the waiting-room clients", async () => {
-    getUnitProgressMock.mockResolvedValue(buildProgress({ submittedCount: 36 }));
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 36 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       registryObjectId: "0xreg",
@@ -218,7 +219,9 @@ describe("UnitPage", () => {
   });
 
   it("shows a waiting-room link to the participation gallery", async () => {
-    getUnitProgressMock.mockResolvedValue(buildProgress({ submittedCount: 10 }));
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 10 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",
@@ -276,7 +279,9 @@ describe("UnitPage", () => {
   });
 
   it("passes the packageId from env to the live progress client component", async () => {
-    getUnitProgressMock.mockResolvedValue(buildProgress({ submittedCount: 10 }));
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 10 }),
+    );
     loadPublicEnvMock.mockReturnValue({
       suiNetwork: "testnet",
       packageId: "0xpkg",

@@ -73,8 +73,8 @@ export default async function UnitPage(
     : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
   const athlete =
     demoMode && progress.athletePublicId
-    ? await safeGetAthleteByPublicId(progress.athletePublicId)
-    : null;
+      ? await safeGetAthleteByPublicId(progress.athletePublicId)
+      : null;
 
   const displayName = resolveDisplayName(
     searchParams.athleteName,

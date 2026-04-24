@@ -42,7 +42,10 @@ function unitObject(overrides: Partial<Record<string, unknown>> = {}) {
       fields: {
         id: { id: UNIT_ID },
         athlete_id: 7,
+        display_name: encodeBytes("Demo Athlete Seven"),
+        thumbnail_url: encodeBytes("https://example.com/7.png"),
         target_walrus_blob: [],
+        display_max_slots: String(unitTileCount),
         max_slots: String(unitTileCount),
         status: 2,
         master_id: { fields: { vec: [MASTER_ID] } },

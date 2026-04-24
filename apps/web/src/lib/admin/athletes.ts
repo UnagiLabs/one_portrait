@@ -25,7 +25,10 @@ export async function loadAdminAthletes(): Promise<
       try {
         return buildEntry(await getAdminUnitSnapshot(unitId), "ready");
       } catch (error) {
-        console.error(`Failed to load admin unit snapshot for unit ${unitId}`, error);
+        console.error(
+          `Failed to load admin unit snapshot for unit ${unitId}`,
+          error,
+        );
         return buildUnavailableEntry(unitId);
       }
     }),

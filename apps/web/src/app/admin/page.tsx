@@ -33,9 +33,9 @@ export default async function AdminPage(): Promise<React.ReactElement> {
             デモ管理コンソール
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
-            unit 作成時に通常版かデモ版かを選び、表示 2,000 枚に対する実投稿枚数を
-            調整できます。作成済み unit の状態確認と finalize の再試行もこの 1
-            ページで行います。
+            unit 作成時に通常版かデモ版かを選び、表示 2,000
+            枚に対する実投稿枚数を 調整できます。作成済み unit の状態確認と
+            finalize の再試行もこの 1 ページで行います。
           </p>
         </header>
 

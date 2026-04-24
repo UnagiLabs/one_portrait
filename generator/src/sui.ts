@@ -432,10 +432,9 @@ async function readUnitSnapshot(
   return {
     unitId,
     athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
-    displayMaxSlots: readOptionalIntegerField(
-      fields.display_max_slots,
-      "display_max_slots",
-    ) ?? readIntegerField(fields.max_slots, "max_slots"),
+    displayMaxSlots:
+      readOptionalIntegerField(fields.display_max_slots, "display_max_slots") ??
+      readIntegerField(fields.max_slots, "max_slots"),
     targetWalrusBlobId: readVectorU8AsString(
       fields.target_walrus_blob,
       "target_walrus_blob",

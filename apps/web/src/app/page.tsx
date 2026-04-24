@@ -144,8 +144,7 @@ export default async function HomePage(
               現在表示できる開催中ユニットはありません
             </h3>
             <p className="text-sm leading-6 text-[var(--ink-dim)]">
-              `pending` な unit が作成されると、
-              ここに自動で表示されます。
+              `pending` な unit が作成されると、 ここに自動で表示されます。
             </p>
           </article>
         ) : (

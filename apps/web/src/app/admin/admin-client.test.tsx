@@ -116,44 +116,46 @@ describe("AdminClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     let createPayload: Record<string, unknown> | null = null;
 
-    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+    fetchMock.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
 
-      if (url.endsWith("/api/admin/create-unit")) {
-        createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
-          string,
-          unknown
-        >;
-        return new Response(
-          JSON.stringify({
-            digest: "0xcreate",
-            status: "created",
-            unitId: "0xunit-created",
-          }),
-          {
+        if (url.endsWith("/api/admin/create-unit")) {
+          createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
+            string,
+            unknown
+          >;
+          return new Response(
+            JSON.stringify({
+              digest: "0xcreate",
+              status: "created",
+              unitId: "0xunit-created",
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+
+        if (url.endsWith("/api/admin/status")) {
+          return new Response(JSON.stringify({ athletes: [] }), {
             headers: { "content-type": "application/json" },
             status: 200,
-          },
-        );
-      }
+          });
+        }
 
-      if (url.endsWith("/api/admin/status")) {
-        return new Response(JSON.stringify({ athletes: [] }), {
+        return new Response(JSON.stringify(HEALTH_OK), {
           headers: { "content-type": "application/json" },
           status: 200,
         });
-      }
-
-      return new Response(JSON.stringify(HEALTH_OK), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      });
-    });
+      },
+    );
 
     render(
       <AdminClient
@@ -195,44 +197,46 @@ describe("AdminClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     let createPayload: Record<string, unknown> | null = null;
 
-    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+    fetchMock.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
 
-      if (url.endsWith("/api/admin/create-unit")) {
-        createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
-          string,
-          unknown
-        >;
-        return new Response(
-          JSON.stringify({
-            digest: "0xcreate-demo",
-            status: "created",
-            unitId: "0xunit-demo",
-          }),
-          {
+        if (url.endsWith("/api/admin/create-unit")) {
+          createPayload = JSON.parse(String(init?.body ?? "{}")) as Record<
+            string,
+            unknown
+          >;
+          return new Response(
+            JSON.stringify({
+              digest: "0xcreate-demo",
+              status: "created",
+              unitId: "0xunit-demo",
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+
+        if (url.endsWith("/api/admin/status")) {
+          return new Response(JSON.stringify({ athletes: [] }), {
             headers: { "content-type": "application/json" },
             status: 200,
-          },
-        );
-      }
+          });
+        }
 
-      if (url.endsWith("/api/admin/status")) {
-        return new Response(JSON.stringify({ athletes: [] }), {
+        return new Response(JSON.stringify(HEALTH_OK), {
           headers: { "content-type": "application/json" },
           status: 200,
         });
-      }
-
-      return new Response(JSON.stringify(HEALTH_OK), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      });
-    });
+      },
+    );
 
     render(
       <AdminClient
