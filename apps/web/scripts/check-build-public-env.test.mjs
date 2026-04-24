@@ -138,6 +138,53 @@ test("cloudflare build prefers process.env over wrangler.jsonc vars", () => {
   assert.equal(source.NEXT_PUBLIC_GOOGLE_CLIENT_ID, "google-explicit");
 });
 
+test("deployment manifest values override stale build env values", () => {
+  const cwd = createTempDir();
+  const manifestPath = path.join(cwd, "testnet.json");
+  writeFile(
+    cwd,
+    "testnet.json",
+    JSON.stringify({
+      adminCapId:
+        "0x1884569ea7b990035635768d05bab0b12c1d1e5ca5dd58d56b096a4aaae08693",
+      enokiPublicApiKey: "enoki-public-manifest",
+      googleClientId: "google-manifest",
+      network: "testnet",
+      packageId:
+        "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      registryObjectId:
+        "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
+      walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
+      walrusPublisher: "https://publisher.walrus-testnet.walrus.space",
+    }),
+  );
+
+  const previousManifestPath = process.env.OP_DEPLOYMENT_MANIFEST;
+  process.env.OP_DEPLOYMENT_MANIFEST = manifestPath;
+
+  try {
+    const source = loadBuildPublicEnvSource({
+      cwd,
+      env: {
+        NEXT_PUBLIC_PACKAGE_ID:
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      },
+      mode: "cloudflare",
+    });
+
+    assert.equal(
+      source.NEXT_PUBLIC_PACKAGE_ID,
+      "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    );
+  } finally {
+    if (previousManifestPath === undefined) {
+      delete process.env.OP_DEPLOYMENT_MANIFEST;
+    } else {
+      process.env.OP_DEPLOYMENT_MANIFEST = previousManifestPath;
+    }
+  }
+});
+
 test("cloudflare build passes when every public build variable is present in process.env", () => {
   const cwd = createTempDir();
 

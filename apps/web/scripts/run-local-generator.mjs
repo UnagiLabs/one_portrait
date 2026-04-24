@@ -3,6 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  readOptionalDeploymentManifest,
+  toGeneratorEnv,
+} from "../../../scripts/deployment-env.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
@@ -12,10 +17,13 @@ const generatorDockerfilePath = path.join(generatorRoot, "Dockerfile");
 const generatorImageTag = "one-portrait-generator:local";
 
 export function loadWebScriptEnv({ env = process.env } = {}) {
+  const manifest = readOptionalDeploymentManifest({ repoRoot });
+
   return {
     ...readEnvFile(path.join(webRoot, ".env")),
     ...readEnvFile(path.join(webRoot, ".env.local")),
     ...env,
+    ...(manifest ? toGeneratorEnv(manifest) : {}),
   };
 }
 
