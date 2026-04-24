@@ -9,6 +9,7 @@ import {
   HomeScrollMotion,
   HomeSubmitSection,
 } from "./home-experience";
+import { HomePortraitRail } from "./home-portrait-rail";
 
 const mosaicAspectRatio = `${unitTileGrid.cols} / ${unitTileGrid.rows}`;
 
@@ -195,13 +196,11 @@ export default async function HomePage(
             one photo, and become part of the final reveal.
           </p>
         </div>
-        <div className="op-home-portrait-rail">
-          <div className="op-home-portrait-track">
-            {portraitWorkRail.map((work) => (
-              <PortraitWorkCard key={work.railId} work={work} />
-            ))}
-          </div>
-        </div>
+        <HomePortraitRail>
+          {portraitWorkRail.map((work) => (
+            <PortraitWorkCard key={work.railId} work={work} />
+          ))}
+        </HomePortraitRail>
       </section>
 
       <HomeSubmitSection />

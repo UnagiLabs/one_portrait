@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { unitTileCount } from "@one-portrait/shared";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../lib/demo";
@@ -102,6 +102,40 @@ describe("HomePage", () => {
       name: /participation history/i,
     });
     expect(link.getAttribute("href")).toBe("/gallery");
+  });
+
+  it("lets users move the portrait rail one card at a time", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
+    const originalScrollBy = HTMLElement.prototype.scrollBy;
+    const scrollByMock = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+      configurable: true,
+      value: scrollByMock,
+    });
+
+    try {
+      const ui = await HomePage();
+      render(ui);
+
+      fireEvent.click(screen.getByRole("button", { name: "Next portraits" }));
+      expect(scrollByMock).toHaveBeenLastCalledWith({
+        behavior: "smooth",
+        left: 266,
+      });
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Previous portraits" }),
+      );
+      expect(scrollByMock).toHaveBeenLastCalledWith({
+        behavior: "smooth",
+        left: -266,
+      });
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+        configurable: true,
+        value: originalScrollBy,
+      });
+    }
   });
 
   it("links live portrait menu cards to the upload page", async () => {
