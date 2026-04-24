@@ -40,6 +40,22 @@ describe("RevealPanel", () => {
     expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
   });
 
+  it("starts the placement guide replay identifier at its initial value", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl="https://example.com/original.png"
+        placement={{ x: 12, y: 34, submitter: "0xviewer", submissionNo: 42 }}
+      />,
+    );
+
+    expect(screen.getByTestId("placement-guide").dataset.replayId).toBe("0");
+    expect(screen.getByTestId("placement-highlight").dataset.replayId).toBe(
+      "0",
+    );
+  });
+
   it("toggles the highlight and guide visibility", () => {
     render(
       <RevealPanel
@@ -57,6 +73,31 @@ describe("RevealPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /show highlight/i }));
     expect(screen.getByTestId("placement-highlight")).toBeTruthy();
     expect(screen.getByTestId("placement-guide-line")).toBeTruthy();
+    expect(screen.getByTestId("placement-guide").dataset.replayId).toBe("1");
+    expect(screen.getByTestId("placement-highlight").dataset.replayId).toBe(
+      "1",
+    );
+  });
+
+  it("uses breakpoint classes to hide the guide below the two-column layout", () => {
+    render(
+      <RevealPanel
+        displayName="Demo Athlete One"
+        mosaicUrl="https://example.com/mosaic.png"
+        originalPhotoUrl="https://example.com/original.png"
+        placement={{ x: 12, y: 34, submitter: "0xviewer", submissionNo: 42 }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("placement-guide").classList.contains("hidden"),
+    ).toBe(true);
+    expect(
+      screen.getByTestId("placement-guide").classList.contains("lg:block"),
+    ).toBe(true);
+    expect(
+      screen.getByTestId("placement-guide").getAttribute("preserveAspectRatio"),
+    ).toBe("none");
   });
 
   it("does not render the highlight or guide when placement is unavailable", () => {

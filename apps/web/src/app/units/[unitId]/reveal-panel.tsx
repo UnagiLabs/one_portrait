@@ -18,8 +18,18 @@ export function RevealPanel({
   placement,
 }: RevealPanelProps): React.ReactElement {
   const [highlightVisible, setHighlightVisible] = useState(true);
+  const [highlightReplayId, setHighlightReplayId] = useState(0);
   const hasPlacement = placement !== null;
   const highlightLabel = highlightVisible ? "Hide highlight" : "Show highlight";
+  const mosaicWidth = 58;
+  const guideStartX = 82;
+  const guideStartY = 38;
+  const guideEndX = placement
+    ? ((placement.x + 0.5) / unitTileGrid.cols) * mosaicWidth
+    : 0;
+  const guideEndY = placement
+    ? ((placement.y + 0.5) / unitTileGrid.rows) * 100
+    : 0;
 
   return (
     <section
@@ -41,7 +51,7 @@ export function RevealPanel({
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)] lg:items-start">
+      <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)] lg:items-start">
         <div
           className="op-reveal-surface relative overflow-hidden border border-[var(--rule)] bg-[rgba(0,0,0,0.12)]"
           style={{
@@ -57,36 +67,45 @@ export function RevealPanel({
           />
 
           {placement && highlightVisible ? (
-            <>
-              <svg
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 h-full w-full"
-                data-testid="placement-guide-line"
-                viewBox="0 0 100 100"
-              >
-                <path
-                  d="M 8 92 L 92 8"
-                  fill="none"
-                  stroke="var(--ember)"
-                  strokeDasharray="4 4"
-                  strokeWidth="1.5"
-                />
-              </svg>
-              <div
-                className="pointer-events-none absolute box-border border-[2px] border-[var(--ember)] bg-[rgba(212,50,14,0.12)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_0_0_1px_rgba(212,50,14,0.4)]"
-                data-testid="placement-highlight"
-                style={{
-                  left: `${(placement.x / unitTileGrid.cols) * 100}%`,
-                  top: `${(placement.y / unitTileGrid.rows) * 100}%`,
-                  width: `${100 / unitTileGrid.cols}%`,
-                  height: `${100 / unitTileGrid.rows}%`,
-                }}
-              />
-            </>
+            <div
+              className="op-placement-highlight-pulse pointer-events-none absolute z-10 box-border border-[2px] border-[var(--ember)] bg-[rgba(212,50,14,0.12)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_0_0_1px_rgba(212,50,14,0.4)]"
+              data-replay-id={highlightReplayId}
+              data-testid="placement-highlight"
+              style={{
+                left: `${(placement.x / unitTileGrid.cols) * 100}%`,
+                top: `${(placement.y / unitTileGrid.rows) * 100}%`,
+                width: `${100 / unitTileGrid.cols}%`,
+                height: `${100 / unitTileGrid.rows}%`,
+              }}
+            />
           ) : null}
         </div>
 
-        <aside className="grid gap-4">
+        {placement && highlightVisible ? (
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[1] hidden h-full w-full lg:block"
+            data-replay-id={highlightReplayId}
+            data-testid="placement-guide"
+            preserveAspectRatio="none"
+            viewBox="0 0 100 100"
+          >
+            <path
+              className="op-placement-guide-line"
+              d={`M ${guideStartX} ${guideStartY} L ${guideEndX} ${guideEndY}`}
+              data-testid="placement-guide-line"
+              fill="none"
+              pathLength={1}
+              stroke="var(--ember)"
+              strokeDasharray="0.04 0.035"
+              strokeLinecap="round"
+              strokeWidth="0.7"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        ) : null}
+
+        <aside className="relative grid gap-4">
           <section className="grid gap-2 border border-[var(--rule)] bg-[rgba(245,239,227,0.04)] p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
@@ -96,7 +115,14 @@ export function RevealPanel({
                 <button
                   className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ember)] hover:text-[var(--ink)]"
                   aria-pressed={highlightVisible}
-                  onClick={() => setHighlightVisible((current) => !current)}
+                  onClick={() => {
+                    setHighlightVisible((current) => {
+                      if (!current) {
+                        setHighlightReplayId((replayId) => replayId + 1);
+                      }
+                      return !current;
+                    });
+                  }}
                   type="button"
                 >
                   {highlightLabel}
