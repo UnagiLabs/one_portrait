@@ -47,9 +47,56 @@ type PortraitWork = Pick<
   AthleteCatalogEntry,
   "displayName" | "slug" | "thumbnailUrl"
 > & {
+  readonly href?: string;
+  readonly progressLabel?: string;
   readonly region: string;
+  readonly state?: "complete" | "live" | "unavailable";
   readonly status: string;
 };
+
+function buildPortraitWorkRail(
+  catalog: readonly AthleteCatalogEntry[],
+  entries: readonly HomeEntry[],
+) {
+  const works = catalog.map((catalogEntry, index): PortraitWork => {
+    const work = toPortraitWork(catalogEntry);
+    const entry = entries[index];
+    if (!entry) {
+      return work;
+    }
+
+    const isComplete =
+      entry.progress.kind === "active" &&
+      entry.progress.submittedCount >= entry.progress.maxSlots;
+    const progressLabel =
+      entry.progress.kind === "active"
+        ? `${formatProgressCount(entry.progress.submittedCount)} / ${formatProgressCount(entry.progress.maxSlots)}`
+        : undefined;
+
+    return {
+      ...work,
+      href:
+        !isComplete && entry.progress.unitId !== null
+          ? buildWaitingRoomHref(entry.progress.unitId, work.displayName)
+          : undefined,
+      progressLabel,
+      state:
+        entry.progress.kind === "active"
+          ? isComplete
+            ? "complete"
+            : "live"
+          : entry.progress.kind === "unavailable"
+            ? "unavailable"
+            : undefined,
+      status: getPortraitWorkStatus(entry.progress, isComplete),
+    };
+  });
+
+  return [
+    ...works.map((work) => ({ ...work, railId: `first-${work.slug}` })),
+    ...works.map((work) => ({ ...work, railId: `second-${work.slug}` })),
+  ];
+}
 
 function toPortraitWork(entry: AthleteCatalogEntry): PortraitWork {
   return {
@@ -71,25 +118,8 @@ export default async function HomePage(
   const entries = useDemoEntries
     ? await loadDemoEntries(searchParams.op_e2e_home_card_state)
     : await loadChainEntries();
-  const portraitWorks = (await getAthleteCatalog()).map(toPortraitWork);
-  const portraitWorkRail = [
-    ...portraitWorks.map((work) => ({
-      ...work,
-      railId: `first-${work.slug}`,
-    })),
-    ...portraitWorks.map((work) => ({
-      ...work,
-      railId: `second-${work.slug}`,
-    })),
-  ];
-
-  const firstActive = entries.find(
-    (
-      entry,
-    ): entry is HomeEntry & {
-      readonly progress: { readonly kind: "active" } & HomeEntry["progress"];
-    } => entry.progress.kind === "active",
-  );
+  const catalog = await getAthleteCatalog();
+  const portraitWorkRail = buildPortraitWorkRail(catalog, entries);
 
   return (
     <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
@@ -133,7 +163,6 @@ export default async function HomePage(
               </Link>
             </div>
           </div>
-          <HeroFoot firstActive={firstActive ?? null} />
         </div>
         <div
           className="relative hidden min-h-[420px] place-items-center overflow-hidden lg:grid"
@@ -178,47 +207,6 @@ export default async function HomePage(
       <HomeSubmitSection />
 
       <HomeMosaicReveal />
-
-      <section className="relative grid gap-10 p-8 md:p-14 lg:p-16" id="arena">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--rule)] pb-5">
-          <div className="grid gap-4">
-            <div className="op-eyebrow">
-              <span className="bar" />
-              <span>Live registry</span>
-            </div>
-            <h2 className="font-display text-[clamp(40px,6vw,72px)] leading-[0.95] text-[var(--ink)]">
-              Choose{" "}
-              <em className="font-serif-display not-italic text-[var(--ember)]">
-                <span className="italic">who</span>
-              </em>
-              <br />
-              you stand for.
-            </h2>
-          </div>
-          <p className="max-w-sm text-sm leading-[1.55] text-[var(--ink-dim)]">
-            Each active unit holds {unitTileCount.toLocaleString()} tiles. Once
-            filled, the mosaic is revealed to every participant at the same
-            moment — and can never be filled again.
-          </p>
-        </div>
-
-        {entries.length === 0 ? (
-          <article className="op-surface grid gap-2 text-[var(--ink)]">
-            <h3 className="font-display text-2xl">
-              No active units are available right now
-            </h3>
-            <p className="text-sm leading-6 text-[var(--ink-dim)]">
-              When a pending unit is created, it will appear here automatically.
-            </p>
-          </article>
-        ) : (
-          <div className="grid gap-px bg-[var(--rule)] md:grid-cols-2 xl:grid-cols-4">
-            {entries.map((athlete, idx) => (
-              <AthleteCard athlete={athlete} idx={idx} key={athlete.unitId} />
-            ))}
-          </div>
-        )}
-      </section>
     </main>
   );
 }
@@ -228,21 +216,66 @@ function PortraitWorkCard({
 }: {
   readonly work: PortraitWork & { readonly railId: string };
 }): React.ReactElement {
-  return (
-    <article className="op-home-portrait-card">
+  const isComplete = work.state === "complete";
+  const isLive = work.state === "live";
+  const isUnavailable = work.state === "unavailable";
+  const card = (
+    <article
+      className={`op-home-portrait-card${isLive ? " is-live" : ""}${
+        isComplete ? " is-complete" : ""
+      }`}
+      data-complete={isComplete ? "true" : undefined}
+      data-live={isLive ? "true" : undefined}
+      data-unavailable={isUnavailable ? "true" : undefined}
+    >
       {/* biome-ignore lint/performance/noImgElement: temporary public portrait artwork */}
       <img alt={work.displayName} src={work.thumbnailUrl} />
+      {isLive ? (
+        <div className="op-home-portrait-card-badge is-live">
+          <span />
+          <b className="sr-only">Live</b>
+        </div>
+      ) : null}
+      {isComplete ? (
+        <div className="op-home-portrait-card-badge is-complete">
+          <span />
+          <b>Complete</b>
+        </div>
+      ) : null}
       <div className="op-home-portrait-card-body">
         <div className="flex items-center justify-between gap-4">
           <span>{work.region}</span>
-          <span className="is-live">{work.status}</span>
+          <span
+            className={`op-home-portrait-card-status${
+              isLive ? " is-live" : ""
+            }${isUnavailable ? " is-unavailable" : ""}`}
+          >
+            {work.status}
+          </span>
         </div>
         <h3>{work.displayName}</h3>
+        {work.progressLabel ? (
+          <p className="op-home-portrait-card-progress">{work.progressLabel}</p>
+        ) : null}
         <div className="op-home-portrait-card-meter">
           <i />
         </div>
       </div>
     </article>
+  );
+
+  if (!work.href) {
+    return card;
+  }
+
+  return (
+    <Link
+      aria-label={`${work.displayName} portrait upload page`}
+      className="op-home-portrait-card-link"
+      href={work.href}
+    >
+      {card}
+    </Link>
   );
 }
 
@@ -271,60 +304,12 @@ function HeroMeta({
   );
 }
 
-function HeroFoot({
-  firstActive,
-}: {
-  readonly firstActive:
-    | (HomeEntry & {
-        readonly progress: { readonly kind: "active" } & HomeEntry["progress"];
-      })
-    | null;
-}): React.ReactElement {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-4 font-mono-op text-[11px] tracking-[0.08em] text-[var(--ink-dim)]">
-      <div>
-        <div className="mb-2">
-          {firstActive
-            ? `Live unit — ${firstActive.displayName}`
-            : "Live registry"}
-        </div>
-        <div className="font-display text-[56px] leading-none text-[var(--ink)]">
-          {firstActive && firstActive.progress.kind === "active" ? (
-            <>
-              <em className="not-italic text-[var(--ember)]">
-                {formatProgressCount(firstActive.progress.submittedCount)}
-              </em>
-              <span className="text-[var(--ink-faint)]"> / </span>
-              {formatProgressCount(firstActive.progress.maxSlots)}
-            </>
-          ) : (
-            <span className="text-[var(--ink-faint)]">— / —</span>
-          )}
-        </div>
-      </div>
-      <div className="text-right">
-        <div>Sui Testnet · Walrus · Move</div>
-        <div className="mt-1 text-[var(--ink-faint)]">
-          one_portrait::registry
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function TeaserPanel(): React.ReactElement {
   return (
     <div
       className="op-home-teaser-panel relative w-[78%]"
       style={{ aspectRatio: mosaicAspectRatio }}
     >
-      <div className="absolute -top-7 left-0 flex items-center gap-2.5 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-        <span
-          className="h-1.5 w-1.5 rounded-full bg-[var(--ember)]"
-          style={{ animation: "op-pulse 1.2s infinite" }}
-        />
-        <span>Hidden until reveal</span>
-      </div>
       <div className="op-corners">
         <i className="tl" />
         <i className="tr" />
@@ -350,69 +335,6 @@ function TeaserPanel(): React.ReactElement {
         />
       </div>
     </div>
-  );
-}
-
-function AthleteCard({
-  athlete,
-  idx,
-}: {
-  readonly athlete: HomeEntry;
-  readonly idx: number;
-}): React.ReactElement {
-  const href =
-    athlete.progress.unitId !== null
-      ? buildWaitingRoomHref(athlete.progress.unitId, athlete.displayName)
-      : null;
-  const isActive = athlete.progress.kind === "active";
-  const statusLabel =
-    athlete.progress.kind === "active"
-      ? "LIVE"
-      : athlete.progress.kind === "waiting"
-        ? "WAITING"
-        : "UNAVAILABLE";
-  const body = (
-    <article
-      className={`op-athlete-card ${
-        athlete.progress.kind === "unavailable" ? "is-unavailable" : ""
-      }`}
-    >
-      <div className="grid gap-3">
-        <div className="flex items-start justify-between">
-          <div className="font-mono-op text-[11px] tracking-[0.14em] text-[var(--ink-faint)]">
-            {String(idx + 1).padStart(2, "0")}
-          </div>
-          <div className="flex items-center gap-2 font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ember)]">
-            {isActive ? <span className="op-status-dot" /> : null}
-            <span>{statusLabel}</span>
-          </div>
-        </div>
-        {/* biome-ignore lint/performance/noImgElement: operator card thumbnail */}
-        <img
-          alt={athlete.displayName}
-          className="h-36 w-full object-cover grayscale-[0.2]"
-          src={athlete.thumbnailUrl}
-        />
-        <div className="grid gap-1">
-          <h2 className="font-display text-[32px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
-            {athlete.displayName}
-          </h2>
-        </div>
-      </div>
-      <div className="grid gap-2">
-        <ProgressLabel progress={athlete.progress} />
-      </div>
-    </article>
-  );
-
-  if (!href) {
-    return body;
-  }
-
-  return (
-    <Link className="contents" href={href}>
-      {body}
-    </Link>
   );
 }
 
@@ -513,6 +435,21 @@ function buildWaitingRoomHref(unitId: string, athleteName: string): string {
   return `/units/${unitId}?${params.toString()}`;
 }
 
+function getPortraitWorkStatus(
+  progress: HomeEntry["progress"],
+  isComplete: boolean,
+): string {
+  if (progress.kind === "active") {
+    return isComplete ? "Complete" : "Live";
+  }
+
+  if (progress.kind === "waiting") {
+    return "Waiting / No active unit";
+  }
+
+  return "Progress temporarily unavailable";
+}
+
 function resolveE2ECardOverride(
   entryUnitId: string | undefined,
   rawOverride: string | undefined,
@@ -552,53 +489,4 @@ function resolveE2ECardOverride(
   }
 
   return null;
-}
-
-function ProgressLabel({
-  progress,
-}: {
-  readonly progress: HomeEntry["progress"];
-}): React.ReactElement {
-  if (progress.kind === "active") {
-    const pct =
-      progress.maxSlots > 0
-        ? (progress.submittedCount / progress.maxSlots) * 100
-        : 0;
-    return (
-      <>
-        <div className="flex items-baseline justify-between font-mono-op text-[11px] text-[var(--ink-dim)]">
-          <div>
-            <span className="sr-only">
-              {`${formatProgressCount(progress.submittedCount)} / ${formatProgressCount(progress.maxSlots)}`}
-            </span>
-            <span className="font-display text-[22px] text-[var(--ink)]">
-              {formatProgressCount(progress.submittedCount)}
-            </span>
-            <span className="text-[var(--ink-faint)]">
-              {" "}
-              / {formatProgressCount(progress.maxSlots)}
-            </span>
-          </div>
-          <div>{Math.round(pct)}%</div>
-        </div>
-        <div className="op-progress-bar">
-          <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
-        </div>
-      </>
-    );
-  }
-
-  if (progress.kind === "waiting") {
-    return (
-      <p className="font-mono-op text-[11px] uppercase tracking-[0.3em] text-[var(--ember)]">
-        Waiting / No active unit
-      </p>
-    );
-  }
-
-  return (
-    <p className="font-mono-op text-[11px] uppercase tracking-[0.3em] text-[var(--ink-faint)]">
-      Progress temporarily unavailable
-    </p>
-  );
 }

@@ -64,12 +64,21 @@ afterEach(() => {
 });
 
 describe("HomePage", () => {
-  it("renders the horizontal portrait rail from catalog names and image paths", async () => {
-    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
-    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+  it("renders the cinematic hero and catalog-driven portrait rail", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
 
     const ui = await HomePage();
     render(ui);
+
+    expect(
+      screen.getByRole("heading", {
+        name: new RegExp(
+          `${unitTileCount.toLocaleString()}\\s*fans,\\s*one reveal`,
+          "i",
+        ),
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("Step 01 — Choose your portrait")).toBeTruthy();
 
     for (const athlete of CATALOG) {
       expect(screen.getAllByText(athlete.displayName).length).toBeGreaterThan(
@@ -83,56 +92,8 @@ describe("HomePage", () => {
     }
   });
 
-  it("renders chain-driven cards with on-chain metadata", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([
-      {
-        ...CATALOG[0],
-        maxSlots: unitTileCount,
-        submittedCount: 42,
-        unitId: "0xunit-1",
-      },
-      {
-        ...CATALOG[1],
-        maxSlots: unitTileCount,
-        submittedCount: 12,
-        unitId: "0xunit-2",
-      },
-    ]);
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(screen.getAllByText("Demo Athlete One").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Demo Athlete Two").length).toBeGreaterThan(0);
-  });
-
-  it("shows the current unit progress when an active unit exists", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([
-      {
-        ...CATALOG[0],
-        maxSlots: unitTileCount,
-        submittedCount: 123,
-        unitId: "0xunit-1",
-      },
-    ]);
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(
-      screen.getByText(new RegExp(`123\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
-  });
-
-  it("shows a hero link to the participation gallery", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([
-      {
-        ...CATALOG[0],
-        maxSlots: unitTileCount,
-        submittedCount: 123,
-        unitId: "0xunit-1",
-      },
-    ]);
+  it("keeps the gallery link available", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
 
     const ui = await HomePage();
     render(ui);
@@ -143,23 +104,13 @@ describe("HomePage", () => {
     expect(link.getAttribute("href")).toBe("/gallery");
   });
 
-  it("shows an empty state when no active units are available", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([]);
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(
-      screen.getByText(/No active units are available right now/),
-    ).toBeTruthy();
-  });
-
-  it("links each athlete card to /units/[unitId] when a unit exists", async () => {
+  it("links live portrait menu cards to the upload page", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([
       {
-        ...CATALOG[0],
+        displayName: "chain-only-name",
         maxSlots: unitTileCount,
-        submittedCount: 0,
+        submittedCount: 1999,
+        thumbnailUrl: "https://placehold.co/512x512/png?text=chain",
         unitId: "0xunit-1",
       },
     ]);
@@ -167,63 +118,19 @@ describe("HomePage", () => {
     const ui = await HomePage();
     render(ui);
 
-    const link = screen
-      .getAllByRole("link")
-      .find(
-        (el) =>
-          el.getAttribute("href") ===
-          "/units/0xunit-1?athleteName=Demo+Athlete+One",
-      );
-    expect(link).toBeTruthy();
-  });
-
-  it("falls back to the empty state when the chain read fails", async () => {
-    getActiveHomeUnitsMock.mockRejectedValue(new Error("rpc down"));
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(
-      screen.getByText(/No active units are available right now/),
-    ).toBeTruthy();
-  });
-
-  it("falls back to the empty state when the configured registry is stale", async () => {
-    const { RegistrySchemaError } = await import("../lib/sui");
-    getActiveHomeUnitsMock.mockRejectedValue(
-      new RegistrySchemaError("0xstale", "missing `unit_ids`"),
+    const link = screen.getAllByRole("link", {
+      name: /Demo Athlete One portrait upload page/i,
+    })[0];
+    expect(link?.getAttribute("href")).toBe(
+      "/units/0xunit-1?athleteName=Demo+Athlete+One",
     );
-
-    const ui = await HomePage();
-    render(ui);
-
-    expect(
-      screen.getByText(/No active units are available right now/),
-    ).toBeTruthy();
+    expect(screen.queryByText("chain-only-name")).toBeNull();
+    expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1999 / 2000").length).toBeGreaterThan(0);
   });
 
-  it("uses demo fixture progress when demo mode is enabled", async () => {
-    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
-    getAthleteCatalogMock.mockResolvedValue(CATALOG);
-
-    const ui = await HomePage();
-    render(ui);
-
-    const link = screen
-      .getAllByRole("link")
-      .find(
-        (el) =>
-          el.getAttribute("href") ===
-          `/units/${demoUnitId}?athleteName=Demo+Athlete+One`,
-      );
-
-    expect(link).toBeTruthy();
-    expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
-  });
-
-  it("applies explicit home degraded overrides only in stub E2E mode", async () => {
+  it("keeps E2E degraded home card states distinct in the portrait rail", async () => {
     process.env.NEXT_PUBLIC_E2E_STUB_WALLET = "1";
-    getAthleteCatalogMock.mockResolvedValue(CATALOG);
 
     const ui = await HomePage({
       searchParams: Promise.resolve({
@@ -232,36 +139,24 @@ describe("HomePage", () => {
     });
     render(ui);
 
-    expect(screen.getAllByText("Demo Athlete One").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Demo Athlete Two").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Waiting \/ No active unit/i)).toBeTruthy();
+    expect(screen.getAllByText(/Waiting \/ No active unit/i).length).toBe(2);
     expect(
-      screen.getByText(
-        /Progress temporarily unavailable|temporarily unavailable/i,
-      ),
-    ).toBeTruthy();
+      screen.getAllByText(/Progress temporarily unavailable/i).length,
+    ).toBe(2);
     expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });
 
-  it("ignores home degraded overrides outside stub E2E mode", async () => {
-    getActiveHomeUnitsMock.mockResolvedValue([
-      {
-        ...CATALOG[0],
-        maxSlots: unitTileCount,
-        submittedCount: 12,
-        unitId: "0xunit-1",
-      },
-    ]);
+  it("does not render the legacy live registry block", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
 
-    const ui = await HomePage({
-      searchParams: Promise.resolve({
-        op_e2e_home_card_state: "0xunit-1:waiting",
-      }),
-    });
+    const ui = await HomePage();
     render(ui);
 
+    expect(screen.queryByText(/^Live registry$/i)).toBeNull();
+    expect(screen.queryByText(/one_portrait::registry/i)).toBeNull();
+    expect(screen.queryByText(/^Hidden until reveal$/i)).toBeNull();
     expect(
-      screen.getByText(new RegExp(`12\\s*/\\s*${unitTileCount}`)),
-    ).toBeTruthy();
+      screen.queryByText(/No active units are available right now/i),
+    ).toBeNull();
   });
 });

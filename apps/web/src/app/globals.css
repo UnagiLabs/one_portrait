@@ -520,6 +520,56 @@ a {
   box-shadow: 0 28px 86px -56px rgba(255, 122, 26, 0.62);
 }
 
+.op-home-portrait-card.is-live {
+  border-color: rgba(255, 122, 26, 0.94);
+  box-shadow:
+    0 0 0 2px rgba(255, 122, 26, 0.48) inset,
+    0 0 18px rgba(255, 122, 26, 0.62),
+    0 0 52px rgba(255, 122, 26, 0.38),
+    0 36px 110px -46px rgba(255, 122, 26, 0.96);
+}
+
+.op-home-portrait-card.is-live::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(255, 180, 76, 0.82);
+  box-shadow:
+    0 0 16px rgba(255, 122, 26, 0.54),
+    0 0 34px rgba(255, 122, 26, 0.28) inset;
+}
+
+.op-home-portrait-card.is-complete {
+  border-color: rgba(160, 238, 211, 0.68);
+  background:
+    linear-gradient(180deg, rgba(92, 255, 200, 0.1), transparent 42%), #080a08;
+  box-shadow:
+    0 0 0 1px rgba(160, 238, 211, 0.24) inset,
+    0 0 32px rgba(92, 255, 200, 0.2),
+    0 32px 96px -54px rgba(92, 255, 200, 0.58);
+}
+
+.op-home-portrait-card.is-complete::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(160, 238, 211, 0.5);
+}
+
+.op-home-portrait-card-link {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.op-home-portrait-card-link:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 4px;
+}
+
 .op-home-portrait-card::before {
   content: "";
   position: absolute;
@@ -551,6 +601,68 @@ a {
   transform: translateY(-7px) scale(1.04);
 }
 
+.op-home-portrait-card-badge {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 210, 148, 0.52);
+  background: rgba(12, 7, 4, 0.78);
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.64rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  box-shadow: 0 0 22px rgba(255, 122, 26, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.op-home-portrait-card-badge.is-live {
+  width: 34px;
+  justify-content: center;
+  padding: 0;
+  border-color: rgba(255, 180, 76, 0.88);
+  box-shadow:
+    0 0 20px rgba(255, 122, 26, 0.58),
+    0 0 38px rgba(255, 122, 26, 0.22) inset;
+}
+
+.op-home-portrait-card-badge span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.op-home-portrait-card-badge.is-live span {
+  background: var(--ember);
+  box-shadow:
+    0 0 10px rgba(255, 122, 26, 1),
+    0 0 20px rgba(255, 122, 26, 0.72);
+}
+
+.op-home-portrait-card-badge.is-complete {
+  border-color: rgba(160, 238, 211, 0.62);
+  background: rgba(5, 18, 14, 0.76);
+  color: rgb(211, 255, 238);
+  box-shadow: 0 0 20px rgba(92, 255, 200, 0.24);
+}
+
+.op-home-portrait-card-badge.is-complete span {
+  background: rgb(92, 255, 200);
+  box-shadow: 0 0 14px rgba(92, 255, 200, 0.84);
+}
+
+.op-home-portrait-card-badge b {
+  font: inherit;
+}
+
 .op-home-portrait-card-body {
   position: absolute;
   z-index: 2;
@@ -569,8 +681,19 @@ a {
   letter-spacing: 0.12em;
 }
 
+.op-home-portrait-card-status {
+  max-width: 132px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 .op-home-portrait-card-body span.is-live {
   color: var(--ember);
+}
+
+.op-home-portrait-card-body span.is-unavailable {
+  color: var(--ink-faint);
 }
 
 .op-home-portrait-card-body h3 {
@@ -581,6 +704,14 @@ a {
   line-height: 0.96;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.op-home-portrait-card-progress {
+  margin: -2px 0 0;
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
 }
 
 .op-home-portrait-card-meter {
