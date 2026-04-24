@@ -243,7 +243,7 @@ describe("HomePage", () => {
     render(ui);
 
     const link = screen.getAllByRole("link", {
-      name: /Demo Athlete One portrait upload page/i,
+      name: /Demo Athlete One portrait page/i,
     })[0];
     expect(link?.getAttribute("href")).toBe(
       "/units/0xunit-1?athleteName=Demo+Athlete+One",
@@ -276,7 +276,7 @@ describe("HomePage", () => {
     render(ui);
 
     const secondAthleteLinks = screen.getAllByRole("link", {
-      name: /Demo Athlete Two portrait upload page/i,
+      name: /Demo Athlete Two portrait page/i,
     });
     expect(secondAthleteLinks).toHaveLength(2);
     for (const link of secondAthleteLinks) {
