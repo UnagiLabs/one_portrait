@@ -1,7 +1,7 @@
 import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
 import Link from "next/link";
 
-import { getAthleteCatalog } from "../lib/catalog";
+import { type AthleteCatalogEntry, getAthleteCatalog } from "../lib/catalog";
 import { getDemoUnitProgress, isDemoModeEnabled } from "../lib/demo";
 import { getActiveHomeUnits, RegistrySchemaError } from "../lib/sui";
 import {
@@ -23,7 +23,7 @@ type HomePageProps = {
 };
 
 type HomeEntry = {
-  readonly unitId: string;
+  readonly unitId: string | null;
   readonly displayName: string;
   readonly thumbnailUrl: string;
   readonly progress:
@@ -43,98 +43,23 @@ type HomeEntry = {
       };
 };
 
-type PortraitWork = {
-  readonly id: string;
-  readonly name: string;
+type PortraitWork = Pick<
+  AthleteCatalogEntry,
+  "displayName" | "slug" | "thumbnailUrl"
+> & {
   readonly region: string;
   readonly status: string;
-  readonly src: string;
 };
 
-const portraitWorks: readonly PortraitWork[] = [
-  {
-    id: "yuya-wakamatsu",
-    name: "Yuya Wakamatsu",
-    region: "Japan",
-    status: "Active portrait",
-    src: "/demo/one-athletes/Yuya_Wakamatsu-avatar-champ-500x345-1.png",
-  },
-  {
-    id: "takeru",
-    name: "Takeru",
-    region: "Japan",
-    status: "Opening soon",
-    src: "/demo/one-athletes/Takeru-500x345-1.png",
-  },
-  {
-    id: "rodtang-jitmuangnon",
-    name: "Rodtang Jitmuangnon",
-    region: "Thailand",
-    status: "Active portrait",
-    src: "/demo/one-athletes/Rodtang_Jitmuangnon-Avatar-500x345-1.png",
-  },
-  {
-    id: "ayaka-miura",
-    name: "Ayaka Miura",
-    region: "Japan",
-    status: "Waiting room",
-    src: "/demo/one-athletes/Ayaka_Miura-avatar-500x345-1.png",
-  },
-  {
-    id: "itsuki-hirata",
-    name: "Itsuki Hirata",
-    region: "Japan",
-    status: "Opening soon",
-    src: "/demo/one-athletes/Itsuki_Hirata-avatar-500x345-4.png",
-  },
-  {
-    id: "jonathan-haggerty",
-    name: "Jonathan Haggerty",
-    region: "United Kingdom",
-    status: "Active portrait",
-    src: "/demo/one-athletes/Jonathan_Haggerty-avatar-500x345-4.png",
-  },
-  {
-    id: "ritu-phogat",
-    name: "Ritu Phogat",
-    region: "India",
-    status: "Waiting room",
-    src: "/demo/one-athletes/Ritu_Phogat-avatar-500x345-1.png",
-  },
-  {
-    id: "toma-kuroda",
-    name: "Toma Kuroda",
-    region: "Japan",
-    status: "Opening soon",
-    src: "/demo/one-athletes/Toma_Kuroda-avatar-500x345-1.png",
-  },
-  {
-    id: "yuki-yoza",
-    name: "Yuki Yoza",
-    region: "Japan",
-    status: "Waiting room",
-    src: "/demo/one-athletes/Yuki_Yoza-avatar-500x345-1.png",
-  },
-  {
-    id: "chihiro-sawada",
-    name: "Chihiro Sawada",
-    region: "Japan",
-    status: "Opening soon",
-    src: "/demo/one-athletes/Chihiro_Sawada-avatar-500x345-3.png",
-  },
-  {
-    id: "avazbek-kholmirzaev",
-    name: "Avazbek Kholmirzaev",
-    region: "Uzbekistan",
-    status: "Waiting room",
-    src: "/demo/one-athletes/Avazbek_Kholmirzaev-Avatar-500x345-1.png",
-  },
-];
-
-const portraitWorkRail = [
-  ...portraitWorks.map((work) => ({ ...work, railId: `first-${work.id}` })),
-  ...portraitWorks.map((work) => ({ ...work, railId: `second-${work.id}` })),
-] as const;
+function toPortraitWork(entry: AthleteCatalogEntry): PortraitWork {
+  return {
+    displayName: entry.displayName,
+    region: entry.region ?? "",
+    slug: entry.slug,
+    status: entry.status ?? "",
+    thumbnailUrl: entry.thumbnailUrl,
+  };
+}
 
 export default async function HomePage(
   props: HomePageProps = {},
@@ -146,6 +71,17 @@ export default async function HomePage(
   const entries = useDemoEntries
     ? await loadDemoEntries(searchParams.op_e2e_home_card_state)
     : await loadChainEntries();
+  const portraitWorks = (await getAthleteCatalog()).map(toPortraitWork);
+  const portraitWorkRail = [
+    ...portraitWorks.map((work) => ({
+      ...work,
+      railId: `first-${work.slug}`,
+    })),
+    ...portraitWorks.map((work) => ({
+      ...work,
+      railId: `second-${work.slug}`,
+    })),
+  ];
 
   const firstActive = entries.find(
     (
@@ -295,13 +231,13 @@ function PortraitWorkCard({
   return (
     <article className="op-home-portrait-card">
       {/* biome-ignore lint/performance/noImgElement: temporary public portrait artwork */}
-      <img alt={work.name} src={work.src} />
+      <img alt={work.displayName} src={work.thumbnailUrl} />
       <div className="op-home-portrait-card-body">
         <div className="flex items-center justify-between gap-4">
           <span>{work.region}</span>
           <span className="is-live">{work.status}</span>
         </div>
-        <h3>{work.name}</h3>
+        <h3>{work.displayName}</h3>
         <div className="op-home-portrait-card-meter">
           <i />
         </div>
@@ -533,7 +469,7 @@ async function loadDemoEntries(
   const entries: HomeEntry[] = [];
 
   for (const athlete of catalog) {
-    const unitId = athlete.unitId;
+    const unitId = athlete.unitId ?? null;
     const override = resolveE2ECardOverride(
       athlete.unitId,
       rawOverride,
@@ -542,6 +478,7 @@ async function loadDemoEntries(
     if (override) {
       entries.push({
         ...athlete,
+        unitId,
         progress: override,
       });
       continue;
@@ -558,6 +495,7 @@ async function loadDemoEntries(
 
     entries.push({
       ...athlete,
+      unitId,
       progress: {
         kind: "active",
         maxSlots: progress.maxSlots,
@@ -576,7 +514,7 @@ function buildWaitingRoomHref(unitId: string, athleteName: string): string {
 }
 
 function resolveE2ECardOverride(
-  entryUnitId: string,
+  entryUnitId: string | undefined,
   rawOverride: string | undefined,
   unitId: string | null,
 ):

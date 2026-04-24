@@ -2,7 +2,7 @@
 
 import { unitTileCount } from "@one-portrait/shared";
 import { render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { demoUnitId } from "../lib/demo";
 
@@ -38,6 +38,8 @@ const CATALOG = [
     slug: "demo-athlete-one",
     displayName: "Demo Athlete One",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    region: "Demo Region One",
+    status: "Active portrait",
   },
   {
     unitId:
@@ -45,8 +47,14 @@ const CATALOG = [
     slug: "demo-athlete-two",
     displayName: "Demo Athlete Two",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+2",
+    region: "Demo Region Two",
+    status: "Opening soon",
   },
 ] as const;
+
+beforeEach(() => {
+  getAthleteCatalogMock.mockResolvedValue(CATALOG);
+});
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
@@ -56,6 +64,25 @@ afterEach(() => {
 });
 
 describe("HomePage", () => {
+  it("renders the horizontal portrait rail from catalog names and image paths", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE = "1";
+    getAthleteCatalogMock.mockResolvedValue(CATALOG);
+
+    const ui = await HomePage();
+    render(ui);
+
+    for (const athlete of CATALOG) {
+      expect(screen.getAllByText(athlete.displayName).length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        screen
+          .getAllByAltText(athlete.displayName)
+          .some((image) => image.getAttribute("src") === athlete.thumbnailUrl),
+      ).toBe(true);
+    }
+  });
+
   it("renders chain-driven cards with on-chain metadata", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([
       {
@@ -75,8 +102,8 @@ describe("HomePage", () => {
     const ui = await HomePage();
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
-    expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
+    expect(screen.getAllByText("Demo Athlete One").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Demo Athlete Two").length).toBeGreaterThan(0);
   });
 
   it("shows the current unit progress when an active unit exists", async () => {
@@ -205,8 +232,8 @@ describe("HomePage", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Demo Athlete One")).toBeTruthy();
-    expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
+    expect(screen.getAllByText("Demo Athlete One").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Demo Athlete Two").length).toBeGreaterThan(0);
     expect(screen.getByText(/Waiting \/ No active unit/i)).toBeTruthy();
     expect(
       screen.getByText(
