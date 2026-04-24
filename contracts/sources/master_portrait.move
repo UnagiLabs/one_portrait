@@ -6,7 +6,6 @@ use sui::table::{Self as table, Table};
 public struct MasterPortrait has key, store {
     id: UID,
     unit_id: ID,
-    athlete_id: u16,
     mosaic_walrus_blob_id: vector<u8>,
     placements: Table<vector<u8>, Placement>,
 }
@@ -56,7 +55,6 @@ public(package) fun placement_input_submission_no(input: &PlacementInput): u64 {
 
 public(package) fun create(
     unit_id: ID,
-    athlete_id: u16,
     mosaic_walrus_blob_id: vector<u8>,
     mut placement_inputs: vector<PlacementInput>,
     ctx: &mut TxContext,
@@ -85,7 +83,6 @@ public(package) fun create(
     MasterPortrait {
         id: object::new(ctx),
         unit_id,
-        athlete_id,
         mosaic_walrus_blob_id,
         placements,
     }
@@ -93,7 +90,6 @@ public(package) fun create(
 
 public(package) fun create_and_transfer(
     unit_id: ID,
-    athlete_id: u16,
     mosaic_walrus_blob_id: vector<u8>,
     placement_inputs: vector<PlacementInput>,
     recipient: address,
@@ -101,7 +97,6 @@ public(package) fun create_and_transfer(
 ): ID {
     let master = create(
         unit_id,
-        athlete_id,
         mosaic_walrus_blob_id,
         placement_inputs,
         ctx,
@@ -114,11 +109,6 @@ public(package) fun create_and_transfer(
 #[test_only]
 public fun unit_id_for_testing(master: &MasterPortrait): ID {
     master.unit_id
-}
-
-#[test_only]
-public fun athlete_id_for_testing(master: &MasterPortrait): u16 {
-    master.athlete_id
 }
 
 #[test_only]

@@ -16,7 +16,6 @@ use sui::test_scenario;
 fun submit_photo_mints_kakera_records_submission_and_emits_event() {
     let publisher = @0xA11CE;
     let submitter = @0xF0A;
-    let athlete_id = 11;
     let max_slots = 500;
     let target_blob = b"target-blob";
     let walrus_blob_id = b"photo-blob";
@@ -33,7 +32,6 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         b"Demo Athlete Eleven",
         b"https://example.com/11.png",
         target_blob,
@@ -77,10 +75,6 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
     let submitted_event = submitted_events[0];
     assert_eq!(portrait_events::submitted_event_unit_id_for_testing(&submitted_event), unit_id);
     assert_eq!(
-        portrait_events::submitted_event_athlete_id_for_testing(&submitted_event),
-        athlete_id
-    );
-    assert_eq!(
         portrait_events::submitted_event_submitter_for_testing(&submitted_event),
         submitter
     );
@@ -109,7 +103,6 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
 
     let kakera = scenario.take_from_sender<Kakera>();
     assert_eq!(kakera::unit_id_for_testing(&kakera), unit_id);
-    assert_eq!(kakera::athlete_id_for_testing(&kakera), athlete_id);
     assert_eq!(kakera::submitter_for_testing(&kakera), submitter);
     assert_eq!(kakera::walrus_blob_id_for_testing(&kakera), walrus_blob_id);
     assert_eq!(kakera::submission_no_for_testing(&kakera), 1);
@@ -131,7 +124,6 @@ fun submit_photo_mints_kakera_records_submission_and_emits_event() {
 fun submit_photo_rejects_duplicate_submission_from_same_sender() {
     let publisher = @0xA11CE;
     let submitter = @0xF0A;
-    let athlete_id = 12;
 
     let mut scenario = test_scenario::begin(publisher);
     test_scenario::create_system_objects(&mut scenario);
@@ -144,7 +136,6 @@ fun submit_photo_rejects_duplicate_submission_from_same_sender() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         b"Demo Athlete Twelve",
         b"https://example.com/12.png",
         b"target-blob",
@@ -186,7 +177,6 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     let publisher = @0xA11CE;
     let first_submitter = @0xF01;
     let second_submitter = @0xF02;
-    let athlete_id = 13;
     let max_slots = 2;
     let display_max_slots = 5;
 
@@ -201,7 +191,6 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         b"Demo Athlete Thirteen",
         b"https://example.com/13.png",
         b"target-blob",
@@ -256,10 +245,6 @@ fun submit_photo_marks_unit_filled_and_emits_unit_filled_event_on_last_slot() {
     let filled_event = filled_events[0];
     assert_eq!(portrait_events::unit_filled_event_unit_id_for_testing(&filled_event), unit_id);
     assert_eq!(
-        portrait_events::unit_filled_event_athlete_id_for_testing(&filled_event),
-        athlete_id
-    );
-    assert_eq!(
         portrait_events::unit_filled_event_filled_count_for_testing(&filled_event),
         display_max_slots
     );
@@ -292,7 +277,6 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
     let first_submitter = @0xF11;
     let second_submitter = @0xF12;
     let third_submitter = @0xF13;
-    let athlete_id = 14;
 
     let mut scenario = test_scenario::begin(publisher);
     test_scenario::create_system_objects(&mut scenario);
@@ -305,7 +289,6 @@ fun submit_photo_rejects_submission_after_unit_is_filled() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         b"Demo Athlete Fourteen",
         b"https://example.com/14.png",
         b"target-blob",
@@ -361,7 +344,6 @@ fun submit_photo_rejects_duplicate_blob_id_from_different_submitter() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        18,
         b"Demo Athlete Eighteen",
         b"https://example.com/18.png",
         b"target-blob",

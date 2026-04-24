@@ -7,7 +7,6 @@ use one_portrait::unit::{Self as unit, Unit};
 public fun create_unit(
     admin_cap: &AdminCap,
     registry: &mut Registry,
-    athlete_id: u16,
     display_name: vector<u8>,
     thumbnail_url: vector<u8>,
     target_walrus_blob: vector<u8>,
@@ -18,7 +17,6 @@ public fun create_unit(
     unit::create_unit(
         admin_cap,
         registry,
-        athlete_id,
         display_name,
         thumbnail_url,
         target_walrus_blob,

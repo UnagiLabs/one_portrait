@@ -4,7 +4,6 @@ module one_portrait::kakera;
 public struct Kakera has key {
     id: UID,
     unit_id: ID,
-    athlete_id: u16,
     submitter: address,
     walrus_blob_id: vector<u8>,
     submission_no: u64,
@@ -13,7 +12,6 @@ public struct Kakera has key {
 
 public(package) fun mint_and_transfer(
     unit_id: ID,
-    athlete_id: u16,
     submitter: address,
     walrus_blob_id: vector<u8>,
     submission_no: u64,
@@ -24,7 +22,6 @@ public(package) fun mint_and_transfer(
         Kakera {
             id: object::new(ctx),
             unit_id,
-            athlete_id,
             submitter,
             walrus_blob_id,
             submission_no,
@@ -37,11 +34,6 @@ public(package) fun mint_and_transfer(
 #[test_only]
 public fun unit_id_for_testing(kakera: &Kakera): ID {
     kakera.unit_id
-}
-
-#[test_only]
-public fun athlete_id_for_testing(kakera: &Kakera): u16 {
-    kakera.athlete_id
 }
 
 #[test_only]

@@ -22,7 +22,6 @@ const EINVALID_PLACEMENTS: u64 = 8;
 
 public struct Unit has key {
     id: UID,
-    athlete_id: u16,
     display_name: vector<u8>,
     thumbnail_url: vector<u8>,
     target_walrus_blob: vector<u8>,
@@ -44,7 +43,6 @@ public struct SubmissionRef has copy, drop, store {
 public(package) fun create_unit(
     admin_cap: &AdminCap,
     registry: &mut Registry,
-    athlete_id: u16,
     display_name: vector<u8>,
     thumbnail_url: vector<u8>,
     target_walrus_blob: vector<u8>,
@@ -60,7 +58,6 @@ public(package) fun create_unit(
 
     let unit = Unit {
         id: object::new(ctx),
-        athlete_id,
         display_name,
         thumbnail_url,
         target_walrus_blob,
@@ -112,7 +109,6 @@ public(package) fun submit_photo(
 
     kakera::mint_and_transfer(
         object::id(unit),
-        unit.athlete_id,
         submitter,
         copy walrus_blob_id,
         submission_no,
@@ -121,7 +117,6 @@ public(package) fun submit_photo(
     );
     events::emit_submitted(
         object::id(unit),
-        unit.athlete_id,
         submitter,
         walrus_blob_id,
         submission_no,
@@ -131,16 +126,10 @@ public(package) fun submit_photo(
     if (filled_now) {
         events::emit_unit_filled(
             object::id(unit),
-            unit.athlete_id,
             unit.display_max_slots,
             unit.display_max_slots,
         );
     };
-}
-
-#[test_only]
-public fun athlete_id_for_testing(unit: &Unit): u16 {
-    unit.athlete_id
 }
 
 #[test_only]
@@ -280,7 +269,6 @@ public(package) fun finalize(
 
     let master_id = master_portrait::create_and_transfer(
         object::id(unit),
-        unit.athlete_id,
         copy mosaic_blob_id,
         placements,
         tx_context::sender(ctx),
@@ -292,7 +280,6 @@ public(package) fun finalize(
 
     events::emit_mosaic_ready(
         object::id(unit),
-        unit.athlete_id,
         master_id,
         mosaic_blob_id,
     );

@@ -18,7 +18,6 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     let publisher = @0xA11CE;
     let first_submitter = @0xF21;
     let second_submitter = @0xF22;
-    let athlete_id = 15;
     let mosaic_blob_id = b"mosaic-blob";
 
     let mut scenario = test_scenario::begin(publisher);
@@ -32,7 +31,6 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         b"Demo Athlete Fifteen",
         b"https://example.com/15.png",
         b"target-blob",
@@ -93,10 +91,6 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
         unit_id
     );
     assert_eq!(
-        portrait_events::mosaic_ready_event_athlete_id_for_testing(&mosaic_ready_event),
-        athlete_id
-    );
-    assert_eq!(
         portrait_events::mosaic_ready_event_master_id_for_testing(&mosaic_ready_event),
         master_id
     );
@@ -116,7 +110,6 @@ fun finalize_creates_master_updates_unit_and_emits_mosaic_ready_event() {
     let master = scenario.take_from_sender<MasterPortrait>();
     assert_eq!(object::id(&master), master_id);
     assert_eq!(master_portrait::unit_id_for_testing(&master), unit_id);
-    assert_eq!(master_portrait::athlete_id_for_testing(&master), athlete_id);
     assert_eq!(
         master_portrait::mosaic_walrus_blob_id_for_testing(&master),
         mosaic_blob_id
@@ -171,7 +164,6 @@ fun finalize_rejects_pending_unit() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        16,
         b"Demo Athlete Sixteen",
         b"https://example.com/16.png",
         b"target-blob",
@@ -217,7 +209,6 @@ fun finalize_rejects_double_finalize() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        17,
         b"Demo Athlete Seventeen",
         b"https://example.com/17.png",
         b"target-blob",
@@ -310,7 +301,6 @@ fun finalize_rejects_mismatched_placements() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        19,
         b"Demo Athlete Nineteen",
         b"https://example.com/19.png",
         b"target-blob",
