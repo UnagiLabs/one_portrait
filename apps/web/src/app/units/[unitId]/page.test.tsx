@@ -372,7 +372,7 @@ describe("UnitPage", () => {
     ).toBe("0xpkg");
   });
 
-  it("passes the original package id to participation Kakera lookups", async () => {
+  it("passes latest package to submit access and original package to type/event paths", async () => {
     getUnitProgressMock.mockResolvedValue(
       buildProgress({ submittedCount: 10 }),
     );
@@ -391,6 +391,23 @@ describe("UnitPage", () => {
     });
     render(ui);
 
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventSubscriptionEnabled: true,
+        packageId: "0xoriginal-pkg",
+        unitId: "0xunit-1",
+      }),
+    );
+    expect(participationAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packageId: "0xlatest-pkg",
+        typePackageId: "0xoriginal-pkg",
+        unitId: "0xunit-1",
+      }),
+    );
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-package-id"),
+    ).toBe("0xoriginal-pkg");
     expect(
       screen
         .getByTestId("participation-access")
