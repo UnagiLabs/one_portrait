@@ -497,6 +497,14 @@ function readIntegerField(value: unknown, label: string): number {
   throw new Error(`${label} is not a numeric value: ${String(value)}`);
 }
 
+function readOptionalIntegerField(value: unknown, label: string): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return readIntegerField(value, label);
+}
+
 function readAddressField(value: unknown, label: string): string {
   if (typeof value === "string" && value.length > 0) {
     return value;
