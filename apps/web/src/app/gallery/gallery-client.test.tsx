@@ -122,6 +122,7 @@ function completedEntry(
 }
 
 beforeEach(() => {
+  process.env.NEXT_PUBLIC_SUI_NETWORK = "testnet";
   process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = WALRUS_AGGREGATOR;
   useCurrentAccountMock.mockReturnValue(null);
   useCurrentWalletMock.mockReturnValue({
@@ -140,6 +141,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_DEMO_MODE;
   delete process.env.NEXT_PUBLIC_E2E_STUB_WALLET;
+  delete process.env.NEXT_PUBLIC_SUI_NETWORK;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   connectModalMock.mockReset();
   useCurrentAccountMock.mockReset();
@@ -431,6 +433,12 @@ describe("GalleryClient", () => {
 
     expect(screen.getByText(/Waiting for reveal/i)).toBeTruthy();
     expect(screen.getByText(/Submission #17/i)).toBeTruthy();
+    expect(screen.getByText("Kakera Object ID")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "0xkakera-1" })
+        .getAttribute("href"),
+    ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(
       screen
         .getByAltText(/Demo Athlete One original submission/i)
@@ -457,6 +465,12 @@ describe("GalleryClient", () => {
     expect(screen.getAllByText(/Completed/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Placed at 12, 8/i)).toBeTruthy();
     expect(screen.getByText(/Master 0xmaster-1/i)).toBeTruthy();
+    expect(screen.getByText("Kakera Object ID")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "0xkakera-1" })
+        .getAttribute("href"),
+    ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(
       screen
         .getByAltText(/Demo Athlete One completed mosaic/i)
@@ -477,6 +491,23 @@ describe("GalleryClient", () => {
 
     expect(unitLink.getAttribute("href")).toBe(
       "/units/0xunit-1?athleteName=Demo+Athlete+One",
+    );
+  });
+
+  it("uses the current Sui network for Kakera object links", async () => {
+    process.env.NEXT_PUBLIC_SUI_NETWORK = "devnet";
+    useCurrentAccountMock.mockReturnValue({ address: "0xviewer" });
+    listOwnedKakeraMock.mockResolvedValue([ownedKakera()]);
+    getGalleryEntryMock.mockResolvedValue(completedEntry());
+
+    render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
+
+    const objectLink = await screen.findByRole("link", {
+      name: "0xkakera-1",
+    });
+
+    expect(objectLink.getAttribute("href")).toBe(
+      "https://suiscan.xyz/devnet/object/0xkakera-1",
     );
   });
 
@@ -584,6 +615,11 @@ describe("GalleryClient", () => {
     });
 
     expect(screen.getByText(/Submission #21/i)).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "0xkakera-1" })
+        .getAttribute("href"),
+    ).toBe("https://suiscan.xyz/testnet/object/0xkakera-1");
     expect(screen.queryByText(/No Kakera found for this wallet/i)).toBeNull();
   });
 });
