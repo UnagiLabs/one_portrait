@@ -9,50 +9,45 @@ import {
 } from "./api";
 
 describe("parseCreateUnitInput", () => {
-  it("accepts create-unit input without athleteId", () => {
+  it("accepts create-unit input with athleteSlug", () => {
     expect(
       parseCreateUnitInput({
+        athleteSlug: "demo-athlete-twelve",
         blobId: "target-blob-12",
         displayMaxSlots: 2000,
-        displayName: "Demo Athlete Twelve",
         maxSlots: 2000,
-        thumbnailUrl: "https://example.com/12.png",
       }),
     ).toEqual({
+      athleteSlug: "demo-athlete-twelve",
       blobId: "target-blob-12",
       displayMaxSlots: 2000,
-      displayName: "Demo Athlete Twelve",
       maxSlots: 2000,
-      thumbnailUrl: "https://example.com/12.png",
     });
   });
 
   it("accepts zero real upload slots for a demo unit", () => {
     expect(
       parseCreateUnitInput({
+        athleteSlug: "demo-athlete-twelve",
         blobId: "target-blob-12",
         displayMaxSlots: 2000,
-        displayName: "Demo Athlete Twelve",
         maxSlots: 0,
-        thumbnailUrl: "https://example.com/12.png",
       }),
     ).toEqual({
+      athleteSlug: "demo-athlete-twelve",
       blobId: "target-blob-12",
       displayMaxSlots: 2000,
-      displayName: "Demo Athlete Twelve",
       maxSlots: 0,
-      thumbnailUrl: "https://example.com/12.png",
     });
   });
 
   it("rejects a zero display slot unit", () => {
     expect(() =>
       parseCreateUnitInput({
+        athleteSlug: "demo-athlete-twelve",
         blobId: "target-blob-12",
         displayMaxSlots: 0,
-        displayName: "Demo Athlete Twelve",
         maxSlots: 0,
-        thumbnailUrl: "https://example.com/12.png",
       }),
     ).toThrowError(AdminApiError);
   });
@@ -61,9 +56,32 @@ describe("parseCreateUnitInput", () => {
     expect(() =>
       parseCreateUnitInput({
         athleteId: 12,
+        athleteSlug: "demo-athlete-twelve",
+        blobId: "target-blob-12",
+        displayMaxSlots: 2000,
+        maxSlots: 2000,
+      }),
+    ).toThrowError(AdminApiError);
+  });
+
+  it("rejects client-provided displayName", () => {
+    expect(() =>
+      parseCreateUnitInput({
+        athleteSlug: "demo-athlete-twelve",
         blobId: "target-blob-12",
         displayMaxSlots: 2000,
         displayName: "Demo Athlete Twelve",
+        maxSlots: 2000,
+      }),
+    ).toThrowError(AdminApiError);
+  });
+
+  it("rejects client-provided thumbnailUrl", () => {
+    expect(() =>
+      parseCreateUnitInput({
+        athleteSlug: "demo-athlete-twelve",
+        blobId: "target-blob-12",
+        displayMaxSlots: 2000,
         maxSlots: 2000,
         thumbnailUrl: "https://example.com/12.png",
       }),
