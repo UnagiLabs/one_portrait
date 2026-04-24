@@ -81,7 +81,7 @@ export function AdminClient({
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "状態の更新に失敗しました",
+        summary: "Status refresh failed",
       });
     } finally {
       setIsRefreshing(false);
@@ -138,12 +138,12 @@ export function AdminClient({
       setTargetBlobId(uploaded.blobId);
       setLastAction({
         detail: uploaded.blobId,
-        summary: "対象画像をアップロードしました",
+        summary: "Target image uploaded",
       });
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "対象画像のアップロードに失敗しました",
+        summary: "Target image upload failed",
       });
     } finally {
       setIsUploading(false);
@@ -166,13 +166,13 @@ export function AdminClient({
 
       setLastAction({
         detail: formatActionDetail(payload),
-        summary: "ユニットを作成しました",
+        summary: "Unit created",
       });
       await refreshAll();
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "ユニットの作成に失敗しました",
+        summary: "Unit creation failed",
       });
     } finally {
       setPendingAction(null);
@@ -189,14 +189,14 @@ export function AdminClient({
         detail: formatActionDetail(payload),
         summary:
           payload.status === "ignored_dispatch_failed"
-            ? "finalize の再試行に失敗しました"
-            : "finalize を再試行しました",
+            ? "Finalize retry failed"
+            : "Finalize retried",
       });
       await refreshAll();
     } catch (error) {
       setLastAction({
         detail: error instanceof Error ? error.message : String(error),
-        summary: "finalize の再試行に失敗しました",
+        summary: "Finalize retry failed",
       });
     } finally {
       setPendingAction(null);
@@ -212,26 +212,26 @@ export function AdminClient({
           onClick={() => void refreshAll()}
           type="button"
         >
-          {isRefreshing ? "更新中..." : "状態を更新"}
+          {isRefreshing ? "Refreshing..." : "Refresh status"}
         </button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <HealthCard
           detail={health.generatorReadiness.message}
-          label="ジェネレーター準備状態"
+          label="Generator readiness"
           value={health.generatorReadiness.status}
         />
         <HealthCard
           detail={health.dispatchAuthorization.message}
-          label="ディスパッチ認可"
+          label="Dispatch authorization"
           value={health.dispatchAuthorization.status}
         />
       </div>
 
       <section className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/6 p-5">
         <h2 className="text-xs uppercase tracking-[0.25em] text-stone-300">
-          現在の generator 接続先
+          Current generator endpoint
         </h2>
         <dl className="grid gap-3 md:grid-cols-3">
           <InfoRow
@@ -257,7 +257,7 @@ export function AdminClient({
       {lastAction ? (
         <section className="grid gap-2 rounded-[1.5rem] border border-emerald-200/20 bg-emerald-300/10 p-5">
           <h2 className="text-sm uppercase tracking-[0.25em] text-emerald-200/80">
-            直近の操作
+            Latest operation
           </h2>
           <p className="text-xl font-semibold text-white">
             {lastAction.summary}
@@ -270,22 +270,23 @@ export function AdminClient({
 
       <section className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-stone-950/60 p-6">
         <div className="grid gap-1">
-          <h2 className="font-serif text-2xl text-white">ユニットを作成</h2>
+          <h2 className="font-serif text-2xl text-white">Create unit</h2>
           <p className="text-sm leading-6 text-stone-300">
-            選手表示情報と対象画像をまとめて登録し、新しい unit を作成します。
-            デモでは表示 2,000 枚のまま、実投稿枚数だけを絞れます。
+            Register the athlete display information and target image together
+            to create a new unit. Demo mode keeps 2,000 displayed tiles while
+            reducing only the real submission count.
           </p>
         </div>
 
         {athletes.length > 0 ? (
           <label className="grid gap-2 text-sm text-stone-200">
-            既存 unit から入力をコピー
+            Copy inputs from existing unit
             <select
               className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
               onChange={(event) => loadCreateDraft(event.target.value)}
               value=""
             >
-              <option value="">選択してください</option>
+              <option value="">Select one</option>
               {athletes.map((athlete) => (
                 <option
                   key={athlete.entryId ?? athlete.currentUnit?.unitId}
@@ -326,7 +327,7 @@ export function AdminClient({
 
           <fieldset className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
             <legend className="px-2 text-sm font-medium text-stone-100">
-              作成モード
+              Creation mode
             </legend>
             <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-stone-900/70 p-4 text-sm text-stone-200">
               <input
@@ -336,8 +337,10 @@ export function AdminClient({
                 type="radio"
               />
               <span className="grid gap-1">
-                <span className="font-medium text-white">通常</span>
-                <span>表示 2,000 枚 / 実投稿 2,000 枚で作成します。</span>
+                <span className="font-medium text-white">Normal</span>
+                <span>
+                  Create with 2,000 displayed tiles and 2,000 real submissions.
+                </span>
               </span>
             </label>
             <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-stone-900/70 p-4 text-sm text-stone-200">
@@ -348,15 +351,15 @@ export function AdminClient({
                 type="radio"
               />
               <span className="grid gap-2">
-                <span className="font-medium text-white">デモ</span>
+                <span className="font-medium text-white">Demo</span>
                 <span>
-                  表示は 2,000
-                  枚のまま、実際にアップロードさせる枚数だけを指定します。
+                  Keep the display at 2,000 tiles and specify only how many
+                  photos are actually uploaded.
                 </span>
                 <label className="grid gap-2 text-sm text-stone-200">
-                  実アップロード枚数
+                  Real upload count
                   <input
-                    aria-label="デモ実アップロード枚数"
+                    aria-label="Demo real upload count"
                     className="rounded-2xl border border-white/10 bg-stone-950 px-4 py-3"
                     disabled={createMode !== "demo"}
                     inputMode="numeric"
@@ -372,15 +375,15 @@ export function AdminClient({
               {createMode === "demo"
                 ? isDemoRealUploadCountValid
                   ? effectiveMaxSlots === 0
-                    ? `0 枚作成直後に filled として扱い、${effectiveDisplayMaxSlots} 枚すべてをダミー画像としてモザイク生成します。`
-                    : `${effectiveMaxSlots} 枚完了の時点で残り ${effectiveDisplayMaxSlots - effectiveMaxSlots} 枚をダミー画像としてロックし、実投稿分だけを元データとしてモザイク生成します。`
-                  : `デモでは 0 以上 ${unitTileCount - 1} 以下の実アップロード枚数を指定してください。`
-                : "通常では 2,000 枚すべてが実投稿対象です。"}
+                    ? `Treat as filled immediately after creating 0 photos and use dummy images for all ${effectiveDisplayMaxSlots} tiles when generating the mosaic.`
+                    : `${effectiveMaxSlots}  photos are complete, lock the remaining ${effectiveDisplayMaxSlots - effectiveMaxSlots}  tiles as dummy images, and use only real submissions as source data for mosaic generation.`
+                  : `Demo mode requires a real upload count between 0 and ${unitTileCount - 1}.`
+                : "Normal mode makes all 2,000 tiles real submission targets."}
             </p>
           </fieldset>
 
           <label className="grid gap-2 text-sm text-stone-200">
-            対象画像
+            Target image
             <input
               accept="image/*"
               className="rounded-2xl border border-dashed border-white/20 bg-stone-900 px-4 py-3"
@@ -392,28 +395,31 @@ export function AdminClient({
           {targetPreviewUrl ? (
             // biome-ignore lint/performance/noImgElement: operator preview
             <img
-              alt="アップロードした対象画像のプレビュー"
+              alt="Uploaded target image preview"
               className="h-48 w-full rounded-2xl border border-white/10 object-cover"
               src={targetPreviewUrl}
             />
           ) : null}
 
           <label className="grid gap-2 text-sm text-stone-200">
-            対象 blob ID
+            Target blob ID
             <input
               className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3 font-mono text-xs"
               onChange={(event) => setTargetBlobId(event.target.value)}
-              placeholder="先にアップロードするか、blob ID を直接入力してください"
+              placeholder="Upload first, or enter a blob ID directly"
               value={targetBlobId}
             />
           </label>
 
           <dl className="grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 md:grid-cols-2">
             <InfoRow
-              label="表示スロット"
+              label="Display slots"
               value={String(effectiveDisplayMaxSlots)}
             />
-            <InfoRow label="実投稿上限" value={String(effectiveMaxSlots)} />
+            <InfoRow
+              label="Real submission limit"
+              value={String(effectiveMaxSlots)}
+            />
           </dl>
 
           <button
@@ -429,20 +435,20 @@ export function AdminClient({
             type="submit"
           >
             {isUploading
-              ? "対象画像をアップロード中..."
+              ? "Uploading target image..."
               : pendingAction === "create"
-                ? "作成中..."
-                : "ユニットを作成"}
+                ? "Creating..."
+                : "Create unit"}
           </button>
         </form>
       </section>
 
       <section className="grid gap-4">
         <div className="grid gap-1">
-          <h2 className="font-serif text-2xl text-white">現在の状態</h2>
+          <h2 className="font-serif text-2xl text-white">Current status</h2>
           <p className="text-sm leading-6 text-stone-300">
-            作成済み unit の表示進捗と実投稿数を確認し、filled のまま停止した
-            unit で finalize を再試行できます。
+            Check display progress and real submissions for created units, and
+            retry finalize for units that are stopped in filled state.
           </p>
         </div>
 
@@ -535,18 +541,21 @@ function AdminAthleteCard({
       {currentUnit ? (
         <>
           <dl className="grid gap-2 text-sm text-stone-200">
-            <InfoRow label="ユニット ID" value={currentUnit.unitId} />
+            <InfoRow label="Unit ID" value={currentUnit.unitId} />
             <InfoRow
-              label="表示進行"
+              label="Display progress"
               value={`${currentUnit.submittedCount} / ${currentUnit.displayMaxSlots}`}
             />
             <InfoRow
-              label="実投稿数"
+              label="Real submissions"
               value={`${currentUnit.realSubmittedCount} / ${currentUnit.maxSlots}`}
             />
-            <InfoRow label="モード" value={modeLabel} />
-            <InfoRow label="ステータス" value={currentUnit.status} />
-            <InfoRow label="対象 blob" value={currentUnit.targetWalrusBlobId} />
+            <InfoRow label="Mode" value={modeLabel} />
+            <InfoRow label="Status" value={currentUnit.status} />
+            <InfoRow
+              label="Target blob"
+              value={currentUnit.targetWalrusBlobId}
+            />
           </dl>
           <button
             className="rounded-full border border-emerald-200/30 bg-emerald-300/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -555,13 +564,13 @@ function AdminAthleteCard({
             type="button"
           >
             {pendingAction === `finalize:${currentUnit.unitId}`
-              ? "再試行中..."
-              : "finalize を再試行"}
+              ? "Retrying..."
+              : "Retry finalize"}
           </button>
         </>
       ) : (
         <p className="text-sm leading-6 text-stone-300">
-          unit の状態を一時的に取得できません。
+          Unit status is temporarily unavailable.
         </p>
       )}
     </article>
@@ -585,9 +594,7 @@ async function postJson(
 
   if (!response.ok) {
     throw new Error(
-      typeof json.message === "string"
-        ? json.message
-        : "リクエストに失敗しました。",
+      typeof json.message === "string" ? json.message : "Request failed.",
     );
   }
 
@@ -596,15 +603,13 @@ async function postJson(
 
 function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
-    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
-    typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
-    typeof payload.code === "string" ? `コード: ${payload.code}` : null,
-    typeof payload.message === "string" ? `理由: ${payload.message}` : null,
-    typeof payload.digest === "string"
-      ? `ダイジェスト: ${payload.digest}`
-      : null,
+    typeof payload.unitId === "string" ? `Unit ID: ${payload.unitId}` : null,
+    typeof payload.status === "string" ? `Status: ${payload.status}` : null,
+    typeof payload.code === "string" ? `Code: ${payload.code}` : null,
+    typeof payload.message === "string" ? `Reason: ${payload.message}` : null,
+    typeof payload.digest === "string" ? `Digest: ${payload.digest}` : null,
     typeof payload.mosaicBlobId === "string"
-      ? `モザイク Blob ID: ${payload.mosaicBlobId}`
+      ? `Mosaic Blob ID: ${payload.mosaicBlobId}`
       : null,
   ].filter((value): value is string => value !== null);
 

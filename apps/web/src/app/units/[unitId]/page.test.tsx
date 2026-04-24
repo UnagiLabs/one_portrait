@@ -323,7 +323,9 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Athlete information is temporarily unavailable" }),
+      screen.getByRole("heading", {
+        name: "Athlete information is temporarily unavailable",
+      }),
     ).toBeTruthy();
   });
 
@@ -342,7 +344,9 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "Athlete information is temporarily unavailable" }),
+      screen.getByRole("heading", {
+        name: "Athlete information is temporarily unavailable",
+      }),
     ).toBeTruthy();
   });
 

@@ -109,7 +109,7 @@ export function resolveScriptGeneratorRuntime({
   ) {
     return {
       message:
-        "`OP_GENERATOR_BASE_URL` と `OP_FINALIZE_DISPATCH_URL` の値が一致していません。",
+        "`OP_GENERATOR_BASE_URL` and `OP_FINALIZE_DISPATCH_URL` must match.",
       source: "none",
       status: "misconfigured",
       url: null,

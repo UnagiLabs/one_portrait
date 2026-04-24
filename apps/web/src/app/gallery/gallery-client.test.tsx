@@ -213,9 +213,7 @@ describe("GalleryClient", () => {
 
   it("shows a retry login action when wallet connection fails", async () => {
     useConnectWalletMock.mockReturnValue({
-      mutateAsync: vi
-        .fn()
-        .mockRejectedValue(new Error("Login failed.")),
+      mutateAsync: vi.fn().mockRejectedValue(new Error("Login failed.")),
     });
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
@@ -268,9 +266,7 @@ describe("GalleryClient", () => {
     });
 
     expect(
-      screen.getByText(
-        /Login confirmed. Reading Kakera from Sui./,
-      ),
+      screen.getByText(/Login confirmed. Reading Kakera from Sui./),
     ).toBeTruthy();
     expect(listOwnedKakeraMock).toHaveBeenCalledWith({
       ownerAddress: "0xviewer",
@@ -346,13 +342,9 @@ describe("GalleryClient", () => {
     expect(screen.getByText("Empty")).toBeTruthy();
     expect(screen.getByText(/No Kakera found yet./)).toBeTruthy();
     expect(
-      screen.getByText(
-        /If you just submitted, wait a moment and check again./,
-      ),
+      screen.getByText(/If you just submitted, wait a moment and check again./),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Check again" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check again" })).toBeTruthy();
   });
 
   it("shows a fetch failure shell when Kakera loading fails", async () => {
@@ -366,12 +358,8 @@ describe("GalleryClient", () => {
     });
 
     expect(screen.getByText(/Could not load history./)).toBeTruthy();
-    expect(
-      screen.getByText(/Wait a moment and check again./),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Check again" }),
-    ).toBeTruthy();
+    expect(screen.getByText(/Wait a moment and check again./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check again" })).toBeTruthy();
   });
 
   it("shows a config-missing shell without a retry action", () => {
@@ -380,15 +368,15 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="" />);
 
     expect(screen.getByText("Unavailable")).toBeTruthy();
-    expect(screen.getByText(/Could not verify public configuration./)).toBeTruthy();
+    expect(
+      screen.getByText(/Could not verify public configuration./),
+    ).toBeTruthy();
     expect(
       screen.getByText(
         /The Sui connection public configuration is incomplete, so the gallery cannot open./,
       ),
     ).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "Check again" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Check again" })).toBeNull();
   });
 
   it("reloads the gallery when the user asks to check again", async () => {

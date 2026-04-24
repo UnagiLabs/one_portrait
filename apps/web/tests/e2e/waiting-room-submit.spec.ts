@@ -13,9 +13,7 @@ const CONSENT_LABEL =
 async function prepareSubmission(page: Page): Promise<string> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
-  await expect(
-    page.getByText(/zkLogin アドレスを確認できました/),
-  ).toBeVisible();
+  await expect(page.getByText(/zkLogin address confirmed/)).toBeVisible();
 
   await page
     .getByRole("checkbox", {
@@ -31,7 +29,7 @@ async function prepareSubmission(page: Page): Promise<string> {
     buffer: TINY_JPEG_BUFFER,
   });
 
-  const preview = page.getByAltText("投稿プレビュー").first();
+  const preview = page.getByAltText("Submission preview").first();
   await expect(preview).toBeVisible();
 
   const previewSrc = await preview.getAttribute("src");
@@ -39,7 +37,7 @@ async function prepareSubmission(page: Page): Promise<string> {
     throw new Error("expected preview image src");
   }
 
-  await page.getByRole("button", { name: "投稿を確定" }).click();
+  await page.getByRole("button", { name: "Confirm submission" }).click();
   return previewSrc;
 }
 
@@ -49,9 +47,7 @@ test.describe("waiting room submit guards", () => {
 
     await page.goto(`/units/${STUB_UNIT_ID}`);
 
-    await expect(
-      page.getByText(/zkLogin アドレスを確認できました/),
-    ).toBeVisible();
+    await expect(page.getByText(/zkLogin address confirmed/)).toBeVisible();
 
     const consent = page.getByRole("checkbox", { name: CONSENT_LABEL });
     const fileInput = page.locator('input[type="file"]');
@@ -71,16 +67,14 @@ test.describe("waiting room submit guards", () => {
 
     await page.goto(`/units/${STUB_UNIT_ID}`);
 
-    await expect(
-      page.getByText(/zkLogin アドレスを確認できました/),
-    ).toBeVisible();
+    await expect(page.getByText(/zkLogin address confirmed/)).toBeVisible();
     await page.getByRole("checkbox", { name: CONSENT_LABEL }).check();
 
     await expect(page.locator('input[type="file"]')).toBeEnabled();
-    await expect(page.getByRole("button", { name: "投稿を確定" })).toHaveCount(
-      0,
-    );
-    await expect(page.getByAltText("投稿プレビュー")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Confirm submission" }),
+    ).toHaveCount(0);
+    await expect(page.getByAltText("Submission preview")).toHaveCount(0);
 
     expect(state.sponsorRequests).toBe(0);
     expect(state.executeRequests).toBe(0);
@@ -99,26 +93,25 @@ test.describe("waiting room submit guards", () => {
     const previewSrc = await prepareSubmission(page);
 
     await expect(
-      page.getByText("投稿結果を確認しています。しばらくお待ちください。"),
+      page.getByText("Checking the submission result. Please wait."),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "もう一度送信する" }),
+      page.getByRole("button", { name: "Submit again" }),
     ).toBeHidden();
     await expect(
-      page.getByText("投稿を完了できませんでした。もう一度送信してください。"),
+      page.getByText("Could not complete the submission. Please submit again."),
     ).toBeVisible({
       timeout: 15_000,
     });
 
-    const retryButton = page.getByRole("button", { name: "もう一度送信する" });
+    const retryButton = page.getByRole("button", { name: "Submit again" });
     await expect(retryButton).toBeVisible();
 
     await retryButton.click();
 
-    await expect(page.getByAltText("投稿プレビュー").first()).toHaveAttribute(
-      "src",
-      previewSrc,
-    );
+    await expect(
+      page.getByAltText("Submission preview").first(),
+    ).toHaveAttribute("src", previewSrc);
     await expect.poll(() => state.executeRequests).toBe(2);
   });
 });

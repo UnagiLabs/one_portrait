@@ -86,9 +86,9 @@ export function GalleryClient({
   if (!packageId) {
     return (
       <GalleryStatusShell
-        description="Sui 接続の公開設定が不足しているため、ギャラリーを開けません。"
+        description="The Sui connection public configuration is incomplete, so the gallery cannot open."
         label="Unavailable"
-        title="公開設定を確認できません。"
+        title="Could not verify public configuration."
         tone="warning"
       />
     );
@@ -120,7 +120,7 @@ function ConnectedGalleryClient({
 
   async function handleLogin(): Promise<void> {
     if (!googleWallet) {
-      setConnectError("Google ログインの設定が見つかりません。");
+      setConnectError("Google login configuration was not found.");
       return;
     }
 
@@ -208,7 +208,7 @@ function ConnectedGalleryClient({
   if (!currentAccount?.address) {
     return (
       <GalleryStatusShell
-        description="Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。"
+        description="Connect Google zkLogin or Sui wallet to load your Kakera history."
         label="Wallet required"
         tone="info"
       >
@@ -222,9 +222,9 @@ function ConnectedGalleryClient({
             type="button"
           >
             {isConnecting
-              ? "Google zkLogin 接続中…"
+              ? "Connecting Google zkLogin..."
               : connectError
-                ? "Google zkLogin をやり直す"
+                ? "Retry Google zkLogin"
                 : "Google zkLogin"}
           </button>
           <SuiWalletConnectModal
@@ -253,9 +253,9 @@ function ConnectedGalleryClient({
   if (state.kind === "error") {
     return (
       <GalleryStatusShell
-        description="時間をおいて、もう一度確認してください。"
+        description="Wait a moment and check again."
         label="Unavailable"
-        title="履歴を読み込めませんでした。"
+        title="Could not load history."
         tone="warning"
       >
         <div className="mt-4 flex flex-wrap gap-3">
@@ -266,7 +266,7 @@ function ConnectedGalleryClient({
             }}
             type="button"
           >
-            もう一度確認する
+            Check again
           </button>
         </div>
       </GalleryStatusShell>
@@ -276,7 +276,7 @@ function ConnectedGalleryClient({
   if (state.kind === "loading") {
     return (
       <GalleryStatusShell
-        description="ログインを確認できました。Sui から Kakera を読んでいます。"
+        description="Login confirmed. Reading Kakera from Sui."
         label="Loading"
         tone="info"
       />
@@ -286,10 +286,10 @@ function ConnectedGalleryClient({
   if (state.entries.length === 0) {
     return (
       <GalleryStatusShell
-        description="まだ Kakera が見つかりません。"
+        description="No Kakera found yet."
         label="Empty"
-        note="投稿直後なら、少し待ってからもう一度確認してください。"
-        title="このウォレットの履歴はまだ空です。"
+        note="If you just submitted, wait a moment and check again."
+        title="This wallet history is still empty."
         tone="empty"
       >
         <div className="mt-4 flex flex-wrap gap-3">
@@ -300,7 +300,7 @@ function ConnectedGalleryClient({
             }}
             type="button"
           >
-            もう一度確認する
+            Check again
           </button>
         </div>
       </GalleryStatusShell>
@@ -361,7 +361,7 @@ function toMessage(error: unknown): string {
     return error.message;
   }
 
-  return "処理に失敗しました。時間をおいて、もう一度お試しください。";
+  return "Processing failed. Please wait a moment and try again.";
 }
 
 type GalleryStatusShellProps = {
@@ -462,7 +462,7 @@ function GalleryCard({
           </p>
         </div>
         <div className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-          KAKERA · 欠片
+          KAKERA · Fragment
         </div>
       </div>
 
@@ -475,7 +475,7 @@ function GalleryCard({
               unitId: entry.unitId,
             })}
           >
-            Unit ページで位置を見る
+            View position on Unit page
           </Link>
         </div>
       ) : null}

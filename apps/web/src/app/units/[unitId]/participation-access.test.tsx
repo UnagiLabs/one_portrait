@@ -176,7 +176,7 @@ describe("ParticipationAccess", () => {
 
     render(<ParticipationAccess unitId="0xunit-1" />);
 
-    expect(screen.getByText(/only progress checking is available/)).toBeTruthy();
+    expect(screen.getByText(/only check progress/)).toBeTruthy();
   });
 
   it("uses the server-provided packageId for Kakera lookup by default", () => {
@@ -327,9 +327,7 @@ describe("ParticipationAccess", () => {
 
     render(<ParticipationAccess unitId="0xunit-1" />);
 
-    expect(
-      screen.getByText(/Sui wallet address confirmed/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Sui wallet address confirmed/)).toBeTruthy();
     expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
     expect(
       screen.queryByText(/Only the history gallery is available./),
@@ -402,7 +400,9 @@ describe("ParticipationAccess", () => {
 
     expect(screen.queryByRole("checkbox", { name: CONSENT_LABEL })).toBeNull();
     expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
-    expect(screen.queryByRole("button", { name: /Confirm submission/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Confirm submission/ }),
+    ).toBeNull();
     expect(screen.getByText(/This Unit is full/)).toBeTruthy();
   });
 
@@ -439,7 +439,9 @@ describe("ParticipationAccess", () => {
     expect(preprocessPhoto.mock.calls[0][0]).toBe(file);
 
     await waitFor(() => {
-      const preview = screen.getByAltText("Submission preview") as HTMLImageElement;
+      const preview = screen.getByAltText(
+        "Submission preview",
+      ) as HTMLImageElement;
       expect(preview.src).toContain("blob:preview-abc");
     });
   });
@@ -491,9 +493,7 @@ describe("ParticipationAccess", () => {
 
     const preprocessPhoto = vi
       .fn()
-      .mockRejectedValue(
-        new Error("The photo exceeds the 10MB size limit."),
-      );
+      .mockRejectedValue(new Error("The photo exceeds the 10MB size limit."));
 
     render(
       <ParticipationAccess
@@ -509,7 +509,7 @@ describe("ParticipationAccess", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toContain(
-        "photo exceeds the size limit",
+        "photo exceeds the 10MB size limit",
       );
     });
   });
@@ -849,9 +849,7 @@ describe("ParticipationAccess", () => {
         });
       });
 
-      expect(
-        screen.queryByRole("button", { name: /Submit again/ }),
-      ).toBeNull();
+      expect(screen.queryByRole("button", { name: /Submit again/ })).toBeNull();
       expect(screen.getByText(/This Unit is full/)).toBeTruthy();
       expect(putBlob).toHaveBeenCalledTimes(1);
     });
@@ -1012,9 +1010,7 @@ describe("ParticipationAccess", () => {
       expect(
         screen.getByText(/Checking the submission result. Please wait./),
       ).toBeTruthy();
-      expect(
-        screen.queryByRole("button", { name: /Submit again/ }),
-      ).toBeNull();
+      expect(screen.queryByRole("button", { name: /Submit again/ })).toBeNull();
 
       resolveExecutionCheck({
         status: "failed",
@@ -1026,9 +1022,7 @@ describe("ParticipationAccess", () => {
           "Could not complete the submission",
         );
       });
-      expect(
-        screen.getByRole("button", { name: /Submit again/ }),
-      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: /Submit again/ })).toBeTruthy();
     });
 
     it("re-queries recovering execution and merges into the participation card once recovery succeeds", async () => {
@@ -1079,9 +1073,7 @@ describe("ParticipationAccess", () => {
       await waitFor(() => {
         expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(1);
       });
-      expect(
-        screen.queryByRole("button", { name: /Submit again/ }),
-      ).toBeNull();
+      expect(screen.queryByRole("button", { name: /Submit again/ })).toBeNull();
 
       await waitFor(
         () => {
@@ -1182,9 +1174,7 @@ describe("ParticipationAccess", () => {
         },
         { timeout: 1_000 },
       );
-      expect(
-        screen.getByRole("button", { name: /Submit again/ }),
-      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: /Submit again/ })).toBeTruthy();
     });
 
     it("renders the participation card with preview, sender, and a pending submission_no while Kakera is being confirmed", async () => {
@@ -1238,9 +1228,7 @@ describe("ParticipationAccess", () => {
       const submissionHeading = screen.getByText(/submission_no/i);
       const submissionValue = submissionHeading.nextElementSibling;
       expect(submissionValue?.textContent).toMatch(/Checking/);
-      expect(
-        screen.getByText(/Checking Kakera/),
-      ).toBeTruthy();
+      expect(screen.getByText(/Checking Kakera/)).toBeTruthy();
     });
 
     it("shows the Kakera submission_no once the hook reports 'found'", async () => {

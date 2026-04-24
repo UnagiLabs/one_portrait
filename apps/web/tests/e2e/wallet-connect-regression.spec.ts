@@ -44,8 +44,6 @@ test.describe("wallet connect regression", () => {
       .click();
 
     await expect(page.getByText("Empty")).toBeVisible();
-    await expect(
-      page.getByText(/まだ Kakera が見つかりません。/),
-    ).toBeVisible();
+    await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
   });
 });

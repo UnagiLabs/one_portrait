@@ -17,9 +17,7 @@ const CONSENT_LABEL =
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
-  await expect(
-    page.getByText(/zkLogin アドレスを確認できました/),
-  ).toBeVisible();
+  await expect(page.getByText(/zkLogin address confirmed/)).toBeVisible();
 
   await page
     .getByRole("checkbox", {
@@ -33,9 +31,9 @@ async function submitPhoto(page: Page): Promise<void> {
     buffer: TINY_JPEG_BUFFER,
   });
 
-  await expect(page.getByAltText("投稿プレビュー").first()).toBeVisible();
+  await expect(page.getByAltText("Submission preview").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "投稿を確定" }).click();
+  await page.getByRole("button", { name: "Confirm submission" }).click();
 }
 
 async function submitPhotoWithExpectedWallet(
@@ -58,9 +56,9 @@ async function submitPhotoWithExpectedWallet(
     buffer: TINY_JPEG_BUFFER,
   });
 
-  await expect(page.getByAltText("投稿プレビュー").first()).toBeVisible();
+  await expect(page.getByAltText("Submission preview").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "投稿を確定" }).click();
+  await page.getByRole("button", { name: "Confirm submission" }).click();
 }
 
 test.describe("submit happy path", () => {
@@ -70,11 +68,11 @@ test.describe("submit happy path", () => {
     await installDefaultMocks(page);
     await submitPhoto(page);
 
-    await expect(page.getByText("投稿が完了しました。")).toBeVisible({
+    await expect(page.getByText("Submission complete.")).toBeVisible({
       timeout: 15_000,
     });
 
-    await expect(page.getByText("Kakera を受け取りました。")).toBeVisible({
+    await expect(page.getByText("Kakera received.")).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText("#1")).toBeVisible();
@@ -93,10 +91,10 @@ test.describe("submit happy path", () => {
     await submitPhoto(page);
 
     const unitStatusLink = page.getByRole("link", {
-      name: "完成状況を確認",
+      name: "View completion status",
     });
     const galleryLink = page.getByRole("link", {
-      name: "履歴ギャラリーを見る",
+      name: "View history gallery",
     });
     await expect(unitStatusLink).toBeVisible({ timeout: 15_000 });
     await expect(unitStatusLink).toHaveAttribute(
@@ -106,7 +104,7 @@ test.describe("submit happy path", () => {
     await expect(galleryLink).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText(
-        "この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。",
+        "You can watch the reveal and finalize status on this Unit page, and review your participation record in the history gallery.",
       ),
     ).toBeVisible();
 
@@ -130,11 +128,11 @@ test.describe("submit happy path", () => {
     });
     await submitPhoto(page);
 
-    await expect(page.getByText("投稿が完了しました。")).toBeVisible({
+    await expect(page.getByText("Submission complete.")).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText(STUB_DIGEST)).toBeVisible();
-    await expect(page.getByText("Kakera を受け取りました。")).toBeVisible({
+    await expect(page.getByText("Kakera received.")).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -149,11 +147,11 @@ test.describe("submit happy path", () => {
     });
     await submitPhoto(page);
 
-    await expect(page.getByText("投稿が完了しました。")).toBeVisible({
+    await expect(page.getByText("Submission complete.")).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText(STUB_DIGEST)).toBeVisible();
-    await expect(page.getByText("Kakera を受け取りました。")).toBeVisible({
+    await expect(page.getByText("Kakera received.")).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -170,18 +168,18 @@ test.describe("submit happy path", () => {
     await submitPhoto(page);
 
     await expect(
-      page.getByText("投稿結果を確認しています。しばらくお待ちください。"),
+      page.getByText("Checking the submission result. Please wait."),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "もう一度送信する" }),
+      page.getByRole("button", { name: "Submit again" }),
     ).toBeHidden();
     await expect(
-      page.getByText("投稿を完了できませんでした。もう一度送信してください。"),
+      page.getByText("Could not complete the submission. Please submit again."),
     ).toBeVisible({
       timeout: 15_000,
     });
     await expect(
-      page.getByRole("button", { name: "もう一度送信する" }),
+      page.getByRole("button", { name: "Submit again" }),
     ).toBeVisible();
   });
 
@@ -189,15 +187,12 @@ test.describe("submit happy path", () => {
     page,
   }) => {
     await installDefaultMocks(page, { autoConnectWalletKind: "sui" });
-    await submitPhotoWithExpectedWallet(
-      page,
-      /Sui wallet アドレスを確認できました/,
-    );
+    await submitPhotoWithExpectedWallet(page, /Sui wallet address confirmed/);
 
-    await expect(page.getByText("投稿が完了しました。")).toBeVisible({
+    await expect(page.getByText("Submission complete.")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Kakera を受け取りました。")).toBeVisible({
+    await expect(page.getByText("Kakera received.")).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText("#1")).toBeVisible();

@@ -70,7 +70,7 @@ type ExecuteDeps = {
 
 export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
   if (!isRecord(input)) {
-    throw invalidArgs("送信内容の形式が正しくありません。");
+    throw invalidArgs("The submitted payload format is invalid.");
   }
 
   const keys = Object.keys(input);
@@ -82,7 +82,7 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
     keys.some((key) => key !== "unitId" && key !== "blobId" && key !== "sender")
   ) {
     throw invalidArgs(
-      "`unitId` と `blobId`、必要なら `sender` だけを送ってください。",
+      "Send only `unitId`, `blobId`, and `sender` when needed.",
     );
   }
 
@@ -90,11 +90,11 @@ export function parseSubmitPhotoInput(input: unknown): SubmitPhotoInput {
   const blobId = typeof input.blobId === "string" ? input.blobId.trim() : "";
 
   if (!isValidSuiObjectId(unitId)) {
-    throw invalidArgs("`unitId` の形式が不正です。");
+    throw invalidArgs("`unitId` has an invalid format.");
   }
 
   if (!WALRUS_BLOB_ID_PATTERN.test(blobId)) {
-    throw invalidArgs("`blobId` の形式が不正です。");
+    throw invalidArgs("`blobId` has an invalid format.");
   }
 
   const sender =
@@ -118,7 +118,7 @@ export function parseExecuteSponsoredInput(
   input: unknown,
 ): ExecuteSponsoredInput {
   if (!isRecord(input)) {
-    throw invalidArgs("送信内容の形式が正しくありません。");
+    throw invalidArgs("The submitted payload format is invalid.");
   }
 
   const keys = Object.keys(input);
@@ -132,7 +132,7 @@ export function parseExecuteSponsoredInput(
     )
   ) {
     throw invalidArgs(
-      "`digest` と `signature`、必要なら `sender` だけを送ってください。",
+      "Send only `digest`, `signature`, and `sender` when needed.",
     );
   }
 
@@ -141,7 +141,7 @@ export function parseExecuteSponsoredInput(
     typeof input.signature === "string" ? input.signature.trim() : "";
 
   if (digest.length === 0 || signature.length === 0) {
-    throw invalidArgs("`digest` と `signature` は必須です。");
+    throw invalidArgs("`digest` and `signature` are required.");
   }
 
   const sender =
@@ -168,7 +168,7 @@ export function readZkLoginJwt(headers: Headers): string {
     throw new EnokiApiError(
       401,
       "auth_expired",
-      "ログインが切れました。Google でもう一度ログインしてください。",
+      "Your login expired. Please sign in with Google again.",
     );
   }
 
@@ -196,7 +196,7 @@ export function resolveRuntimeEnv(
       throw new EnokiApiError(
         503,
         "submit_unavailable",
-        "投稿用の設定がまだ揃っていません。",
+        "Submission configuration is not complete yet.",
       );
     }
 
@@ -222,7 +222,7 @@ export async function sponsorSubmitPhoto(
       throw new EnokiApiError(
         401,
         "auth_expired",
-        "ログイン情報を確認できません。もう一度お試しください。",
+        "Could not verify login information. Please try again.",
       );
     }
     const transactionKindBytes = await deps.buildTransactionKind({
@@ -321,7 +321,7 @@ function toEnokiNetwork(network: SuiNetwork): EnokiNetwork {
     throw new EnokiApiError(
       503,
       "submit_unavailable",
-      "Enoki は localnet をサポートしていません。",
+      "Enoki does not support localnet.",
     );
   }
 
@@ -338,14 +338,14 @@ function mapEnokiError(error: unknown): EnokiApiError {
       return new EnokiApiError(
         401,
         "auth_expired",
-        "ログインが切れました。Google でもう一度ログインしてください。",
+        "Your login expired. Please sign in with Google again.",
       );
     }
 
     return new EnokiApiError(
       502,
       "sponsor_failed",
-      "スポンサー処理に失敗しました。時間をおいて、もう一度お試しください。",
+      "Sponsorship failed. Please wait a moment and try again.",
     );
   }
 
@@ -356,7 +356,7 @@ function mapEnokiError(error: unknown): EnokiApiError {
   return new EnokiApiError(
     502,
     "sponsor_failed",
-    "スポンサー処理に失敗しました。時間をおいて、もう一度お試しください。",
+    "Sponsorship failed. Please wait a moment and try again.",
   );
 }
 

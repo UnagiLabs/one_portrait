@@ -45,7 +45,7 @@ export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
     throw new AdminApiError(
       400,
       "invalid_args",
-      "`displayMaxSlots` は `maxSlots` 以上で送ってください。",
+      "`displayMaxSlots` must be greater than or equal to `maxSlots`.",
     );
   }
 
@@ -103,7 +103,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   throw new AdminApiError(
     400,
     "invalid_args",
-    "送信内容の形式が正しくありません。",
+    "The submitted payload format is invalid.",
   );
 }
 
@@ -120,7 +120,7 @@ function assertExactKeys(
     throw new AdminApiError(
       400,
       "invalid_args",
-      `\`${expected.join("`, `")}\` だけを送ってください。`,
+      `\`${expected.join("`, `")}\` only.`,
     );
   }
 }
@@ -131,7 +131,7 @@ function parseBlobId(value: unknown): string {
     throw new AdminApiError(
       400,
       "invalid_args",
-      "`blobId` は空でない文字列で送ってください。",
+      "`blobId` must be a non-empty string.",
     );
   }
   return blobId;
@@ -143,7 +143,7 @@ function parseNonEmptyTrimmedString(value: unknown, fieldName: string): string {
     throw new AdminApiError(
       400,
       "invalid_args",
-      `\`${fieldName}\` は空でない文字列で送ってください。`,
+      `\`${fieldName}\` must be a non-empty string.`,
     );
   }
   return parsed;
@@ -161,7 +161,7 @@ function parseNonNegativeInteger(value: unknown, fieldName: string): number {
     throw new AdminApiError(
       400,
       "invalid_args",
-      `\`${fieldName}\` は 0 以上の整数で送ってください。`,
+      `\`${fieldName}\` must be an integer greater than or equal to 0.`,
     );
   }
 
@@ -175,7 +175,7 @@ function parsePositiveInteger(value: unknown, fieldName: string): number {
     throw new AdminApiError(
       400,
       "invalid_args",
-      `\`${fieldName}\` は 1 以上の整数で送ってください。`,
+      `\`${fieldName}\` must be an integer greater than or equal to 1.`,
     );
   }
 

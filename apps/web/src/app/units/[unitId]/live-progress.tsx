@@ -12,8 +12,9 @@
  *   `SubmittedEvent` is the ONLY source of truth for `submittedCount`.
  *   The submit flow (`ParticipationAccess`) must NOT optimistically bump this
  *   counter — the participant sees the number advance only after the chain
- *   event is observed. This keeps the waiting-room narrative ("観測できる
- *   まで待ち、駄目なら案内付きで再試行") honest.
+ *   event is observed. This keeps the waiting-room narrative honest: wait
+ *   until the chain can observe the submission, then retry with guidance if it
+ *   cannot.
  *
  * Follow-up issues can plug:
  *   - reveal animation (listen for MosaicReadyEvent here and fan out)

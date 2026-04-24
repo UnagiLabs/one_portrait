@@ -74,7 +74,7 @@ function GlobalWalletEntryEnabled(): React.ReactElement {
 
   async function handleGoogleLogin(): Promise<void> {
     if (!googleWallet) {
-      setConnectError("Google zkLogin の設定が見つかりません。");
+      setConnectError("Google zkLogin configuration was not found.");
       return;
     }
 
@@ -260,5 +260,5 @@ function toMessage(error: unknown): string {
     return error.message;
   }
 
-  return "接続に失敗しました。時間をおいて、もう一度お試しください。";
+  return "Connection failed. Please wait a moment and try again.";
 }

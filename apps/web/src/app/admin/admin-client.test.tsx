@@ -216,9 +216,7 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("target-blob-9")).toBeTruthy();
     });
-    expect(
-      screen.getByAltText("Uploaded target image preview"),
-    ).toBeTruthy();
+    expect(screen.getByAltText("Uploaded target image preview")).toBeTruthy();
   });
 
   it("submits a normal unit with full display slots", async () => {
@@ -461,7 +459,9 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByText("Unit created")).toBeTruthy();
     });
-    expect(screen.getByText(/Immediately after creating 0 photos/)).toBeTruthy();
+    expect(
+      screen.getByText(/Treat as filled immediately after creating 0 photos/),
+    ).toBeTruthy();
     expect(createPayload).toEqual({
       blobId: "target-blob-demo-zero",
       displayMaxSlots: unitTileCount,

@@ -23,7 +23,7 @@ export async function putTargetBlobToWalrus(
   if (!fetchFn) {
     throw new WalrusPutError(
       "config_missing",
-      "このブラウザでは Walrus へのアップロードがサポートされていません。",
+      "This browser does not support uploads to Walrus.",
     );
   }
 
@@ -56,7 +56,7 @@ export async function putTargetBlobToWalrus(
       if (!isTransientStatus(response.status)) {
         throw new WalrusPutError(
           "final",
-          "Walrus への画像の保存に失敗しました。もう一度お試しください。",
+          "Could not save the image to Walrus. Please try again.",
           { attempts: attempt, cause: lastError, status: response.status },
         );
       }
@@ -83,7 +83,7 @@ export async function putTargetBlobToWalrus(
 
   throw new WalrusPutError(
     "final",
-    "Walrus への画像の保存に失敗しました。通信状況を確認してから再試行してください。",
+    "Could not save the image to Walrus. Check your connection and try again.",
     {
       attempts: WALRUS_MAX_ATTEMPTS,
       cause: lastError,
@@ -102,7 +102,7 @@ function resolveEndpoints(env: WalrusEnv): {
   if (!publisher || !aggregator) {
     throw new WalrusPutError(
       "config_missing",
-      "Walrus のエンドポイントが設定されていません。NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR を確認してください。",
+      "Walrus endpoints are not configured. Check NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR.",
     );
   }
 
@@ -119,18 +119,16 @@ async function extractBlobId(response: Response): Promise<string> {
   } catch (error) {
     throw new WalrusPutError(
       "final",
-      "Walrus からの応答を解釈できませんでした。",
+      "Could not parse the response from Walrus.",
       { cause: error },
     );
   }
 
   const blobId = readBlobId(payload);
   if (!blobId) {
-    throw new WalrusPutError(
-      "final",
-      "Walrus から blob_id を取得できませんでした。",
-      { cause: payload },
-    );
+    throw new WalrusPutError("final", "Could not get blob_id from Walrus.", {
+      cause: payload,
+    });
   }
 
   return blobId;

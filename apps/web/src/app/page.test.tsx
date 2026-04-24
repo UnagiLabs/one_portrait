@@ -207,9 +207,11 @@ describe("HomePage", () => {
 
     expect(screen.getByText("Demo Athlete One")).toBeTruthy();
     expect(screen.getByText("Demo Athlete Two")).toBeTruthy();
-    expect(screen.getByText(/Waiting|No active unit/i)).toBeTruthy();
+    expect(screen.getByText(/Waiting \/ No active unit/i)).toBeTruthy();
     expect(
-      screen.getByText(/Progress temporarily unavailable|temporarily unavailable/i),
+      screen.getByText(
+        /Progress temporarily unavailable|temporarily unavailable/i,
+      ),
     ).toBeTruthy();
     expect(getActiveHomeUnitsMock).not.toHaveBeenCalled();
   });
