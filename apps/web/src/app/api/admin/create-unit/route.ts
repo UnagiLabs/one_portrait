@@ -19,7 +19,6 @@ export async function POST(request: Request): Promise<Response> {
     return await relayAdminPost(
       "/admin/create-unit",
       {
-        athleteId: input.athleteId,
         displayMaxSlots: input.displayMaxSlots,
         displayName: input.displayName,
         blobId: input.blobId,

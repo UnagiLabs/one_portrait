@@ -28,9 +28,6 @@ export function AdminClient({
 }: AdminClientProps): React.ReactElement {
   const [athletes, setAthletes] = useState(initialAthletes);
   const [health, setHealth] = useState(initialHealth);
-  const [createAthleteId, setCreateAthleteId] = useState(
-    initialAthletes[0]?.athletePublicId ?? "",
-  );
   const [createDisplayName, setCreateDisplayName] = useState(
     initialAthletes[0]?.displayName ?? "",
   );
@@ -97,7 +94,6 @@ export function AdminClient({
       return;
     }
 
-    setCreateAthleteId(athlete.athletePublicId);
     setCreateDisplayName(athlete.displayName);
     setCreateThumbnailUrl(athlete.thumbnailUrl);
 
@@ -159,7 +155,6 @@ export function AdminClient({
 
     try {
       const payload = await postJson("/api/admin/create-unit", {
-        athleteId: Number(createAthleteId),
         blobId: targetBlobId,
         displayMaxSlots: effectiveDisplayMaxSlots,
         displayName: createDisplayName,
@@ -291,17 +286,6 @@ export function AdminClient({
         >
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm text-stone-200">
-              athlete ID
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setCreateAthleteId(event.target.value)}
-                placeholder="例: 7"
-                value={createAthleteId}
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm text-stone-200">
               displayName
               <input
                 className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
@@ -420,7 +404,6 @@ export function AdminClient({
             disabled={
               isUploading ||
               pendingAction === "create" ||
-              createAthleteId.trim().length === 0 ||
               createDisplayName.trim().length === 0 ||
               createThumbnailUrl.trim().length === 0 ||
               targetBlobId.trim().length === 0 ||
@@ -592,14 +575,11 @@ async function postJson(
 
 function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
+    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
     typeof payload.digest === "string"
       ? `ダイジェスト: ${payload.digest}`
       : null,
-    typeof payload.athleteId === "number"
-      ? `athlete ID: ${payload.athleteId}`
-      : null,
-    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.mosaicBlobId === "string"
       ? `モザイク Blob ID: ${payload.mosaicBlobId}`
       : null,

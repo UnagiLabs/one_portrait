@@ -175,6 +175,7 @@ describe("AdminClient", () => {
       />,
     );
 
+    expect(screen.queryByLabelText(/athlete ID/)).toBeNull();
     fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
       target: { value: "target-blob-7" },
     });
@@ -183,8 +184,10 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
     });
+    expect(screen.getByText(/ユニットID: 0xunit-created/)).toBeTruthy();
+    expect(screen.getByText(/ステータス: created/)).toBeTruthy();
+    expect(screen.queryByText(/athlete ID: 7/)).toBeNull();
     expect(createPayload).toEqual({
-      athleteId: 7,
       blobId: "target-blob-7",
       displayMaxSlots: unitTileCount,
       displayName: "Demo Athlete Seven",
@@ -269,7 +272,6 @@ describe("AdminClient", () => {
       expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
     });
     expect(createPayload).toEqual({
-      athleteId: 12,
       blobId: "target-blob-demo",
       displayMaxSlots: unitTileCount,
       displayName: "Demo Athlete Twelve",

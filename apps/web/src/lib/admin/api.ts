@@ -19,7 +19,6 @@ export class AdminApiError extends Error {
 }
 
 export type CreateUnitRouteInput = {
-  readonly athleteId: number;
   readonly displayMaxSlots: number;
   readonly displayName: string;
   readonly blobId: string;
@@ -30,7 +29,6 @@ export type CreateUnitRouteInput = {
 export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   const record = asRecord(input);
   assertExactKeys(record, [
-    "athleteId",
     "blobId",
     "displayMaxSlots",
     "displayName",
@@ -52,7 +50,6 @@ export function parseCreateUnitInput(input: unknown): CreateUnitRouteInput {
   }
 
   return {
-    athleteId: parseAthleteId(record.athleteId),
     displayMaxSlots,
     displayName: parseNonEmptyTrimmedString(record.displayName, "displayName"),
     blobId: parseBlobId(record.blobId),
@@ -126,25 +123,6 @@ function assertExactKeys(
       `\`${expected.join("`, `")}\` だけを送ってください。`,
     );
   }
-}
-
-function parseAthleteId(value: unknown): number {
-  const athleteId =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && /^[0-9]+$/.test(value)
-        ? Number(value)
-        : NaN;
-
-  if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
-    throw new AdminApiError(
-      400,
-      "invalid_args",
-      "`athleteId` は u16 の整数で送ってください。",
-    );
-  }
-
-  return athleteId;
 }
 
 function parseBlobId(value: unknown): string {
