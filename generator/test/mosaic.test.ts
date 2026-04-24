@@ -132,6 +132,55 @@ describe("generateMosaic", () => {
     expect(result.placements).toHaveLength(4);
   });
 
+  it(
+    "renders the default 2000-tile finalize mosaic as a compact 1600x2000 WebP",
+    async () => {
+      const targetImage = await solidPng(40, 50, { r: 112, g: 132, b: 156 });
+      const palette = await Promise.all(
+        [
+          { r: 72, g: 92, b: 118 },
+          { r: 112, g: 132, b: 156 },
+          { r: 148, g: 164, b: 184 },
+          { r: 184, g: 190, b: 196 },
+        ].map(async (rgb) => ({
+          rgb,
+          imageBytes: await solidPng(4, 4, rgb),
+        })),
+      );
+      const submissions = Array.from({ length: 40 * 50 }, (_, index) => {
+        const swatch = palette[index % palette.length];
+        const submissionNo = index + 1;
+
+        return {
+          walrusBlobId: `tile-${submissionNo.toString().padStart(4, "0")}`,
+          submissionNo,
+          submitter: `0x${submissionNo.toString(16).padStart(40, "0")}`,
+          submittedAtMs: 1_700_000_000_000 + submissionNo,
+          averageColor: {
+            red: swatch.rgb.r,
+            green: swatch.rgb.g,
+            blue: swatch.rgb.b,
+          },
+          imageBytes: swatch.imageBytes,
+        };
+      });
+
+      const result = await generateFinalizeMosaic({
+        targetImage,
+        submissions,
+      });
+      const metadata = await sharp(result.image).metadata();
+
+      expect(result.width).toBe(1600);
+      expect(result.height).toBe(2000);
+      expect(result.image.byteLength).toBeLessThanOrEqual(15 * 1024 * 1024);
+      expect(metadata.format).toBe("webp");
+      expect(metadata.width).toBe(1600);
+      expect(metadata.height).toBe(2000);
+    },
+    60_000,
+  );
+
   it("derives an exact fallback grid from submission count when none is provided", async () => {
     const submissions = [
       await buildSubmission("tile-a", 1, "0x1", { r: 20, g: 20, b: 20 }),
