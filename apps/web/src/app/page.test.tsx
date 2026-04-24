@@ -138,6 +138,74 @@ describe("HomePage", () => {
     }
   });
 
+  it("keeps autoplay active immediately after arrow navigation", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-24T00:00:00.000Z"));
+
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    const originalScrollBy = HTMLElement.prototype.scrollBy;
+    const originalScrollWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollWidth",
+    );
+    const frameCallbacks: FrameRequestCallback[] = [];
+
+    window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+    window.cancelAnimationFrame = vi.fn();
+
+    Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get() {
+        return this.classList.contains("op-home-portrait-track") ? 1000 : 0;
+      },
+    });
+
+    try {
+      const ui = await HomePage();
+      render(ui);
+
+      const rail = document.querySelector<HTMLElement>(
+        ".op-home-portrait-rail",
+      );
+      expect(rail).toBeTruthy();
+      if (!rail) {
+        throw new Error("Portrait rail was not rendered");
+      }
+
+      frameCallbacks.shift()?.(1);
+      fireEvent.click(screen.getByRole("button", { name: "Next portraits" }));
+      frameCallbacks.shift()?.(17);
+
+      expect(rail.scrollLeft).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+      Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+        configurable: true,
+        value: originalScrollBy,
+      });
+      if (originalScrollWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollWidth",
+          originalScrollWidth,
+        );
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollWidth");
+      }
+    }
+  });
+
   it("links live portrait menu cards to the upload page", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([
       {

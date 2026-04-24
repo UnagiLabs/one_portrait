@@ -491,9 +491,14 @@ a {
 
 .op-home-portrait-rail-shell {
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
 }
 
 .op-home-portrait-rail {
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   overflow-x: auto;
   overflow-y: hidden;
