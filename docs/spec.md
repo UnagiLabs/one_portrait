@@ -41,7 +41,7 @@
 
 ### 3.5 欠片NFT（参加者への配布）
 完成した作品をファン自身の誇りとして残すため、2,000人の参加者それぞれに **欠片NFT**（モザイクの1片） を自動発行する。
-* **内容:** 自分の投稿写真の `walrus_blob_id`、`unit_id`、`athlete_id`、投稿順を表す `submission_no` (1〜2,000)、投稿時刻、紐づく Master Portrait 参照を保持する。座標 `(x, y)` は直接持たず、完成後に `MasterPortrait.placements` を `blob_id` で逆引きして解決する。
+* **内容:** 自分の投稿写真の `walrus_blob_id`、`unit_id`、投稿順を表す `submission_no` (1〜2,000)、投稿時刻、紐づく Master Portrait 参照を保持する。座標 `(x, y)` は直接持たず、完成後に `MasterPortrait.placements` を `blob_id` で逆引きして解決する。表示名は Unit の `display_name` を正本にする。
 * **Soulbound（譲渡不可）:** 転売・移転を禁止する実装として、Move の型レベルで `store` 能力を付与しない設計を採用する。非営利ミッションと整合し、「ファンの証」としての意味を保全する。
 * **発行タイミング:** `submit_photo` と同一トランザクションで即時発行する。投稿が成功した時点で、参加者は自分のKakeraを受け取る。
 * **表示:** 欠片NFTを開くと、完成後は自分のマスがハイライトされた状態で Master Portrait 全体を閲覧できる。未完成ユニットでは「完成待ち」として表示する。
