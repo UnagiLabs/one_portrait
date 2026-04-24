@@ -58,6 +58,8 @@ export default async function UnitPage(
 
   const startupEnabled = hasValidStartupEnv();
   const packageId = readOptionalPublicValue("NEXT_PUBLIC_PACKAGE_ID");
+  const typePackageId =
+    readOptionalPublicValue("NEXT_PUBLIC_ORIGINAL_PACKAGE_ID") ?? packageId;
   const walrusEnv = readWalrusEnv();
   const aggregatorBase = readOptionalPublicValue(
     "NEXT_PUBLIC_WALRUS_AGGREGATOR",
@@ -145,12 +147,12 @@ export default async function UnitPage(
                   aggregatorBase={aggregatorBase}
                   displayName={displayName}
                   eventSubscriptionEnabled={
-                    startupEnabled && packageId !== null
+                    startupEnabled && typePackageId !== null
                   }
                   initialMasterId={progress.masterId}
                   initialSubmittedCount={progress.submittedCount}
                   maxSlots={progress.maxSlots}
-                  packageId={packageId}
+                  packageId={typePackageId}
                   startupEnabled={startupEnabled}
                   unitId={unitId}
                 />
@@ -177,6 +179,7 @@ export default async function UnitPage(
             <ParticipationAccess
               packageId={packageId}
               startupEnabled={startupEnabled}
+              typePackageId={typePackageId}
               unitId={unitId}
               walrusEnv={walrusEnv}
             />

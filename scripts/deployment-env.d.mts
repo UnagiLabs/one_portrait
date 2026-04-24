@@ -3,6 +3,7 @@ export type DeploymentManifest = {
   readonly enokiPublicApiKey: string;
   readonly googleClientId: string;
   readonly network: "mainnet" | "testnet" | "devnet" | "localnet";
+  readonly originalPackageId: string;
   readonly packageId: string;
   readonly registryObjectId: string;
   readonly walrusAggregator: string;

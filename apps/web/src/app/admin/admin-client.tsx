@@ -187,7 +187,10 @@ export function AdminClient({
 
       setLastAction({
         detail: formatActionDetail(payload),
-        summary: "finalize を再試行しました",
+        summary:
+          payload.status === "ignored_dispatch_failed"
+            ? "finalize の再試行に失敗しました"
+            : "finalize を再試行しました",
       });
       await refreshAll();
     } catch (error) {
@@ -215,10 +218,12 @@ export function AdminClient({
 
       <div className="grid gap-4 md:grid-cols-2">
         <HealthCard
+          detail={health.generatorReadiness.message}
           label="ジェネレーター準備状態"
           value={health.generatorReadiness.status}
         />
         <HealthCard
+          detail={health.dispatchAuthorization.message}
           label="ディスパッチ認可"
           value={health.dispatchAuthorization.status}
         />
@@ -235,6 +240,9 @@ export function AdminClient({
           />
           <InfoRow label="source" value={health.source} />
           <InfoRow label="resolution" value={health.resolutionStatus} />
+          {health.runtimeWarning ? (
+            <InfoRow label="runtime warning" value={health.runtimeWarning} />
+          ) : null}
           <InfoRow
             label="worker package"
             value={health.expectedDeployment.packageId}
@@ -454,9 +462,11 @@ export function AdminClient({
 }
 
 function HealthCard({
+  detail,
   label,
   value,
 }: {
+  readonly detail?: string;
   readonly label: string;
   readonly value: string;
 }): React.ReactElement {
@@ -466,6 +476,9 @@ function HealthCard({
         {label}
       </p>
       <p className="font-serif text-3xl capitalize text-white">{value}</p>
+      {detail ? (
+        <p className="text-sm leading-6 text-stone-200">{detail}</p>
+      ) : null}
     </article>
   );
 }
@@ -585,6 +598,8 @@ function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
     typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
+    typeof payload.code === "string" ? `コード: ${payload.code}` : null,
+    typeof payload.message === "string" ? `理由: ${payload.message}` : null,
     typeof payload.digest === "string"
       ? `ダイジェスト: ${payload.digest}`
       : null,

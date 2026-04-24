@@ -60,6 +60,7 @@ vi.mock("./participation-access", () => ({
   ParticipationAccess: (props: {
     packageId?: string | null;
     startupEnabled?: boolean;
+    typePackageId?: string | null;
     unitId: string;
     walrusEnv?: {
       readonly NEXT_PUBLIC_WALRUS_AGGREGATOR: string | undefined;
@@ -73,6 +74,7 @@ vi.mock("./participation-access", () => ({
         data-package-id={props.packageId ?? ""}
         data-startup-enabled={String(props.startupEnabled)}
         data-testid="participation-access"
+        data-type-package-id={props.typePackageId ?? ""}
         data-unit-id={props.unitId}
       />
     );
@@ -108,6 +110,7 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_SUI_NETWORK = "testnet";
   process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID = "0xreg";
   process.env.NEXT_PUBLIC_PACKAGE_ID = "0xpkg";
+  process.env.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID = "0xpkg";
   process.env.NEXT_PUBLIC_WALRUS_PUBLISHER = "https://publisher.example.com";
   process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR = "https://aggregator.example.com";
 });
@@ -118,6 +121,7 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_SUI_NETWORK;
   delete process.env.NEXT_PUBLIC_REGISTRY_OBJECT_ID;
   delete process.env.NEXT_PUBLIC_PACKAGE_ID;
+  delete process.env.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID;
   delete process.env.NEXT_PUBLIC_WALRUS_PUBLISHER;
   delete process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR;
   getUnitProgressMock.mockReset();
@@ -316,6 +320,37 @@ describe("UnitPage", () => {
     ).toBe("0xpkg");
   });
 
+  it("passes the original package id to participation Kakera lookups", async () => {
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 10 }),
+    );
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xlatest-pkg",
+      originalPackageId: "0xoriginal-pkg",
+      registryObjectId: "0xreg",
+    });
+    process.env.NEXT_PUBLIC_PACKAGE_ID = "0xlatest-pkg";
+    process.env.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID = "0xoriginal-pkg";
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(
+      screen
+        .getByTestId("participation-access")
+        .getAttribute("data-package-id"),
+    ).toBe("0xlatest-pkg");
+    expect(
+      screen
+        .getByTestId("participation-access")
+        .getAttribute("data-type-package-id"),
+    ).toBe("0xoriginal-pkg");
+  });
+
   it("passes masterId to the client wrapper so completed units can reveal on revisit", async () => {
     getUnitProgressMock.mockResolvedValue(
       buildProgress({
@@ -339,6 +374,38 @@ describe("UnitPage", () => {
     expect(
       screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
     ).toBe("0xmaster-1");
+  });
+
+  it("passes filled progress without masterId to the client wrapper for finalizing units", async () => {
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({
+        submittedCount: unitTileCount,
+        status: "filled",
+        masterId: null,
+      }),
+    );
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(unitRevealClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialMasterId: null,
+        initialSubmittedCount: unitTileCount,
+        maxSlots: unitTileCount,
+      }),
+    );
+    expect(
+      screen.getByTestId("unit-reveal-client").getAttribute("data-master-id"),
+    ).toBe("");
   });
 
   it("prefers the on-chain display name when a route fallback is available", async () => {

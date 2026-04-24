@@ -9,6 +9,7 @@ import {
 export type AdminHealthStatus = {
   readonly adminCapId?: string;
   readonly httpStatus: number | null;
+  readonly message?: string;
   readonly network?: string;
   readonly packageId?: string;
   readonly status: "misconfigured" | "ok" | "unauthorized" | "unreachable";
@@ -23,6 +24,7 @@ export type AdminHealthSummary = {
   };
   readonly generatorReadiness: AdminHealthStatus;
   readonly resolutionStatus: "misconfigured" | "ok";
+  readonly runtimeWarning?: string;
   readonly source:
     | "fallback"
     | "legacy_env"
@@ -97,7 +99,12 @@ export async function getAdminHealth(
     expectedDeployment,
     generatorReadiness: effectiveGeneratorReadiness,
     resolutionStatus:
-      effectiveGeneratorReadiness.status === "ok" ? "ok" : "misconfigured",
+      effectiveGeneratorReadiness.status === "ok" &&
+      dispatchAuthorization.status === "ok" &&
+      runtime.source !== "fallback"
+        ? "ok"
+        : "misconfigured",
+    ...(runtime.detail ? { runtimeWarning: runtime.detail } : {}),
     source: runtime.source,
   };
 }
@@ -117,6 +124,7 @@ async function fetchGeneratorReadiness(
     return {
       adminCapId: payload?.adminCapId,
       httpStatus: response.status,
+      ...(payload?.message ? { message: payload.message } : {}),
       network: payload?.network,
       packageId: payload?.packageId,
       status: response.ok ? "ok" : "unreachable",
@@ -131,6 +139,7 @@ async function fetchGeneratorReadiness(
 
 async function readGeneratorHealthPayload(response: Response): Promise<{
   readonly adminCapId?: string;
+  readonly message?: string;
   readonly network?: string;
   readonly packageId?: string;
 } | null> {
@@ -147,6 +156,7 @@ async function readGeneratorHealthPayload(response: Response): Promise<{
 
     return {
       adminCapId: readString(payload, "adminCapId"),
+      message: readString(payload, "message"),
       network: readString(payload, "network"),
       packageId: readString(payload, "packageId"),
     };
@@ -178,8 +188,11 @@ async function fetchDispatchAuthorization(
       ),
     );
 
+    const message = await readDispatchProbeMessage(response);
+
     return {
       httpStatus: response.status,
+      ...(message ? { message } : {}),
       status: mapDispatchStatus(response.status),
     };
   } catch {
@@ -187,6 +200,26 @@ async function fetchDispatchAuthorization(
       httpStatus: null,
       status: "unreachable",
     };
+  }
+}
+
+async function readDispatchProbeMessage(
+  response: Response,
+): Promise<string | undefined> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return undefined;
+  }
+
+  try {
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return undefined;
+    }
+
+    return readString(payload, "message");
+  } catch {
+    return undefined;
   }
 }
 

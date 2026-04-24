@@ -225,6 +225,8 @@ describe("resolveCloudflareGeneratorRuntime", () => {
         },
       }),
     ).resolves.toEqual({
+      detail:
+        "Worker KV runtime state could not be read. Falling back to localhost.",
       source: "fallback",
       status: "ok",
       url: "http://127.0.0.1:8080",
@@ -247,9 +249,33 @@ describe("resolveCloudflareGeneratorRuntime", () => {
         },
       }),
     ).resolves.toEqual({
+      detail:
+        "Worker KV runtime state is stale. Falling back to legacy runtime env.",
       source: "legacy_env",
       status: "ok",
       url: "https://legacy.example.com",
+    });
+  });
+
+  it("surfaces stale worker kv fallback when no configured runtime remains", async () => {
+    await expect(
+      resolveCloudflareGeneratorRuntime({
+        env: {
+          OP_GENERATOR_RUNTIME_KV: {
+            get: async () => ({
+              mode: "quick",
+              updatedAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+              url: "https://stale-worker-kv.example.com",
+              version: 1,
+            }),
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      detail: "Worker KV runtime state is stale. Falling back to localhost.",
+      source: "fallback",
+      status: "ok",
+      url: "http://127.0.0.1:8080",
     });
   });
 });

@@ -176,7 +176,7 @@ describe("ParticipationAccess", () => {
     expect(screen.getByText(/進捗の確認だけ使えます/)).toBeTruthy();
   });
 
-  it("uses the server-provided packageId for Kakera lookup", () => {
+  it("uses the server-provided packageId for Kakera lookup by default", () => {
     setupSignedInEnv();
 
     render(<ParticipationAccess packageId="0xserver-pkg" unitId="0xunit-1" />);
@@ -184,6 +184,24 @@ describe("ParticipationAccess", () => {
     expect(useOwnedKakeraMock).toHaveBeenCalledWith(
       expect.objectContaining({
         packageId: "0xserver-pkg",
+      }),
+    );
+  });
+
+  it("uses the original package id for Kakera lookup after package upgrades", () => {
+    setupSignedInEnv();
+
+    render(
+      <ParticipationAccess
+        packageId="0xlatest-pkg"
+        typePackageId="0xoriginal-pkg"
+        unitId="0xunit-1"
+      />,
+    );
+
+    expect(useOwnedKakeraMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packageId: "0xoriginal-pkg",
       }),
     );
   });
@@ -803,8 +821,15 @@ describe("ParticipationAccess", () => {
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
       expect(
-        screen.getByText(/次は履歴ギャラリーで参加記録を確認できます。/),
+        screen.getByText(
+          /この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。/,
+        ),
       ).toBeTruthy();
+      expect(
+        screen
+          .getByRole("link", { name: "完成状況を確認" })
+          .getAttribute("href"),
+      ).toBe("/units/0xunit-1");
       expect(
         screen
           .getByRole("link", { name: "履歴ギャラリーを見る" })
@@ -847,6 +872,7 @@ describe("ParticipationAccess", () => {
         <ParticipationAccess
           preprocessPhoto={preprocessPhoto}
           putBlob={putBlob}
+          typePackageId="0xoriginal-pkg"
           unitId="0xunit-1"
           walrusEnv={{
             NEXT_PUBLIC_WALRUS_PUBLISHER: "https://publisher.example.com",
@@ -863,6 +889,7 @@ describe("ParticipationAccess", () => {
           expect.objectContaining({
             digest: "recover-digest",
             ownerAddress: "0xabc123",
+            packageId: "0xoriginal-pkg",
             unitId: "0xunit-1",
             walrusBlobId: "walrus-blob-recovery",
           }),

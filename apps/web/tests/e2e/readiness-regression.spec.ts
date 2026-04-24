@@ -129,7 +129,9 @@ test.describe("readiness regression", () => {
     });
     await expect(galleryLink).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText("次は履歴ギャラリーで参加記録を確認できます。"),
+      page.getByText(
+        /この Unit ページで reveal と finalize\s*の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。/,
+      ),
     ).toBeVisible();
 
     await galleryLink.click();
