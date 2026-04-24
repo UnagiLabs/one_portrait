@@ -27,6 +27,7 @@ import type {
   UnitFilledEvent,
 } from "../../../lib/sui";
 import { useUnitEvents } from "../../../lib/sui/react";
+import { useUnitFullState } from "./unit-full-state";
 
 function formatProgressCount(value: number): string {
   return String(value);
@@ -87,6 +88,7 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     needsInitialFinalize ? { status: "running" } : { status: "idle" },
   );
   const finalizeTriggeredRef = useRef(false);
+  const { markFullIfAtCap } = useUnitFullState();
 
   const startFinalize = (): void => {
     if (finalizeTriggeredRef.current) {
@@ -125,18 +127,26 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     startFinalize();
   });
 
+  useEffect(() => {
+    markFullIfAtCap(initialSubmittedCount, maxSlots);
+  }, [initialSubmittedCount, markFullIfAtCap, maxSlots]);
+
   useUnitEvents({
     packageId: eventSubscriptionEnabled ? packageId : "",
     unitId,
     onSubmitted: (event: SubmittedEvent) => {
       // Events can arrive out of order from the RPC poll — guard against
       // a stale event clobbering a newer server/server-event count.
-      setSubmittedCount((current) =>
-        event.submittedCount > current ? event.submittedCount : current,
-      );
+      setSubmittedCount((current) => {
+        const next =
+          event.submittedCount > current ? event.submittedCount : current;
+        markFullIfAtCap(next, maxSlots);
+        return next;
+      });
     },
     onFilled: (_event: UnitFilledEvent) => {
       setFilled(true);
+      markFullIfAtCap(maxSlots, maxSlots);
       startFinalize();
     },
     onMosaicReady: (event: MosaicReadyEvent) => {

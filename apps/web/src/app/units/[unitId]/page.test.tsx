@@ -11,11 +11,13 @@ const {
   getUnitProgressMock,
   loadPublicEnvMock,
   participationAccessMock,
+  unitFullStateProviderMock,
   unitRevealClientMock,
 } = vi.hoisted(() => ({
   getUnitProgressMock: vi.fn(),
   loadPublicEnvMock: vi.fn(),
   participationAccessMock: vi.fn(),
+  unitFullStateProviderMock: vi.fn(),
   unitRevealClientMock: vi.fn(),
 }));
 
@@ -81,6 +83,24 @@ vi.mock("./participation-access", () => ({
   },
 }));
 
+vi.mock("./unit-full-state", () => ({
+  UnitFullStateProvider: (props: {
+    readonly children: React.ReactNode;
+    readonly initialFull: boolean;
+  }) => {
+    unitFullStateProviderMock(props);
+
+    return (
+      <div
+        data-initial-full={String(props.initialFull)}
+        data-testid="unit-full-state"
+      >
+        {props.children}
+      </div>
+    );
+  },
+}));
+
 import UnitPage from "./page";
 
 function buildProgress(
@@ -128,6 +148,7 @@ afterEach(() => {
   loadPublicEnvMock.mockReset();
   participationAccessMock.mockReset();
   unitRevealClientMock.mockReset();
+  unitFullStateProviderMock.mockReset();
 });
 
 describe("UnitPage", () => {
@@ -216,6 +237,33 @@ describe("UnitPage", () => {
         },
       }),
     );
+  });
+
+  it("closes participation access when initial server progress is already full", async () => {
+    getUnitProgressMock.mockResolvedValue(
+      buildProgress({ submittedCount: 2000, maxSlots: 2000 }),
+    );
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      registryObjectId: "0xreg",
+      packageId: "0xignored",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(
+      screen.getByTestId("unit-full-state").getAttribute("data-initial-full"),
+    ).toBe("true");
+    expect(unitFullStateProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialFull: true,
+      }),
+    );
+    expect(screen.getByTestId("participation-access")).toBeTruthy();
   });
 
   it("shows the route athleteName when unit progress cannot be fetched", async () => {

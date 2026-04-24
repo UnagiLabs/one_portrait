@@ -108,6 +108,7 @@ vi.mock("../../../lib/sui", () => ({
 
 import { LiveProgress } from "./live-progress";
 import { ParticipationAccess } from "./participation-access";
+import { UnitFullStateProvider } from "./unit-full-state";
 
 const FILE_INPUT_LABEL = "写真を選択";
 
@@ -251,6 +252,37 @@ describe("ParticipationAccess", () => {
     expect(screen.getByRole("button", { name: "Sui wallet" })).toBeTruthy();
   });
 
+  it("hides signed-out upload start buttons when the unit is full", () => {
+    useEnokiConfigStateMock.mockReturnValue({
+      submitEnabled: true,
+      config: {},
+    });
+    useWalletsMock.mockReturnValue([
+      { id: "google-wallet" },
+      { id: "sui-wallet" },
+    ]);
+    useCurrentAccountMock.mockReturnValue(null);
+    useCurrentWalletMock.mockReturnValue({
+      connectionStatus: "disconnected",
+    });
+    useConnectWalletMock.mockReturnValue({ mutateAsync: vi.fn() });
+    useDisconnectWalletMock.mockReturnValue({ mutate: vi.fn() });
+    useSubmitPhotoMock.mockReturnValue({
+      isSubmitting: false,
+      submitPhoto: vi.fn(),
+    });
+
+    render(
+      <UnitFullStateProvider initialFull={true}>
+        <ParticipationAccess unitId="0xunit-1" />
+      </UnitFullStateProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Google zkLogin" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sui wallet" })).toBeNull();
+    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+  });
+
   it("keeps the signed-out Sui wallet modal controlled", async () => {
     useEnokiConfigStateMock.mockReturnValue({
       submitEnabled: true,
@@ -355,6 +387,21 @@ describe("ParticipationAccess", () => {
     fireEvent.click(consent);
     expect(consent.checked).toBe(true);
     expect(fileInput.disabled).toBe(false);
+  });
+
+  it("hides signed-in consent and file upload controls when the unit is full", () => {
+    setupSignedInEnv();
+
+    render(
+      <UnitFullStateProvider initialFull={true}>
+        <ParticipationAccess unitId="0xunit-1" />
+      </UnitFullStateProvider>,
+    );
+
+    expect(screen.queryByRole("checkbox", { name: /同意/ })).toBeNull();
+    expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
+    expect(screen.queryByRole("button", { name: /投稿を確定/ })).toBeNull();
+    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
   });
 
   it("calls preprocessPhoto with the chosen file and renders the preview URL", async () => {
@@ -1320,6 +1367,58 @@ describe("ParticipationAccess", () => {
       expect(
         screen.getByText(new RegExp(`42\\s*/\\s*${unitTileCount}`)),
       ).toBeTruthy();
+    });
+
+    it("closes upload access when a SubmittedEvent reaches maxSlots while keeping it open below cap", async () => {
+      setupSignedInEnv();
+
+      let capturedOnSubmitted: ((event: SubmittedEvent) => void) | undefined;
+      useUnitEventsMock.mockImplementation((args: UseUnitEventsArgs) => {
+        capturedOnSubmitted = args.onSubmitted;
+      });
+
+      render(
+        <UnitFullStateProvider initialFull={false}>
+          <LiveProgress
+            initialSubmittedCount={1998}
+            maxSlots={2000}
+            packageId="0xpkg"
+            unitId="0xunit-1"
+          />
+          <ParticipationAccess unitId="0xunit-1" />
+        </UnitFullStateProvider>,
+      );
+
+      expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 1999,
+          submittedCount: 1999,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
+
+      act(() => {
+        capturedOnSubmitted?.({
+          kind: "submitted",
+          unitId: "0xunit-1",
+          submitter: "0xabc123",
+          walrusBlobId: [],
+          submissionNo: 2000,
+          submittedCount: 2000,
+          maxSlots: 2000,
+        });
+      });
+
+      expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
+      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
     });
   });
 });

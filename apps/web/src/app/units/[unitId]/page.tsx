@@ -19,6 +19,7 @@ import { getUnitProgress } from "../../../lib/sui";
 import type { WalrusEnv } from "../../../lib/walrus/put";
 
 import { ParticipationAccess } from "./participation-access";
+import { UnitFullStateProvider } from "./unit-full-state";
 import { UnitRevealClient } from "./unit-reveal-client";
 
 type UnitPageProps = {
@@ -75,128 +76,133 @@ export default async function UnitPage(
 
   const hasProgress = progress.submittedCount >= 0;
 
+  const initialUnitFull =
+    hasProgress && progress.submittedCount >= progress.maxSlots;
+
   return (
-    <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
-      <div className="mx-auto grid max-w-6xl gap-px bg-[var(--rule)] lg:grid-cols-[1fr_380px]">
-        <section className="relative flex min-h-[80vh] flex-col justify-between gap-10 bg-[var(--bg-2)] p-8 md:p-12 lg:p-14">
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at 50% 45%, rgba(255, 122, 26, 0.08), transparent 65%)",
-            }}
-          />
-          <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
-            <nav className="flex flex-wrap items-center gap-4">
-              <Link
-                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
-                href="/"
-              >
-                ← All athletes
-              </Link>
-              <Link
-                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
-                href="/gallery"
-              >
-                Participation history
-              </Link>
-            </nav>
-            <div className="text-right font-mono-op text-[11px] text-[var(--ink-dim)]">
-              <div>
-                {displayName}{" "}
-                <span className="text-[var(--ember)]">— UNIT</span>
-              </div>
-              <div className="mt-1 break-all text-[var(--ink-faint)]">
-                one_portrait::unit · {unitId.slice(0, 10)}…
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 grid justify-items-center gap-6 text-center">
-            <div className="op-eyebrow">
-              <span className="bar" />
-              <span
-                className="h-2 w-2 rounded-full bg-[var(--ember)]"
-                style={{
-                  boxShadow: "0 0 14px var(--ember)",
-                  animation: "op-pulse 1s infinite",
-                }}
-              />
-              <span>UNIT ACTIVE — HIDDEN UNTIL REVEAL</span>
-            </div>
-
-            {thumbnailUrl ? (
-              // biome-ignore lint: external placeholder thumbnail
-              <img
-                alt={displayName}
-                className="h-24 w-24 rounded-none border border-[var(--rule-strong)] object-cover"
-                src={thumbnailUrl}
-              />
-            ) : null}
-
-            <h1 className="font-display text-[clamp(40px,7vw,88px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
-              {displayName}
-            </h1>
-            <p className="font-mono-op text-[11px] break-all text-[var(--ink-faint)]">
-              {unitId}
-            </p>
-
-            <div className="mt-4 w-full">
-              {hasProgress ? (
-                <UnitRevealClient
-                  aggregatorBase={aggregatorBase}
-                  displayName={displayName}
-                  eventSubscriptionEnabled={
-                    startupEnabled && typePackageId !== null
-                  }
-                  initialMasterId={progress.masterId}
-                  initialSubmittedCount={progress.submittedCount}
-                  maxSlots={progress.maxSlots}
-                  packageId={typePackageId}
-                  startupEnabled={startupEnabled}
-                  unitId={unitId}
-                />
-              ) : (
-                <p className="font-serif-display italic text-lg text-[var(--ink-dim)]">
-                  待機中 / No active unit — on-chain progress is not available
-                  right now.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="relative z-10 text-right font-mono-op text-[11px] uppercase tracking-[0.12em] text-[var(--ink-dim)]">
-            Sponsored transaction · 0 SUI required
-            <br />
-            Soulbound mint on submit · Walrus blob storage
-          </div>
-        </section>
-
-        <aside className="flex flex-col gap-6 bg-[var(--bg-2)] p-6 lg:p-7">
-          {demoMode ? (
-            <DemoParticipationPreview />
-          ) : (
-            <ParticipationAccess
-              packageId={packageId}
-              startupEnabled={startupEnabled}
-              typePackageId={typePackageId}
-              unitId={unitId}
-              walrusEnv={walrusEnv}
+    <UnitFullStateProvider initialFull={initialUnitFull}>
+      <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
+        <div className="mx-auto grid max-w-6xl gap-px bg-[var(--rule)] lg:grid-cols-[1fr_380px]">
+          <section className="relative flex min-h-[80vh] flex-col justify-between gap-10 bg-[var(--bg-2)] p-8 md:p-12 lg:p-14">
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 45%, rgba(255, 122, 26, 0.08), transparent 65%)",
+              }}
             />
-          )}
-        </aside>
-      </div>
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+              <nav className="flex flex-wrap items-center gap-4">
+                <Link
+                  className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                  href="/"
+                >
+                  ← All athletes
+                </Link>
+                <Link
+                  className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                  href="/gallery"
+                >
+                  Participation history
+                </Link>
+              </nav>
+              <div className="text-right font-mono-op text-[11px] text-[var(--ink-dim)]">
+                <div>
+                  {displayName}{" "}
+                  <span className="text-[var(--ember)]">— UNIT</span>
+                </div>
+                <div className="mt-1 break-all text-[var(--ink-faint)]">
+                  one_portrait::unit · {unitId.slice(0, 10)}…
+                </div>
+              </div>
+            </div>
 
-      {/*
-       * Hook points for follow-up issues (kept as comments so reviewers can
-       * see the intended seams without dead components floating around):
-       *   - Submit button: zkLogin login + Enoki Sponsored Tx invoking
-       *     `PACKAGE_ID::accessors::submit_photo`.
-       *   - Reveal overlay: listen for MosaicReadyEvent on LiveProgress and
-       *     render the mosaic blob from Walrus (client-only).
-       *   - /api/finalize trigger: fire-and-forget POST on UnitFilledEvent.
-       */}
-    </main>
+            <div className="relative z-10 grid justify-items-center gap-6 text-center">
+              <div className="op-eyebrow">
+                <span className="bar" />
+                <span
+                  className="h-2 w-2 rounded-full bg-[var(--ember)]"
+                  style={{
+                    boxShadow: "0 0 14px var(--ember)",
+                    animation: "op-pulse 1s infinite",
+                  }}
+                />
+                <span>UNIT ACTIVE — HIDDEN UNTIL REVEAL</span>
+              </div>
+
+              {thumbnailUrl ? (
+                // biome-ignore lint: external placeholder thumbnail
+                <img
+                  alt={displayName}
+                  className="h-24 w-24 rounded-none border border-[var(--rule-strong)] object-cover"
+                  src={thumbnailUrl}
+                />
+              ) : null}
+
+              <h1 className="font-display text-[clamp(40px,7vw,88px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
+                {displayName}
+              </h1>
+              <p className="font-mono-op text-[11px] break-all text-[var(--ink-faint)]">
+                {unitId}
+              </p>
+
+              <div className="mt-4 w-full">
+                {hasProgress ? (
+                  <UnitRevealClient
+                    aggregatorBase={aggregatorBase}
+                    displayName={displayName}
+                    eventSubscriptionEnabled={
+                      startupEnabled && typePackageId !== null
+                    }
+                    initialMasterId={progress.masterId}
+                    initialSubmittedCount={progress.submittedCount}
+                    maxSlots={progress.maxSlots}
+                    packageId={typePackageId}
+                    startupEnabled={startupEnabled}
+                    unitId={unitId}
+                  />
+                ) : (
+                  <p className="font-serif-display italic text-lg text-[var(--ink-dim)]">
+                    待機中 / No active unit — on-chain progress is not available
+                    right now.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="relative z-10 text-right font-mono-op text-[11px] uppercase tracking-[0.12em] text-[var(--ink-dim)]">
+              Sponsored transaction · 0 SUI required
+              <br />
+              Soulbound mint on submit · Walrus blob storage
+            </div>
+          </section>
+
+          <aside className="flex flex-col gap-6 bg-[var(--bg-2)] p-6 lg:p-7">
+            {demoMode ? (
+              <DemoParticipationPreview />
+            ) : (
+              <ParticipationAccess
+                packageId={packageId}
+                startupEnabled={startupEnabled}
+                typePackageId={typePackageId}
+                unitId={unitId}
+                walrusEnv={walrusEnv}
+              />
+            )}
+          </aside>
+        </div>
+
+        {/*
+         * Hook points for follow-up issues (kept as comments so reviewers can
+         * see the intended seams without dead components floating around):
+         *   - Submit button: zkLogin login + Enoki Sponsored Tx invoking
+         *     `PACKAGE_ID::accessors::submit_photo`.
+         *   - Reveal overlay: listen for MosaicReadyEvent on LiveProgress and
+         *     render the mosaic blob from Walrus (client-only).
+         *   - /api/finalize trigger: fire-and-forget POST on UnitFilledEvent.
+         */}
+      </main>
+    </UnitFullStateProvider>
   );
 }
 

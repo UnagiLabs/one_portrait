@@ -35,6 +35,7 @@ import {
   type WalrusPutResult,
 } from "../../../lib/walrus/put";
 import { SuiWalletConnectModal } from "../../sui-wallet-connect-modal";
+import { useUnitFullState } from "./unit-full-state";
 
 /**
  * Waiting-room submission access.
@@ -186,6 +187,7 @@ function ParticipationAccessEnabled({
   const connectWallet = useConnectWallet();
   const disconnectWallet = useDisconnectWallet();
   const { submitPhoto } = useSubmitPhoto(unitId);
+  const { isFull: unitFull } = useUnitFullState();
 
   const [connectError, setConnectError] = useState<string | null>(null);
   const [consented, setConsented] = useState(false);
@@ -443,10 +445,11 @@ function ParticipationAccessEnabled({
       : null;
   const submitButtonDisabled = isUploading || isSubmitting || isRecovering;
   const showSubmitButton =
-    phase.kind === "previewing" ||
-    phase.kind === "uploading" ||
-    phase.kind === "submitting";
-  const showConsentAndFilePicker = !isDone && !isRecovering;
+    !unitFull &&
+    (phase.kind === "previewing" ||
+      phase.kind === "uploading" ||
+      phase.kind === "submitting");
+  const showConsentAndFilePicker = !unitFull && !isDone && !isRecovering;
   const phaseErrorMessage = phase.kind === "error" ? phase.message : null;
   const phaseRetry = phase.kind === "error" ? (phase.retry ?? null) : null;
   const donePhase = phase.kind === "done" ? phase : null;
@@ -475,6 +478,8 @@ function ParticipationAccessEnabled({
           <p className="font-mono-op text-[11px] break-all text-[var(--ember)]">
             {currentAccount.address}
           </p>
+
+          {unitFull ? <FullUnitMessage /> : null}
 
           {showConsentAndFilePicker ? (
             <>
@@ -654,6 +659,8 @@ function ParticipationAccessEnabled({
             </button>
           </div>
         </>
+      ) : unitFull ? (
+        <FullUnitMessage />
       ) : (
         <>
           <p className="text-sm text-[var(--ink-dim)]">
@@ -725,6 +732,14 @@ function ParticipationAccessEnabled({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function FullUnitMessage(): React.ReactElement {
+  return (
+    <p className="text-sm text-[var(--ink-dim)]">
+      この Unit は満枠です。新しい投稿は受け付けていません。
+    </p>
   );
 }
 
