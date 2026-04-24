@@ -32,6 +32,23 @@ describe("getAthleteCatalog", () => {
 
     expect(slugs.size).toBe(catalog.length);
   });
+
+  it("has unique home rail matching keys across entries", async () => {
+    const catalog = await getAthleteCatalog();
+    const seenKeys = new Set<string>();
+    const duplicateKeys: string[] = [];
+
+    for (const entry of catalog) {
+      const key = `${entry.displayName}\n${entry.thumbnailUrl}`;
+
+      if (seenKeys.has(key)) {
+        duplicateKeys.push(`${entry.displayName} (${entry.thumbnailUrl})`);
+      }
+      seenKeys.add(key);
+    }
+
+    expect(duplicateKeys).toEqual([]);
+  });
 });
 
 describe("getAthleteBySlug", () => {
