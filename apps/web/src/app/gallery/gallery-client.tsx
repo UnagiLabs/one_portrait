@@ -338,7 +338,7 @@ function GalleryEntriesSection({
   onOriginalImageError,
 }: GalleryEntriesSectionProps): React.ReactElement {
   return (
-    <section className="grid gap-px bg-[var(--rule)] md:grid-cols-2">
+    <section className="op-gallery-grid">
       {entries.map((entry) => (
         <GalleryCard
           athlete={findAthlete(catalog, entry.unitId)}
@@ -442,28 +442,106 @@ function GalleryCard({
 
   const statusLabel =
     entry.status.kind === "completed"
-      ? "Completed"
+      ? "Complete"
       : entry.status.kind === "pending"
         ? "Pending"
         : "Unavailable";
 
   return (
-    <article className="op-kakera-card relative grid gap-5 bg-[var(--bg-2)] p-6">
+    <article
+      className={`op-kakera-card relative grid gap-5 bg-[var(--bg-2)] p-6 ${
+        completedEntry ? "is-complete" : ""
+      }`}
+    >
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="grid gap-1">
-          <p className="font-mono-op text-[11px] uppercase tracking-[0.2em] text-[var(--ember)]">
-            {statusLabel}
-          </p>
-          <h2 className="font-display text-[28px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
+          <p className="op-kakera-status-chip">{statusLabel}</p>
+          <h2 className="font-display text-[30px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
             {displayName}
           </h2>
-          <p className="font-mono-op text-[11px] break-all text-[var(--ink-dim)]">
-            {entry.unitId}
+          <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+            Kakera · Submission #{entry.submissionNo}
           </p>
         </div>
-        <div className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-          KAKERA · Fragment
+        <div className="op-kakera-card-mark">
+          <span>K</span>
         </div>
+      </div>
+
+      <div className="relative z-10 grid gap-4">
+        <section className="grid gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+              Your photo
+            </p>
+            {completedEntry ? (
+              <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ok)]">
+                Mosaic ready
+              </p>
+            ) : null}
+          </div>
+          <div className="op-kakera-photo-frame">
+            {originalPhotoUrl && !originalImageFailed ? (
+              // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
+              <img
+                alt={`${displayName} original submission`}
+                className="op-kakera-photo"
+                onError={onOriginalImageError}
+                src={originalPhotoUrl}
+              />
+            ) : (
+              <div className="op-kakera-photo-unavailable">
+                Original photo unavailable
+              </div>
+            )}
+          </div>
+        </section>
+
+        {completedEntry !== null ? (
+          <section className="op-kakera-mosaic-strip">
+            <div>
+              <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ok)]">
+                Completed mosaic
+              </p>
+              <p className="mt-1 text-xs text-[var(--ink-dim)]">
+                Your Kakera is placed in the final portrait.
+              </p>
+            </div>
+            {completedMosaicUrl ? (
+              <div
+                className="op-kakera-mosaic-thumb"
+                style={{
+                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+                }}
+              >
+                {/* biome-ignore lint: Walrus aggregator image is a dynamic external URL. */}
+                <img
+                  alt={`${displayName} completed mosaic`}
+                  className="block h-full w-full object-cover"
+                  src={completedMosaicUrl}
+                />
+              </div>
+            ) : (
+              <div
+                className="op-kakera-mosaic-thumb op-kakera-mosaic-thumb-empty"
+                style={{
+                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
+                }}
+              >
+                Mosaic unavailable
+              </div>
+            )}
+          </section>
+        ) : null}
+      </div>
+
+      <div className="relative z-10 grid gap-1">
+        <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+          Unit
+        </p>
+        <p className="font-mono-op text-[11px] break-all text-[var(--ink-dim)]">
+          {entry.unitId}
+        </p>
       </div>
 
       {completedEntry ? (
@@ -480,68 +558,7 @@ function GalleryCard({
         </div>
       ) : null}
 
-      <div className="relative z-10 grid gap-4">
-        <section className="grid gap-2">
-          <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-            Original
-          </p>
-          {originalPhotoUrl && !originalImageFailed ? (
-            // biome-ignore lint: Walrus aggregator image is a dynamic external URL.
-            <img
-              alt={`${displayName} original submission`}
-              className="h-48 w-full border border-[var(--rule-strong)] object-cover"
-              onError={onOriginalImageError}
-              src={originalPhotoUrl}
-            />
-          ) : (
-            <div className="border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] px-4 py-10 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-              Original photo unavailable
-            </div>
-          )}
-        </section>
-
-        {completedEntry !== null ? (
-          <section className="grid gap-2">
-            <p className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ok)]">
-              Mosaic
-            </p>
-            {completedMosaicUrl ? (
-              <div
-                className="w-full overflow-hidden border border-[rgba(20,184,138,0.3)] bg-[rgba(5,3,2,0.6)]"
-                style={{
-                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
-                }}
-              >
-                {/* biome-ignore lint: Walrus aggregator image is a dynamic external URL. */}
-                <img
-                  alt={`${displayName} completed mosaic`}
-                  className="block h-full w-full object-cover"
-                  src={completedMosaicUrl}
-                />
-              </div>
-            ) : (
-              <div
-                className="grid w-full place-items-center border border-dashed border-[var(--rule-strong)] bg-[rgba(5,3,2,0.6)] p-4 text-center font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
-                style={{
-                  aspectRatio: `${unitTileGrid.cols} / ${unitTileGrid.rows}`,
-                }}
-              >
-                Completed mosaic unavailable
-              </div>
-            )}
-          </section>
-        ) : null}
-      </div>
-
       <dl className="relative z-10 grid gap-2 border-t border-[var(--rule)] pt-4 text-sm text-[var(--ink)]">
-        <div className="flex items-center justify-between gap-4">
-          <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-            Submission
-          </dt>
-          <dd className="font-mono-op text-[12px] text-[var(--ember)]">
-            Submission #{entry.submissionNo}
-          </dd>
-        </div>
         {entry.status.kind === "pending" ? (
           <div className="flex items-center justify-between gap-4">
             <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
@@ -565,7 +582,7 @@ function GalleryCard({
                 Status
               </dt>
               <dd className="font-mono-op text-[12px] text-[var(--ok)]">
-                Completed
+                Complete
               </dd>
             </div>
             <div className="flex items-start justify-between gap-4">
