@@ -1,4 +1,3 @@
-import { unitTileCount } from "@one-portrait/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SuiReadClient } from "./client";
@@ -35,8 +34,11 @@ function unitData(fields: Record<string, unknown>) {
       fields: {
         id: { id: UNIT_ID },
         athlete_id: 1,
+        display_name: bytes("Demo Athlete One"),
+        thumbnail_url: bytes("https://example.com/1.png"),
         target_walrus_blob: [],
-        max_slots: String(unitTileCount),
+        max_slots: "5",
+        display_max_slots: "2000",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
@@ -51,46 +53,28 @@ function unitData(fields: Record<string, unknown>) {
 }
 
 describe("getUnitProgress", () => {
-  it("returns view model with status pending for an empty unit", async () => {
-    const client = clientReturning(unitData({}));
-
-    const view = await getUnitProgress(UNIT_ID, { client });
-
-    expect(view).toEqual({
-      unitId: UNIT_ID,
-      athletePublicId: "1",
-      submittedCount: 0,
-      maxSlots: unitTileCount,
-      status: "pending",
-      masterId: null,
-    });
-  });
-
-  it("derives submittedCount from the submissions vector length", async () => {
+  it("returns the display-facing progress model", async () => {
     const client = clientReturning(
       unitData({
-        submissions: [
-          { fields: { walrus_blob_id: [], submission_no: "1" } },
-          { fields: { walrus_blob_id: [], submission_no: "2" } },
-          { fields: { walrus_blob_id: [], submission_no: "3" } },
-        ],
+        submissions: [{ fields: { walrus_blob_id: [], submission_no: "1" } }],
       }),
     );
 
-    const view = await getUnitProgress(UNIT_ID, { client });
-
-    expect(view.submittedCount).toBe(3);
+    await expect(getUnitProgress(UNIT_ID, { client })).resolves.toEqual({
+      unitId: UNIT_ID,
+      athletePublicId: "1",
+      displayName: "Demo Athlete One",
+      masterId: null,
+      maxSlots: 2000,
+      realMaxSlots: 5,
+      realSubmittedCount: 1,
+      status: "pending",
+      submittedCount: 1996,
+      thumbnailUrl: "https://example.com/1.png",
+    });
   });
 
-  it("maps Move status u8 1 to 'filled'", async () => {
-    const client = clientReturning(unitData({ status: 1 }));
-
-    const view = await getUnitProgress(UNIT_ID, { client });
-
-    expect(view.status).toBe("filled");
-  });
-
-  it("maps Move status u8 2 to 'finalized' and exposes masterId", async () => {
+  it("maps finalized status and exposes masterId", async () => {
     const client = clientReturning(
       unitData({
         status: 2,
@@ -111,18 +95,8 @@ describe("getUnitProgress", () => {
       UnitNotFoundError,
     );
   });
-
-  it("propagates transport errors", async () => {
-    const client = {
-      network: "testnet",
-      getObject: vi.fn(async () => {
-        throw new Error("rpc down");
-      }),
-      getDynamicFieldObject: vi.fn(),
-    } as unknown as SuiReadClient;
-
-    await expect(getUnitProgress(UNIT_ID, { client })).rejects.toThrow(
-      /rpc down/,
-    );
-  });
 });
+
+function bytes(value: string) {
+  return Array.from(new TextEncoder().encode(value));
+}

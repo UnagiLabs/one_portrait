@@ -7,11 +7,15 @@ export { UnitNotFoundError } from "./unit";
 
 export type AdminUnitSnapshot = {
   readonly athletePublicId: string;
+  readonly displayName: string;
+  readonly displayMaxSlots: number;
   readonly masterId: string | null;
   readonly maxSlots: number;
+  readonly realSubmittedCount: number;
   readonly status: UnitStatus;
   readonly submittedCount: number;
   readonly targetWalrusBlobId: string;
+  readonly thumbnailUrl: string;
   readonly unitId: string;
 };
 
@@ -32,17 +36,27 @@ export async function getAdminUnitSnapshot(
   }
 
   const fields = extractMoveObjectFields(data.content);
+  const maxSlots = parseIntegerField(fields.max_slots, "max_slots");
+  const displayMaxSlots = parseIntegerField(
+    fields.display_max_slots,
+    "display_max_slots",
+  );
+  const realSubmittedCount = countSubmissions(fields.submissions);
 
   return {
     athletePublicId: String(parseIntegerField(fields.athlete_id, "athlete_id")),
+    displayName: readVectorU8AsString(fields.display_name, "display_name"),
+    displayMaxSlots,
     masterId: extractOptionalId(fields.master_id),
-    maxSlots: parseIntegerField(fields.max_slots, "max_slots"),
+    maxSlots,
+    realSubmittedCount,
     status: normalizeUnitStatus(fields.status),
-    submittedCount: countSubmissions(fields.submissions),
+    submittedCount: displayMaxSlots - maxSlots + realSubmittedCount,
     targetWalrusBlobId: readVectorU8AsString(
       fields.target_walrus_blob,
       "target_walrus_blob",
     ),
+    thumbnailUrl: readVectorU8AsString(fields.thumbnail_url, "thumbnail_url"),
     unitId: data.objectId,
   };
 }

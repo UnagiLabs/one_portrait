@@ -1,13 +1,3 @@
-/**
- * Read helper for `Unit` shared objects.
- *
- * Returns the {@link AthleteProgressView} consumed by progress UI. The view
- * model intentionally does **not** mirror every Move field — only what the
- * `/athletes/[slug]` and dashboard surfaces actually render. Add fields here
- * (and in `types.ts`) when a new screen needs them; do not push the raw
- * `SuiObjectData` past this boundary.
- */
-
 import { getSuiClient, type SuiReadClient } from "./client";
 import {
   type AthleteProgressView,
@@ -41,20 +31,29 @@ export async function getUnitProgress(
   const fields = extractMoveObjectFields(data.content);
 
   const status: UnitStatus = normalizeUnitStatus(fields.status);
-  const submittedCount = countSubmissions(fields.submissions);
-  const maxSlots = parseIntegerField(fields.max_slots, "max_slots");
+  const realSubmittedCount = countSubmissions(fields.submissions);
+  const realMaxSlots = parseIntegerField(fields.max_slots, "max_slots");
+  const maxSlots = parseIntegerField(
+    fields.display_max_slots,
+    "display_max_slots",
+  );
   const athletePublicId = String(
     parseIntegerField(fields.athlete_id, "athlete_id"),
   );
   const masterId = extractOptionalId(fields.master_id);
+  const submittedCount = maxSlots - realMaxSlots + realSubmittedCount;
 
   return {
     unitId: data.objectId,
     athletePublicId,
-    submittedCount,
-    maxSlots,
-    status,
+    displayName: readVectorU8AsString(fields.display_name, "display_name"),
     masterId,
+    maxSlots,
+    realMaxSlots,
+    realSubmittedCount,
+    status,
+    submittedCount,
+    thumbnailUrl: readVectorU8AsString(fields.thumbnail_url, "thumbnail_url"),
   };
 }
 
@@ -75,10 +74,24 @@ function parseIntegerField(value: unknown, fieldName: string): number {
   throw new Error(`Unit.${fieldName} is not a numeric value: ${String(value)}`);
 }
 
+function readVectorU8AsString(value: unknown, label: string): string {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} is not a byte array`);
+  }
+
+  const bytes = new Uint8Array(value.length);
+  for (let index = 0; index < value.length; index += 1) {
+    const entry = value[index];
+    if (typeof entry !== "number" || !Number.isInteger(entry)) {
+      throw new Error(`${label}[${index}] is not an integer byte`);
+    }
+    bytes[index] = entry & 0xff;
+  }
+
+  return new TextDecoder().decode(bytes);
+}
+
 function extractOptionalId(value: unknown): string | null {
-  // `Option<ID>` serialises as `{ fields: { vec: [] } }` (none) or
-  // `{ fields: { vec: ["0x..."] } }` (some). Some RPC responses
-  // also flatten the outer `fields` wrapper, so accept both shapes.
   if (value === null || value === undefined) {
     return null;
   }

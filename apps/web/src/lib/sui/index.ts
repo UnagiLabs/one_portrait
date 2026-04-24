@@ -60,7 +60,6 @@ export {
 } from "./kakera";
 export {
   getActiveHomeUnits,
-  getCurrentUnitIdForAthlete,
   getRegistryObject,
   listRegistryAthletes,
   RegistryNotFoundError,

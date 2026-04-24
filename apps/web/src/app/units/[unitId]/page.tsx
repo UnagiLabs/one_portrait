@@ -35,10 +35,12 @@ type UnitPageProps = {
 };
 
 type ResolvedProgress = {
+  readonly displayName: string | null;
   readonly submittedCount: number;
   readonly maxSlots: number;
   readonly athletePublicId: string | null;
   readonly masterId: string | null;
+  readonly thumbnailUrl: string | null;
 };
 
 const FALLBACK_MAX_SLOTS = unitTileCount;
@@ -69,15 +71,16 @@ export default async function UnitPage(
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
     : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
-  const athlete = progress.athletePublicId
+  const athlete =
+    demoMode && progress.athletePublicId
     ? await safeGetAthleteByPublicId(progress.athletePublicId)
     : null;
 
   const displayName = resolveDisplayName(
     searchParams.athleteName,
-    athlete?.displayName ?? null,
+    progress.displayName ?? athlete?.displayName ?? null,
   );
-  const thumbnailUrl = athlete?.thumbnailUrl ?? null;
+  const thumbnailUrl = progress.thumbnailUrl ?? athlete?.thumbnailUrl ?? null;
 
   const hasProgress =
     progress.submittedCount >= 0 && progress.athletePublicId !== null;
@@ -263,10 +266,12 @@ function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {
   }
 
   return {
+    displayName: view.displayName,
     submittedCount: view.submittedCount,
     maxSlots: view.maxSlots,
     athletePublicId: view.athletePublicId,
     masterId: view.masterId,
+    thumbnailUrl: view.thumbnailUrl,
   };
 }
 
@@ -274,10 +279,12 @@ async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {
   try {
     const view = await getUnitProgress(unitId);
     return {
+      displayName: view.displayName,
       submittedCount: view.submittedCount,
       maxSlots: view.maxSlots,
       athletePublicId: view.athletePublicId,
       masterId: view.masterId,
+      thumbnailUrl: view.thumbnailUrl,
     };
   } catch {
     return degradedProgress();
@@ -307,10 +314,12 @@ function resolveDisplayName(
 
 function degradedProgress(): ResolvedProgress {
   return {
+    displayName: null,
     submittedCount: -1,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: null,
     masterId: null,
+    thumbnailUrl: null,
   };
 }
 
@@ -339,18 +348,22 @@ function resolveE2EUnitProgress(
 
 function activeProgress(): ResolvedProgress {
   return {
+    displayName: "Demo Athlete One",
     submittedCount: FALLBACK_MAX_SLOTS - 1,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: "1",
     masterId: null,
+    thumbnailUrl: null,
   };
 }
 
 function finalizedProgress(): ResolvedProgress {
   return {
+    displayName: "Demo Athlete One",
     submittedCount: FALLBACK_MAX_SLOTS,
     maxSlots: FALLBACK_MAX_SLOTS,
     athletePublicId: STUB_ATHLETE_ID,
     masterId: STUB_MASTER_ID,
+    thumbnailUrl: null,
   };
 }
