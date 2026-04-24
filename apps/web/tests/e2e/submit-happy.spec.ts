@@ -82,19 +82,29 @@ test.describe("submit happy path", () => {
     });
   });
 
-  test("shows a gallery CTA after successful submission on mobile", async ({
+  test("shows unit status and gallery CTAs after successful submission on mobile", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installDefaultMocks(page);
     await submitPhoto(page);
 
+    const unitStatusLink = page.getByRole("link", {
+      name: "完成状況を確認",
+    });
     const galleryLink = page.getByRole("link", {
       name: "履歴ギャラリーを見る",
     });
+    await expect(unitStatusLink).toBeVisible({ timeout: 15_000 });
+    await expect(unitStatusLink).toHaveAttribute(
+      "href",
+      `/units/${STUB_UNIT_ID}`,
+    );
     await expect(galleryLink).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText("次は履歴ギャラリーで参加記録を確認できます。"),
+      page.getByText(
+        "この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。",
+      ),
     ).toBeVisible();
 
     await galleryLink.click();

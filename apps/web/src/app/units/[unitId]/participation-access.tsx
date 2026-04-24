@@ -582,7 +582,7 @@ function ParticipationAccessEnabled({
                 投稿が完了しました。
               </p>
               <p className="text-sm text-[var(--ink-dim)]">
-                次は履歴ギャラリーで参加記録を確認できます。
+                この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。
               </p>
 
               {/* biome-ignore lint: local object URL preview, next/image N/A. */}
@@ -631,6 +631,9 @@ function ParticipationAccessEnabled({
               </p>
 
               <div className="flex flex-wrap gap-3">
+                <Link className="op-btn-primary" href={`/units/${unitId}`}>
+                  完成状況を確認
+                </Link>
                 <Link className="op-btn-primary" href="/gallery">
                   履歴ギャラリーを見る
                 </Link>

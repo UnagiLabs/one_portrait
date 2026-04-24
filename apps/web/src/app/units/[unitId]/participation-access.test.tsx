@@ -803,8 +803,15 @@ describe("ParticipationAccess", () => {
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
       expect(
-        screen.getByText(/次は履歴ギャラリーで参加記録を確認できます。/),
+        screen.getByText(
+          /この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。/,
+        ),
       ).toBeTruthy();
+      expect(
+        screen
+          .getByRole("link", { name: "完成状況を確認" })
+          .getAttribute("href"),
+      ).toBe("/units/0xunit-1");
       expect(
         screen
           .getByRole("link", { name: "履歴ギャラリーを見る" })
