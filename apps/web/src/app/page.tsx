@@ -146,11 +146,7 @@ export default async function HomePage(
         ) : (
           <div className="grid gap-px bg-[var(--rule)] md:grid-cols-2 xl:grid-cols-4">
             {entries.map((athlete, idx) => (
-              <AthleteCard
-                athlete={athlete}
-                idx={idx}
-                key={athlete.unitId}
-              />
+              <AthleteCard athlete={athlete} idx={idx} key={athlete.unitId} />
             ))}
           </div>
         )}

@@ -48,7 +48,9 @@ describe("getAthleteBySlug", () => {
   });
 
   it("returns undefined for an unknown slug", async () => {
-    await expect(getAthleteBySlug("does-not-exist-xyz")).resolves.toBeUndefined();
+    await expect(
+      getAthleteBySlug("does-not-exist-xyz"),
+    ).resolves.toBeUndefined();
   });
 });
 

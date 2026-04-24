@@ -54,12 +54,6 @@ export async function prepareFinalizeInput(
     snapshot.targetWalrusBlobId,
   );
   const submissions = sortSubmissions(snapshot.submissions);
-  const displayMaxSlots =
-    typeof snapshot.displayMaxSlots === "number" &&
-    Number.isInteger(snapshot.displayMaxSlots) &&
-    snapshot.displayMaxSlots > 0
-      ? snapshot.displayMaxSlots
-      : submissions.length;
 
   const preparedRealSubmissions = await Promise.all(
     submissions.map(async (submission) => {

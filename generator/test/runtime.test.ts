@@ -136,6 +136,11 @@ describe("createFinalizeRunner", () => {
       },
     ];
     const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+    const prepared = preparedInput();
+    const firstSubmission = prepared.submissions[0];
+    if (firstSubmission == null) {
+      throw new Error("missing prepared submission");
+    }
 
     const runner = createFinalizeRunner({
       readUnitSnapshot: vi.fn(async () => ({
@@ -144,9 +149,9 @@ describe("createFinalizeRunner", () => {
         masterId: null,
       })),
       prepareInput: vi.fn(async () => ({
-        ...preparedInput(),
+        ...prepared,
         submissions: [
-          preparedInput().submissions[0]!,
+          firstSubmission,
           {
             submissionNo: 2,
             submitter: "0xdemo-dummy-0001",

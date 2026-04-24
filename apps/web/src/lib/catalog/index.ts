@@ -8,8 +8,8 @@
  */
 
 export {
-  getAthleteByUnitId,
   getAthleteBySlug,
+  getAthleteByUnitId,
   getAthleteCatalog,
 } from "./athlete-catalog";
 export type {

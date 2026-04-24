@@ -14,10 +14,7 @@ import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
 import { getDemoUnitProgress, isDemoModeEnabled } from "../../../lib/demo";
-import {
-  STUB_MASTER_ID,
-  STUB_UNIT_ID,
-} from "../../../lib/e2e/stub-data";
+import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../../lib/e2e/stub-data";
 import { getUnitProgress } from "../../../lib/sui";
 import type { WalrusEnv } from "../../../lib/walrus/put";
 

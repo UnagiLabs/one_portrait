@@ -8,7 +8,6 @@ import {
 } from "./event-types";
 
 const UNIT_ID = "0xunit-1";
-const ATHLETE_ID = 7;
 const SUBMITTER = "0xsubmitter";
 const MASTER_ID = "0xmaster";
 
