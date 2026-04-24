@@ -181,6 +181,13 @@ export function toGeneratorEnv(manifest) {
   };
 }
 
+export function toWranglerVarArgs(envOrManifestPublicEnv) {
+  return webPublicEnvKeys.flatMap((key) => {
+    const value = envOrManifestPublicEnv?.[key];
+    return typeof value === "string" ? ["--var", `${key}:${value}`] : [];
+  });
+}
+
 export function readDeploymentSecretsEnv({
   repoRoot = defaultRepoRoot,
   secretsPath,
@@ -351,6 +358,10 @@ if (import.meta.url === pathToFileUrl(process.argv[1])) {
       printEnv(toWebPublicEnv(manifest));
     } else if (command === "generator") {
       printEnv(toGeneratorEnv(manifest));
+    } else if (command === "wrangler-vars") {
+      console.log(
+        toWranglerVarArgs(toWebPublicEnv(manifest)).map(shellEscape).join(" "),
+      );
     } else if (command === "json") {
       console.log(JSON.stringify(manifest, null, 2));
     } else if (command === "check-drift") {
@@ -358,7 +369,7 @@ if (import.meta.url === pathToFileUrl(process.argv[1])) {
       console.log("deployment manifest drift check passed");
     } else {
       throw new Error(
-        `Unknown command "${command}". Use web, generator, json, or check-drift.`,
+        `Unknown command "${command}". Use web, web-public, generator, wrangler-vars, json, or check-drift.`,
       );
     }
   } catch (error) {

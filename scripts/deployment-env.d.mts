@@ -28,6 +28,10 @@ export function toGeneratorEnv(
   manifest: DeploymentManifest,
 ): Record<string, string>;
 
+export function toWranglerVarArgs(
+  envOrManifestPublicEnv: Record<string, string>,
+): string[];
+
 export function checkPublishedTomlDrift(options?: {
   readonly manifest?: DeploymentManifest;
   readonly publishedTomlPath?: string;
