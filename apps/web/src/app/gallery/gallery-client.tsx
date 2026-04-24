@@ -440,6 +440,9 @@ function GalleryCard({
   const completedMosaicUrl = completedEntry
     ? buildWalrusAggregatorUrl(completedEntry.mosaicWalrusBlobId)
     : null;
+  const kakeraSuiscanUrl = entry.kakeraObjectId
+    ? buildSuiscanObjectUrl(entry.kakeraObjectId)
+    : null;
 
   const statusLabel =
     entry.status.kind === "completed"
@@ -543,6 +546,27 @@ function GalleryCard({
             Submission #{entry.submissionNo}
           </dd>
         </div>
+        {entry.kakeraObjectId ? (
+          <div className="flex items-start justify-between gap-4">
+            <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+              Kakera Object ID
+            </dt>
+            <dd className="text-right font-mono-op text-[11px] break-all text-[var(--sui)]">
+              {kakeraSuiscanUrl ? (
+                <a
+                  className="underline decoration-[rgba(77,162,255,0.45)] underline-offset-4 hover:text-[var(--ink)]"
+                  href={kakeraSuiscanUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {entry.kakeraObjectId}
+                </a>
+              ) : (
+                entry.kakeraObjectId
+              )}
+            </dd>
+          </div>
+        ) : null}
         {entry.status.kind === "pending" ? (
           <div className="flex items-center justify-between gap-4">
             <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
@@ -658,6 +682,14 @@ function buildUnitPageHref(args: {
   }
 
   return `/units/${args.unitId}?${searchParams.toString()}`;
+}
+
+function buildSuiscanObjectUrl(objectId: string): string | null {
+  const network = process.env.NEXT_PUBLIC_SUI_NETWORK?.trim() || "testnet";
+  if (!["mainnet", "testnet", "devnet"].includes(network)) {
+    return null;
+  }
+  return `https://suiscan.xyz/${network}/object/${objectId}`;
 }
 
 function createUnavailableEntry(kakera: OwnedKakera): GalleryUnavailableEntry {
