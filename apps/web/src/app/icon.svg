@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <title>ONE Portrait</title>
+  <rect fill="none" height="36" stroke="#FF7A1A" stroke-width="1.5" width="36" x="2" y="2" />
+  <rect fill="#FF7A1A" height="10" width="10" x="8" y="8" />
+  <rect fill="#FF7A1A" fill-opacity="0.4" height="10" width="10" x="22" y="8" />
+  <rect fill="#FF7A1A" fill-opacity="0.4" height="10" width="10" x="8" y="22" />
+  <rect fill="#FF7A1A" height="10" width="10" x="22" y="22" />
+</svg>

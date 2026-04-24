@@ -39,11 +39,11 @@ fun init_creates_admin_cap_kakera_display_and_shared_registry() {
     );
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"image_url")),
-        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true")
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/public/nft/kakera-image.jpg?raw=true")
     );
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"thumbnail_url")),
-        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true")
+        string::utf8(b"https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/public/nft/kakera-image.jpg?raw=true")
     );
     assert_eq!(
         *vec_map::get(display::fields(&kakera_display), &string::utf8(b"project_url")),

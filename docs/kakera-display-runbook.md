@@ -4,7 +4,7 @@
 
 ## 前提
 
-- `image_url` と `thumbnail_url` は固定で `https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true` を使う。
+- `image_url` と `thumbnail_url` は固定で `https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/public/nft/kakera-image.jpg?raw=true` を使う。
 - `name`、`description`、`project_url` は package の `registry.move` で定義した値を維持する。
 - Display 更新には Display object の owner 権限を持つ運用アドレスを使う。
 
@@ -54,6 +54,6 @@ curl -s -X POST "$SUI_RPC_URL" \
 
 - `image_url` は `sui::display::edit` で更新する。
 - `thumbnail_url` は存在しなければ `sui::display::add` で追加する。
-- どちらの値も `https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/src/app/icon.jpg?raw=true` にする。
+- どちらの値も `https://github.com/UnagiLabs/one_portrait/blob/main/apps/web/public/nft/kakera-image.jpg?raw=true` にする。
 
 `name`、`description`、`project_url` は変更しない。PTB 実行後、Display object の `version` が増えていることを確認し、上記の `sui_getObject` + `showDisplay: true` で current-package Kakera の表示を再検証する。
