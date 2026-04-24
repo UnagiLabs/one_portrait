@@ -55,14 +55,6 @@ export type SubmitPhotoTransactionResult = {
   readonly senderAddress: string;
 };
 
-const placementInputBcs = bcs.struct("PlacementInput", {
-  blob_id: bcs.vector(bcs.u8()),
-  x: bcs.u16(),
-  y: bcs.u16(),
-  submitter: bcs.Address,
-  submission_no: bcs.u64(),
-});
-
 export function createSuiClient(options: {
   readonly network: SuiNetwork;
 }): SuiJsonRpcClient {
@@ -126,23 +118,43 @@ export function createFinalizeTransactionExecutor(input: {
         ],
       });
     } else {
+      const encodedPlacements = args.placements.map((placement) => ({
+        blobId: Array.from(new TextEncoder().encode(placement.walrusBlobId)),
+        submissionNo: placement.submissionNo,
+        submitter: placement.submitter,
+        x: placement.x,
+        y: placement.y,
+      }));
+
       tx.moveCall({
-        target: `${input.packageId}::admin_api::finalize`,
+        target: `${input.packageId}::admin_api::finalize_with_primitive_placements`,
         arguments: [
           tx.object(input.adminCapId),
           tx.object(args.unitId),
           encodedMosaicBlobId,
           tx.pure(
-            bcs.vector(placementInputBcs).serialize(
-              args.placements.map((placement) => ({
-                blob_id: Array.from(
-                  new TextEncoder().encode(placement.walrusBlobId),
-                ),
-                x: placement.x,
-                y: placement.y,
-                submitter: placement.submitter,
-                submission_no: placement.submissionNo,
-              })),
+            bcs.vector(bcs.vector(bcs.u8())).serialize(
+              encodedPlacements.map((placement) => placement.blobId),
+            ),
+          ),
+          tx.pure(
+            bcs
+              .vector(bcs.u16())
+              .serialize(encodedPlacements.map((placement) => placement.x)),
+          ),
+          tx.pure(
+            bcs
+              .vector(bcs.u16())
+              .serialize(encodedPlacements.map((placement) => placement.y)),
+          ),
+          tx.pure(
+            bcs.vector(bcs.Address).serialize(
+              encodedPlacements.map((placement) => placement.submitter),
+            ),
+          ),
+          tx.pure(
+            bcs.vector(bcs.u64()).serialize(
+              encodedPlacements.map((placement) => placement.submissionNo),
             ),
           ),
         ],
