@@ -188,24 +188,6 @@ export async function runGeneratorStackTunnel({
           : processImpl.pid,
       url: publicBaseUrl,
     });
-    if (preflightResult.tunnelMode === "quick") {
-      const writeRemoteRuntimeResult = await writeRemoteRuntime({
-        env: mergedEnv,
-        logger,
-        mode: "quick",
-        url: publicBaseUrl,
-      });
-      if (!writeRemoteRuntimeResult.ok) {
-        await stopTrackedChild(generator);
-        await stopTrackedChild(tunnel);
-        return {
-          exitCode: 1,
-          marker: "[generator-stack][remote-kv][write-failed]",
-          ok: false,
-        };
-      }
-    }
-
     const externalHealth = await waitForHealthUntilReady({
       healthFactory: () =>
         waitForHealth({
@@ -242,6 +224,22 @@ export async function runGeneratorStackTunnel({
       await stopTrackedChild(generator);
       await stopTrackedChild(tunnel);
       return externalHealth.result;
+    }
+
+    const writeRemoteRuntimeResult = await writeRemoteRuntime({
+      env: mergedEnv,
+      logger,
+      mode: preflightResult.tunnelMode,
+      url: publicBaseUrl,
+    });
+    if (!writeRemoteRuntimeResult.ok) {
+      await stopTrackedChild(generator);
+      await stopTrackedChild(tunnel);
+      return {
+        exitCode: 1,
+        marker: "[generator-stack][remote-kv][write-failed]",
+        ok: false,
+      };
     }
 
     logger?.info?.("[generator-stack][ready]");

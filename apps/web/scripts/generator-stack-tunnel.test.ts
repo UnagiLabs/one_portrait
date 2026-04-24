@@ -755,14 +755,7 @@ describe("runGeneratorStackTunnel", () => {
           url: "https://fresh-runtime.trycloudflare.com/health",
         }),
       );
-      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          env: expect.objectContaining({}),
-          logger,
-          mode: "quick",
-          url: "https://fresh-runtime.trycloudflare.com",
-        }),
-      );
+      expect(writeRemoteGeneratorRuntimeMock).not.toHaveBeenCalled();
       expect(fs.existsSync(runtimeStatePath)).toBe(true);
 
       externalHealth.resolve({
@@ -771,6 +764,15 @@ describe("runGeneratorStackTunnel", () => {
         ok: true,
       });
       await settle();
+
+      expect(writeRemoteGeneratorRuntimeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          env: expect.objectContaining({}),
+          logger,
+          mode: "quick",
+          url: "https://fresh-runtime.trycloudflare.com",
+        }),
+      );
 
       expect(logger.info).toHaveBeenCalledWith("[generator-stack][ready]");
 
@@ -1007,6 +1009,7 @@ describe("runGeneratorStackTunnel", () => {
     const generatorChild = createChildProcess("generator");
     const tunnelChild = createChildProcess("tunnel");
     const localHealth = createDeferred();
+    const externalHealth = createDeferred();
 
     const preflight = vi.fn().mockResolvedValue({
       exitCode: 0,
@@ -1023,7 +1026,7 @@ describe("runGeneratorStackTunnel", () => {
         return localHealth.promise;
       }
 
-      throw new Error(`unexpected health probe for ${label}`);
+      return externalHealth.promise;
     });
 
     writeRemoteGeneratorRuntimeMock.mockResolvedValueOnce({
@@ -1052,6 +1055,15 @@ describe("runGeneratorStackTunnel", () => {
       "data",
       "Quick Tunnel ready: https://failed-sync.trycloudflare.com\n",
     );
+    await settle();
+
+    expect(writeRemoteGeneratorRuntimeMock).not.toHaveBeenCalled();
+
+    externalHealth.resolve({
+      exitCode: 0,
+      marker: "[generator-stack][health][external][ready]",
+      ok: true,
+    });
 
     await expect(runPromise).resolves.toEqual({
       exitCode: 1,
