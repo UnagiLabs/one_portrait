@@ -9,7 +9,10 @@ import {
   jsonError,
   parseFinalizeInput,
 } from "../../../../lib/finalize/api";
-import { dispatchFinalize } from "../../../../lib/finalize/dispatch";
+import {
+  dispatchFinalize,
+  getFinalizeDispatchFailure,
+} from "../../../../lib/finalize/dispatch";
 import { getFinalizeUnitSnapshot } from "../../../../lib/sui";
 
 export async function POST(request: Request): Promise<Response> {
@@ -46,6 +49,7 @@ export async function POST(request: Request): Promise<Response> {
       console.error("Admin finalize dispatch failed", error);
 
       return Response.json({
+        ...getFinalizeDispatchFailure(error),
         status: "ignored_dispatch_failed",
         unitId: input.unitId,
       });
@@ -65,6 +69,7 @@ function toResponse(error: unknown): Response {
   }
 
   return Response.json({
+    ...getFinalizeDispatchFailure(error),
     status: "ignored_dispatch_failed",
     unitId: null,
   });

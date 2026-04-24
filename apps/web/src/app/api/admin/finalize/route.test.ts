@@ -15,6 +15,10 @@ const {
 
 vi.mock("../../../../lib/finalize/dispatch", () => ({
   dispatchFinalize: dispatchFinalizeMock,
+  getFinalizeDispatchFailure: (error: unknown) => ({
+    code: "dispatch_failed",
+    message: error instanceof Error ? error.message : String(error),
+  }),
 }));
 
 vi.mock("../../../../lib/cloudflare-context", () => ({
@@ -126,6 +130,8 @@ describe("POST /api/admin/finalize", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      code: "dispatch_failed",
+      message: "generator offline",
       status: "ignored_dispatch_failed",
       unitId: VALID_UNIT_ID,
     });

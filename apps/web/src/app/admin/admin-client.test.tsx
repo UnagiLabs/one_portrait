@@ -4,6 +4,8 @@ import { unitTileCount } from "@one-portrait/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import testnetDeploymentManifest from "../../../../../ops/deployments/testnet.json";
+
 const { preprocessPhotoMock, putTargetBlobToWalrusMock } = vi.hoisted(() => ({
   preprocessPhotoMock: vi.fn(),
   putTargetBlobToWalrusMock: vi.fn(),
@@ -24,8 +26,7 @@ const HEALTH_OK = {
   dispatchAuthorization: { httpStatus: 200, status: "ok" } as const,
   expectedDeployment: {
     network: "testnet",
-    packageId:
-      "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    packageId: testnetDeploymentManifest.packageId,
   },
   generatorReadiness: { httpStatus: 200, status: "ok" } as const,
   resolutionStatus: "ok" as const,
@@ -80,6 +81,111 @@ describe("AdminClient", () => {
     expect(screen.getAllByText("ok")).toHaveLength(3);
     expect(screen.getByText("https://generator.example.com")).toBeTruthy();
     expect(screen.getByText("runtime_state")).toBeTruthy();
+  });
+
+  it("renders admin health warning details", () => {
+    render(
+      <AdminClient
+        initialAthletes={[]}
+        initialHealth={{
+          ...HEALTH_OK,
+          dispatchAuthorization: {
+            httpStatus: 503,
+            message: "dispatch worker cannot reach generator queue",
+            status: "unreachable",
+          },
+          resolutionStatus: "misconfigured",
+          runtimeWarning:
+            "Worker KV runtime state is stale. Falling back to localhost.",
+          source: "fallback",
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Worker KV runtime state is stale. Falling back to localhost.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("dispatch worker cannot reach generator queue"),
+    ).toBeTruthy();
+  });
+
+  it("shows finalize retry failure details returned by the admin API", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url.endsWith("/api/admin/finalize")) {
+        return new Response(
+          JSON.stringify({
+            code: "generator_error",
+            message: "mosaic source missing",
+            status: "ignored_dispatch_failed",
+            unitId: "0xunit-1",
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        );
+      }
+
+      if (url.endsWith("/api/admin/status")) {
+        return new Response(JSON.stringify({ athletes: [] }), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify(HEALTH_OK), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+
+    render(
+      <AdminClient
+        initialAthletes={[
+          {
+            currentUnit: {
+              displayMaxSlots: 2000,
+              displayName: "Demo Athlete One",
+              masterId: null,
+              maxSlots: 2000,
+              realSubmittedCount: 2000,
+              status: "filled",
+              submittedCount: 2000,
+              targetWalrusBlobId: "target-blob-1",
+              thumbnailUrl: "https://example.com/1.png",
+              unitId: "0xunit-1",
+            },
+            displayName: "Demo Athlete One",
+            entryId: "0xunit-1",
+            lookupState: "ready",
+            metadataState: "ready",
+            slug: "unit-unit-1",
+            thumbnailUrl: "https://example.com/1.png",
+          },
+        ]}
+        initialHealth={HEALTH_OK}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /finalize を再試行/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("finalize の再試行に失敗しました")).toBeTruthy();
+    });
+    expect(screen.getByText(/コード: generator_error/)).toBeTruthy();
+    expect(screen.getByText(/理由: mosaic source missing/)).toBeTruthy();
   });
 
   it("uploads a target image and shows the blob id", async () => {

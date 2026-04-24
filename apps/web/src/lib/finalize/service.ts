@@ -1,9 +1,11 @@
 import type { UnitStatus } from "../sui";
 
 import type {
+  FinalizeDispatchFailureCode,
   FinalizeDispatchRequest,
   FinalizeDispatchResult,
 } from "./dispatch";
+import { getFinalizeDispatchFailure } from "./dispatch";
 
 export type FinalizeUnitSnapshot = {
   readonly unitId: string;
@@ -13,6 +15,8 @@ export type FinalizeUnitSnapshot = {
 
 export type FinalizeRouteResult =
   | {
+      readonly code: FinalizeDispatchFailureCode;
+      readonly message: string;
       readonly status: "ignored_dispatch_failed";
       readonly unitId: string;
     }
@@ -52,7 +56,11 @@ export function createFinalizeRouteService(deps: FinalizeRouteDeps) {
         await deps.dispatch({ unitId });
       } catch (error) {
         console.error("Finalize dispatch failed", error);
-        return { status: "ignored_dispatch_failed", unitId };
+        return {
+          ...getFinalizeDispatchFailure(error),
+          status: "ignored_dispatch_failed",
+          unitId,
+        };
       }
 
       return { status: "queued", unitId };
