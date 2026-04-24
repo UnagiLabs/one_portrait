@@ -160,6 +160,38 @@ describe("UnitPage", () => {
     ).toBeTruthy();
   });
 
+  it("renders demo unit progress with the display_max_slots based counter", async () => {
+    getUnitProgressMock.mockResolvedValue({
+      unitId: "0xunit-1",
+      athletePublicId: "1",
+      submittedCount: 1995,
+      maxSlots: 2000,
+      status: "pending",
+      masterId: null,
+    });
+    getAthleteByPublicIdMock.mockResolvedValue({
+      athletePublicId: "1",
+      slug: "demo-athlete-one",
+      displayName: "Demo Athlete One",
+      thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
+    });
+    loadPublicEnvMock.mockReturnValue({
+      suiNetwork: "testnet",
+      packageId: "0xpkg",
+      registryObjectId: "0xreg",
+    });
+
+    const ui = await UnitPage({
+      params: Promise.resolve({ unitId: "0xunit-1" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    expect(screen.getByTestId("unit-reveal-client").textContent).toContain(
+      "1995 / 2000",
+    );
+  });
+
   it("passes the server-derived public props to the waiting-room clients", async () => {
     getUnitProgressMock.mockResolvedValue(
       buildProgress({ submittedCount: 36 }),

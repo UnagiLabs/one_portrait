@@ -33,6 +33,14 @@ export const UNIT_STATUS_FINALIZED = 2 as const;
 
 export type UnitStatus = "pending" | "filled" | "finalized";
 
+/**
+ * View model returned to consumers (screens, route loaders, hooks).
+ *
+ * Field semantics:
+ *   - `submittedCount`: UI に見せる進捗件数。demo unit では prefilled 分を含む。
+ *   - `maxSlots`: UI に見せる総数。`display_max_slots` を優先する。
+ *   - `masterId`: `null` until the unit reaches `finalized`.
+ */
 export type AthleteProgressView = {
   readonly athletePublicId: AthletePublicId;
   readonly displayName: string;
