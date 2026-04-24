@@ -18,6 +18,7 @@
     "test": "vitest run --passWithNoTests && node --test scripts/check-build-public-env.test.mjs",
     "test:watch": "vitest --passWithNoTests",
     "test:e2e:readiness": "playwright test tests/e2e/readiness-regression.spec.ts",
+    "test:e2e:live": "playwright test --config=playwright.live.config.ts",
     "test:bundle-size": "node scripts/check-cloudflare-bundle-size.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui-host=0.0.0.0 --ui-port=9323",
