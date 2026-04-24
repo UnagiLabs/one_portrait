@@ -305,7 +305,7 @@ describe("createDefaultFinalizeRunner", () => {
 
 function snapshot() {
   return {
-    athleteId: 1,
+    displayName: "Demo Athlete",
     displayMaxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
@@ -322,7 +322,7 @@ function snapshot() {
 
 function preparedInput(): PreparedFinalizeInput {
   return {
-    athleteId: 1,
+    displayName: "Demo Athlete",
     unitId: "0xunit-1",
     targetWalrusBlobId: "target-blob",
     targetImageBytes: new Uint8Array([1, 2, 3]),

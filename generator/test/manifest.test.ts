@@ -8,13 +8,13 @@ describe("buildFinalizeManifest", () => {
     expect(
       buildFinalizeManifest({
         unitId: "unit-1",
-        athleteId: 1,
+        displayName: "Demo Athlete",
         targetWalrusBlobId: "blob-demo",
         tileCount: unitTileCount,
       }),
     ).toEqual({
       generatorName: "ONE Portrait",
-      athleteSlug: "demo-athlete",
+      displayName: "Demo Athlete",
       heroCopy: "Fan photos become one portrait.",
       unitId: "unit-1",
       targetWalrusBlobId: "blob-demo",

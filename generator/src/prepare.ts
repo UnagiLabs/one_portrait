@@ -17,7 +17,7 @@ export type PreparedSubmission = GeneratorSubmissionRef & {
 };
 
 export type PreparedFinalizeInput = {
-  readonly athleteId: number;
+  readonly displayName: string;
   readonly submissions: readonly PreparedSubmission[];
   readonly targetImageBytes: Uint8Array;
   readonly targetWalrusBlobId: string;
@@ -81,7 +81,7 @@ export async function prepareFinalizeInput(
   );
 
   return {
-    athleteId: snapshot.athleteId,
+    displayName: snapshot.displayName,
     submissions: [...preparedRealSubmissions, ...preparedDummySubmissions],
     targetImageBytes,
     targetWalrusBlobId: snapshot.targetWalrusBlobId,

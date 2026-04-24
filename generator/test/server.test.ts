@@ -170,7 +170,6 @@ describe("generator server", () => {
           [DISPATCH_SECRET_HEADER]: "shared-secret",
         },
         body: JSON.stringify({
-          athleteId: 12,
           blobId: "target-blob-12",
           displayMaxSlots: 2000,
           displayName: "Demo Athlete Twelve",
@@ -187,7 +186,6 @@ describe("generator server", () => {
         unitId: VALID_UNIT_ID,
       });
       expect(createUnitMock).toHaveBeenCalledWith({
-        athleteId: 12,
         blobId: "target-blob-12",
         displayMaxSlots: 2000,
         displayName: "Demo Athlete Twelve",

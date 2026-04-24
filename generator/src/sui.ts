@@ -80,7 +80,7 @@ export function createUnitSnapshotLoader(
 
     return {
       unitId,
-      athleteId: snapshot.athleteId,
+      displayName: snapshot.displayName,
       displayMaxSlots: snapshot.displayMaxSlots,
       targetWalrusBlobId: snapshot.targetWalrusBlobId,
       submissions: snapshot.submissions,
@@ -170,7 +170,6 @@ export function createCreateUnitTransactionExecutor(input: {
   readonly packageId: string;
   readonly privateKey: string;
 }): (args: {
-  readonly athleteId: number;
   readonly blobId: string;
   readonly displayMaxSlots: number;
   readonly displayName: string;
@@ -188,7 +187,6 @@ export function createCreateUnitTransactionExecutor(input: {
       arguments: [
         tx.object(input.adminCapId),
         tx.object(args.registryObjectId),
-        tx.pure(bcs.u16().serialize(args.athleteId)),
         tx.pure.vector(
           "u8",
           Array.from(new TextEncoder().encode(args.displayName)),
@@ -430,7 +428,7 @@ async function readUnitSnapshot(
 
   return {
     unitId,
-    athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
+    displayName: readVectorU8AsString(fields.display_name, "display_name"),
     displayMaxSlots:
       readOptionalIntegerField(fields.display_max_slots, "display_max_slots") ??
       readIntegerField(fields.max_slots, "max_slots"),
