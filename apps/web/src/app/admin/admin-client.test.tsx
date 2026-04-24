@@ -179,13 +179,13 @@ describe("AdminClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /finalize を再試行/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Retry finalize/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("finalize の再試行に失敗しました")).toBeTruthy();
+      expect(screen.getByText("Finalize retry failed")).toBeTruthy();
     });
-    expect(screen.getByText(/コード: generator_error/)).toBeTruthy();
-    expect(screen.getByText(/理由: mosaic source missing/)).toBeTruthy();
+    expect(screen.getByText(/Code: generator_error/)).toBeTruthy();
+    expect(screen.getByText(/Reason: mosaic source missing/)).toBeTruthy();
   });
 
   it("uploads a target image and shows the blob id", async () => {
@@ -204,7 +204,7 @@ describe("AdminClient", () => {
 
     render(<AdminClient initialAthletes={[]} initialHealth={HEALTH_OK} />);
 
-    const input = screen.getByLabelText(/対象画像/) as HTMLInputElement;
+    const input = screen.getByLabelText(/Target image/) as HTMLInputElement;
     const file = new File(["target"], "target.jpg", { type: "image/jpeg" });
 
     fireEvent.change(input, {
@@ -216,9 +216,7 @@ describe("AdminClient", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("target-blob-9")).toBeTruthy();
     });
-    expect(
-      screen.getByAltText("アップロードした対象画像のプレビュー"),
-    ).toBeTruthy();
+    expect(screen.getByAltText("Uploaded target preview")).toBeTruthy();
   });
 
   it("submits a normal unit with full display slots", async () => {
@@ -284,16 +282,16 @@ describe("AdminClient", () => {
     );
 
     expect(screen.queryByLabelText(/unit ID/)).toBeNull();
-    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+    fireEvent.change(screen.getByLabelText(/Target blob ID/), {
       target: { value: "target-blob-7" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Create unit/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+      expect(screen.getByText("Unit created")).toBeTruthy();
     });
-    expect(screen.getByText(/ユニットID: 0xunit-created/)).toBeTruthy();
-    expect(screen.getByText(/ステータス: created/)).toBeTruthy();
+    expect(screen.getByText(/Unit ID: 0xunit-created/)).toBeTruthy();
+    expect(screen.getByText(/Status: created/)).toBeTruthy();
     expect(screen.queryByText(/unit ID: 7/)).toBeNull();
     expect(createPayload).toEqual({
       blobId: "target-blob-7",
@@ -366,17 +364,17 @@ describe("AdminClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("radio", { name: /デモ/ }));
-    fireEvent.change(screen.getByLabelText("デモ実アップロード枚数"), {
+    fireEvent.click(screen.getByRole("radio", { name: /Demo/ }));
+    fireEvent.change(screen.getByLabelText("Demo real upload count"), {
       target: { value: "5" },
     });
-    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+    fireEvent.change(screen.getByLabelText(/Target blob ID/), {
       target: { value: "target-blob-demo" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Create unit/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+      expect(screen.getByText("Unit created")).toBeTruthy();
     });
     expect(createPayload).toEqual({
       blobId: "target-blob-demo",
@@ -449,19 +447,21 @@ describe("AdminClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("radio", { name: /デモ/ }));
-    fireEvent.change(screen.getByLabelText("デモ実アップロード枚数"), {
+    fireEvent.click(screen.getByRole("radio", { name: /Demo/ }));
+    fireEvent.change(screen.getByLabelText("Demo real upload count"), {
       target: { value: "0" },
     });
-    fireEvent.change(screen.getByLabelText(/対象 blob ID/), {
+    fireEvent.change(screen.getByLabelText(/Target blob ID/), {
       target: { value: "target-blob-demo-zero" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /ユニットを作成/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Create unit/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("ユニットを作成しました")).toBeTruthy();
+      expect(screen.getByText("Unit created")).toBeTruthy();
     });
-    expect(screen.getByText(/0 枚作成直後/)).toBeTruthy();
+    expect(
+      screen.getByText(/Treat as filled immediately after creating 0 photos/),
+    ).toBeTruthy();
     expect(createPayload).toEqual({
       blobId: "target-blob-demo-zero",
       displayMaxSlots: unitTileCount,

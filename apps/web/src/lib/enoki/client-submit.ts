@@ -84,7 +84,7 @@ export async function submitPhotoWithEnoki(
     throw new EnokiSubmitClientError(
       401,
       "auth_expired",
-      "ログインが切れました。Google でもう一度ログインしてください。",
+      "Your login expired. Please sign in with Google again.",
     );
   }
 
@@ -232,7 +232,7 @@ function toClientError(
   return new EnokiSubmitClientError(
     status,
     "sponsor_failed",
-    "投稿の準備に失敗しました。時間をおいて、もう一度お試しください。",
+    "Could not prepare the submission. Please wait a moment and try again.",
   );
 }
 
@@ -275,7 +275,7 @@ function toExecuteSubmitError(
   return new EnokiSubmitClientError(
     502,
     "sponsor_failed",
-    "投稿結果を確認しています。時間をおいて、もう一度ご確認ください。",
+    "Checking the submission result. Please wait a moment and check again.",
     {
       submissionStatus: "recovering",
       recovery,

@@ -39,7 +39,7 @@ export default async function GalleryPage(
         <header className="flex flex-col gap-6 border-b border-[var(--rule)] pb-8">
           <div className="op-eyebrow">
             <span className="bar" />
-            <span>History · 参加の記録</span>
+            <span>History · Participation record</span>
           </div>
           <h1 className="font-display text-[clamp(48px,8vw,96px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
             Participation{" "}

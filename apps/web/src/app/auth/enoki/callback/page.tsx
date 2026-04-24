@@ -5,9 +5,12 @@ export default function EnokiCallbackPage(): React.ReactElement {
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
           Google Login
         </p>
-        <h1 className="font-serif text-3xl text-white">認証を確認しています</h1>
+        <h1 className="font-serif text-3xl text-white">
+          Verifying authentication
+        </h1>
         <p className="text-sm text-slate-300">
-          このウィンドウは自動で閉じます。閉じない場合は、そのまま待つか手動で閉じてください。
+          This window closes automatically. If it does not close, wait here or
+          close it manually.
         </p>
       </div>
     </main>

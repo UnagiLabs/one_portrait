@@ -88,7 +88,7 @@ export function createFinalizeDispatcher(
       throw new FinalizeApiError(
         503,
         "finalize_unavailable",
-        "外部 generator の共有 secret が未設定です。`OP_FINALIZE_DISPATCH_SECRET` を設定してください。",
+        "The external generator shared secret is not configured. Set `OP_FINALIZE_DISPATCH_SECRET`.",
       );
     }
 

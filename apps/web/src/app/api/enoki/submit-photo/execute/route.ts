@@ -38,7 +38,7 @@ function toResponse(error: unknown): Response {
     new EnokiApiError(
       500,
       "sponsor_failed",
-      "スポンサー処理に失敗しました。時間をおいて、もう一度お試しください。",
+      "Sponsorship failed. Please wait a moment and try again.",
     ),
   );
 }

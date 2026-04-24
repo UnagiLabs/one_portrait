@@ -9,12 +9,10 @@ test.describe("gallery states", () => {
 
     await page.goto("/gallery");
 
-    await expect(page.getByText("Empty")).toBeVisible();
+    await expect(page.getByText("Empty", { exact: true })).toBeVisible();
+    await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
     await expect(
-      page.getByText(/まだ Kakera が見つかりません。/),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "もう一度確認する" }),
+      page.getByRole("button", { name: "Check again" }),
     ).toBeVisible();
   });
 
@@ -63,7 +61,7 @@ test.describe("gallery states", () => {
     await page.goto("/gallery");
 
     const unitLink = page.getByRole("link", {
-      name: /unit ページで位置を見る/i,
+      name: /View position on Unit page/i,
     });
 
     await expect(unitLink).toHaveAttribute(
@@ -107,14 +105,12 @@ test.describe("gallery states", () => {
     await page.goto("/gallery");
 
     await expect(page.getByText("Unavailable")).toBeVisible();
-    await expect(page.getByText(/履歴を読み込めませんでした。/)).toBeVisible();
+    await expect(page.getByText(/Could not load history./)).toBeVisible();
 
-    await page.getByRole("button", { name: "もう一度確認する" }).click();
+    await page.getByRole("button", { name: "Check again" }).click();
 
-    await expect(page.getByText("Empty")).toBeVisible();
-    await expect(
-      page.getByText(/まだ Kakera が見つかりません。/),
-    ).toBeVisible();
+    await expect(page.getByText("Empty", { exact: true })).toBeVisible();
+    await expect(page.getByText(/No Kakera found yet./)).toBeVisible();
   });
 
   test("shows the config-missing gallery shell from the request selector", async ({
@@ -125,9 +121,11 @@ test.describe("gallery states", () => {
     await page.goto("/gallery?op_e2e_gallery_state=config-missing");
 
     await expect(page.getByText("Unavailable")).toBeVisible();
-    await expect(page.getByText(/公開設定を確認できません。/)).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "もう一度確認する" }),
-    ).toHaveCount(0);
+      page.getByText(/Could not verify public configuration./),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Check again" })).toHaveCount(
+      0,
+    );
   });
 });

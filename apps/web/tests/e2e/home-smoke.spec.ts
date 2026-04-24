@@ -54,7 +54,7 @@ test.describe("home smoke", () => {
 
     await expect(
       page.getByText(
-        /Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。/,
+        /Connect Google zkLogin or Sui wallet to load your Kakera history./,
       ),
     ).toBeVisible();
     await expect(
@@ -103,7 +103,7 @@ test.describe("home smoke", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        /待機中|No active unit|on-chain progress is not available/i,
+        /Waiting \/ No active unit|on-chain progress is not available/i,
       ),
     ).toBeVisible();
 

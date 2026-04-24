@@ -21,21 +21,21 @@ export default async function AdminPage(): Promise<React.ReactElement> {
             className="text-sm uppercase tracking-[0.3em] text-amber-200/80 hover:text-amber-100"
             href="/"
           >
-            ← デモホームへ
+            ← Demo home
           </Link>
         </nav>
 
         <header className="grid gap-4 rounded-[2rem] border border-white/10 bg-white/6 p-8 shadow-2xl shadow-black/30 backdrop-blur">
           <p className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
-            管理者
+            Admin
           </p>
           <h1 className="font-serif text-4xl text-white md:text-5xl">
-            デモ管理コンソール
+            Demo admin console
           </h1>
           <p className="max-w-3xl text-base leading-7 text-stone-200">
-            unit 作成時に通常版かデモ版かを選び、表示 2,000
-            枚に対する実投稿枚数を 調整できます。作成済み unit の状態確認と
-            finalize の再試行もこの 1 ページで行います。
+            Choose normal or demo mode when creating a unit, and adjust the real
+            submission count for the displayed 2,000 tiles. You can also check
+            existing unit status and retry finalize from this page.
           </p>
         </header>
 

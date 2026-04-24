@@ -60,7 +60,7 @@ describe("AdminPage", () => {
     const ui = await AdminPage();
     render(ui);
 
-    expect(screen.getByText(/デモ管理コンソール/)).toBeTruthy();
+    expect(screen.getByText(/Demo admin console/)).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();

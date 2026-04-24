@@ -17,9 +17,7 @@ const CONSENT_LABEL =
 async function submitPhoto(page: Page): Promise<void> {
   await page.goto(`/units/${STUB_UNIT_ID}`);
 
-  await expect(
-    page.getByText(/zkLogin アドレスを確認できました/),
-  ).toBeVisible();
+  await expect(page.getByText(/zkLogin address confirmed/)).toBeVisible();
 
   await page
     .getByRole("checkbox", {
@@ -33,8 +31,8 @@ async function submitPhoto(page: Page): Promise<void> {
     buffer: TINY_JPEG_BUFFER,
   });
 
-  await expect(page.getByAltText("投稿プレビュー").first()).toBeVisible();
-  await page.getByRole("button", { name: "投稿を確定" }).click();
+  await expect(page.getByAltText("Submission preview").first()).toBeVisible();
+  await page.getByRole("button", { name: "Confirm submission" }).click();
 }
 
 test.describe("readiness regression", () => {
@@ -77,7 +75,7 @@ test.describe("readiness regression", () => {
 
     await expect(
       page.getByText(
-        /Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。/,
+        /Connect Google zkLogin or Sui wallet to load your Kakera history./,
       ),
     ).toBeVisible();
     await expect(
@@ -122,17 +120,17 @@ test.describe("readiness regression", () => {
     await installDefaultMocks(page);
     await submitPhoto(page);
 
-    await expect(page.getByText("投稿が完了しました。")).toBeVisible({
+    await expect(page.getByText("Submission complete.")).toBeVisible({
       timeout: 15_000,
     });
 
     const galleryLink = page.getByRole("link", {
-      name: "履歴ギャラリーを見る",
+      name: "View history gallery",
     });
     await expect(galleryLink).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText(
-        /この Unit ページで reveal と finalize\s*の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。/,
+        /You can watch the reveal and finalize\s*status on this Unit page, and review your participation record in the history gallery./,
       ),
     ).toBeVisible();
 
@@ -154,10 +152,10 @@ test.describe("readiness regression", () => {
       `/?op_e2e_home_card_state=${DEMO_UNIT_ID}:waiting,${DEMO_SECOND_UNIT_ID}:unavailable`,
     );
 
-    await expect(page.getByText(/待機中|No active unit/i)).toBeVisible();
+    await expect(page.getByText(/Waiting \/ No active unit/i)).toBeVisible();
     await expect(
       page
-        .getByText(/進捗を一時取得できません|temporarily unavailable/i)
+        .getByText(/Progress temporarily unavailable|temporarily unavailable/i)
         .first(),
     ).toBeVisible();
 
@@ -184,7 +182,7 @@ test.describe("readiness regression", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        /待機中|No active unit|on-chain progress is not available/i,
+        /Waiting \/ No active unit|on-chain progress is not available/i,
       ),
     ).toBeVisible();
 

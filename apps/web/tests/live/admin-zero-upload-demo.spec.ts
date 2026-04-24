@@ -29,12 +29,12 @@ test("creates and finalizes a zero-upload demo unit from the live admin page", a
 
   await page.goto("/admin");
   await expect(
-    page.getByRole("heading", { name: "デモ管理コンソール" }),
+    page.getByRole("heading", { name: "Demo admin console" }),
   ).toBeVisible();
   await expect
     .poll(
       async () => {
-        await page.getByRole("button", { name: "状態を更新" }).click();
+        await page.getByRole("button", { name: "Refresh status" }).click();
         return await page.getByText("worker_kv").count();
       },
       { timeout: 60_000 },
@@ -43,28 +43,30 @@ test("creates and finalizes a zero-upload demo unit from the live admin page", a
 
   await page.getByLabel("displayName").fill(displayName);
   await page.getByLabel("thumbnail URL").fill(thumbnailUrl);
-  await page.getByLabel("対象画像").setInputFiles({
+  await page.getByLabel("Target image").setInputFiles({
     name: "target.jpg",
     mimeType: "image/jpeg",
     buffer: targetJpeg,
   });
-  await expect(page.getByText("対象画像をアップロードしました")).toBeVisible({
+  await expect(page.getByText("Target image uploaded")).toBeVisible({
     timeout: 60_000,
   });
 
-  await page.getByRole("radio", { name: /デモ/ }).check();
-  await page.getByLabel("デモ実アップロード枚数").fill("0");
-  await expect(page.getByText(/0 枚作成直後/)).toBeVisible();
-  await page.getByRole("button", { name: "ユニットを作成" }).click();
+  await page.getByRole("radio", { name: /Demo/ }).check();
+  await page.getByLabel("Demo real upload count").fill("0");
+  await expect(
+    page.getByText(/Treat as filled immediately after creating 0 photos/),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Create unit" }).click();
 
-  const action = page.getByText(/ユニットID: 0x[0-9a-fA-F]+/);
+  const action = page.getByText(/Unit ID: 0x[0-9a-fA-F]+/);
   await expect(action).toBeVisible({ timeout: 120_000 });
   const unitId = extractUnitId((await action.textContent()) ?? "");
 
   await expect
     .poll(
       async () => {
-        await page.getByRole("button", { name: "状態を更新" }).click();
+        await page.getByRole("button", { name: "Refresh status" }).click();
         const unitCard = page.locator("article").filter({ hasText: unitId });
         return (await unitCard.count()) > 0
           ? await unitCard.first().textContent()
@@ -77,11 +79,11 @@ test("creates and finalizes a zero-upload demo unit from the live admin page", a
   const unitCard = page.locator("article").filter({ hasText: unitId }).first();
   await expect(unitCard).toContainText("2000 / 2000");
   await expect(unitCard).toContainText("0 / 0");
-  await unitCard.getByRole("button", { name: /finalize を再試行/ }).click();
-  await expect(page.getByText("finalize を再試行しました")).toBeVisible({
+  await unitCard.getByRole("button", { name: /Retry finalize/ }).click();
+  await expect(page.getByText("Finalize retried")).toBeVisible({
     timeout: 180_000,
   });
-  await expect(page.getByText(/ステータス: finalized/)).toBeVisible();
+  await expect(page.getByText(/Status: finalized/)).toBeVisible();
 
   await page.goto(
     `/units/${unitId}?athleteName=${encodeURIComponent(displayName)}`,

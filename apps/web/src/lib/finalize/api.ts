@@ -25,17 +25,17 @@ export class FinalizeApiError extends Error {
 
 export function parseFinalizeInput(input: unknown): FinalizeRouteInput {
   if (!isRecord(input)) {
-    throw invalidArgs("送信内容の形式が正しくありません。");
+    throw invalidArgs("The submitted payload format is invalid.");
   }
 
   const keys = Object.keys(input);
   if (keys.length !== 1 || !keys.includes("unitId")) {
-    throw invalidArgs("`unitId` だけを送ってください。");
+    throw invalidArgs("`unitId` only.");
   }
 
   const unitId = typeof input.unitId === "string" ? input.unitId.trim() : "";
   if (!isValidSuiObjectId(unitId)) {
-    throw invalidArgs("`unitId` の形式が不正です。");
+    throw invalidArgs("`unitId` has an invalid format.");
   }
 
   return { unitId };

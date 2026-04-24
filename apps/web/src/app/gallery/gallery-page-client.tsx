@@ -13,7 +13,7 @@ const GalleryClient = dynamic<GalleryClientProps>(
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">
           Loading
         </p>
-        <p className="mt-3 text-slate-100">ギャラリーを準備しています。</p>
+        <p className="mt-3 text-slate-100">Preparing the gallery.</p>
       </section>
     ),
   },

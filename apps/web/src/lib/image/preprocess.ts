@@ -4,15 +4,15 @@
  * Client-side photo preprocessing for Walrus uploads.
  *
  * Spec (see `docs/tech.md` §5.3 / §6):
- * - 入力は 10MB 上限でサイズ検証
- * - 長辺 1024px へリサイズ（縮小のみ、拡大しない）
- * - JPEG 品質 0.85 で再エンコード（EXIF は再エンコードで除去される）
- * - 再エンコード後の Blob から SHA-256 を算出
- * - UI が貼れるプレビュー URL を返す
+ * - Validate the 10MB input size limit.
+ * - Resize the long edge to 1024px, only downscaling.
+ * - Re-encode as JPEG quality 0.85, stripping EXIF through re-encoding.
+ * - Compute SHA-256 from the re-encoded Blob.
+ * - Return a preview URL that the UI can render.
  *
- * ブラウザ API（`createImageBitmap` / `OffscreenCanvas` / `crypto.subtle` /
- * `URL.createObjectURL`）は DI で差し替え可能にして、テスト環境（happy-dom /
- * jsdom）でもロジックを検証できるようにしている。
+ * Browser APIs (`createImageBitmap` / `OffscreenCanvas` / `crypto.subtle` /
+ * `URL.createObjectURL`) are injectable so happy-dom / jsdom tests can verify
+ * the logic without real browser implementations.
  */
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -83,7 +83,7 @@ export type PreprocessDeps = {
 /**
  * Preprocess an uploaded photo for Walrus ingestion.
  *
- * Throws {@link ImagePreprocessError} with a UI-friendly Japanese message when
+ * Throws {@link ImagePreprocessError} with a UI-friendly message when
  * validation / decoding / encoding fails.
  */
 export async function preprocessPhoto(
@@ -93,7 +93,7 @@ export async function preprocessPhoto(
   if (file.size > MAX_PHOTO_BYTES) {
     throw new ImagePreprocessError(
       "file_too_large",
-      "写真のサイズが上限（10MB）を超えています。別の写真を選び直してください。",
+      "The photo exceeds the 10MB size limit. Please choose another photo.",
     );
   }
 
@@ -129,7 +129,7 @@ async function decode(file: File, deps: PreprocessDeps): Promise<BitmapLike> {
   if (!decoder) {
     throw new ImagePreprocessError(
       "canvas_unavailable",
-      "このブラウザでは写真の前処理がサポートされていません。別の環境でお試しください。",
+      "This browser does not support photo preprocessing. Please try another environment.",
     );
   }
 
@@ -138,7 +138,7 @@ async function decode(file: File, deps: PreprocessDeps): Promise<BitmapLike> {
   } catch {
     throw new ImagePreprocessError(
       "decode_failed",
-      "写真を読み込めませんでした。別の写真で試してみてください。",
+      "Could not load the photo. Please try another photo.",
     );
   }
 }
@@ -154,7 +154,7 @@ async function reencode(
   if (!canvasFactory) {
     throw new ImagePreprocessError(
       "canvas_unavailable",
-      "このブラウザでは写真の前処理がサポートされていません。別の環境でお試しください。",
+      "This browser does not support photo preprocessing. Please try another environment.",
     );
   }
 
@@ -164,7 +164,7 @@ async function reencode(
   if (!context) {
     throw new ImagePreprocessError(
       "canvas_unavailable",
-      "このブラウザでは写真の前処理がサポートされていません。別の環境でお試しください。",
+      "This browser does not support photo preprocessing. Please try another environment.",
     );
   }
 
@@ -178,7 +178,7 @@ async function reencode(
   } catch {
     throw new ImagePreprocessError(
       "encode_failed",
-      "写真の変換に失敗しました。もう一度お試しください。",
+      "Could not convert the photo. Please try again.",
     );
   }
 }
@@ -189,7 +189,7 @@ async function sha256Hex(blob: Blob, deps: PreprocessDeps): Promise<string> {
   if (!digestFn) {
     throw new ImagePreprocessError(
       "digest_unavailable",
-      "このブラウザでは写真のハッシュ計算がサポートされていません。別の環境でお試しください。",
+      "This browser does not support photo hashing. Please try another environment.",
     );
   }
 
@@ -204,7 +204,7 @@ function makePreviewUrl(blob: Blob, deps: PreprocessDeps): string {
   if (!create) {
     throw new ImagePreprocessError(
       "canvas_unavailable",
-      "このブラウザでは写真のプレビュー表示がサポートされていません。別の環境でお試しください。",
+      "This browser does not support photo previews. Please try another environment.",
     );
   }
 

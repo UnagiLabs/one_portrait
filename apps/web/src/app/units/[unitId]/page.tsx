@@ -163,8 +163,8 @@ export default async function UnitPage(
                   />
                 ) : (
                   <p className="font-serif-display italic text-lg text-[var(--ink-dim)]">
-                    待機中 / No active unit — on-chain progress is not available
-                    right now.
+                    Waiting / No active unit — on-chain progress is not
+                    available right now.
                   </p>
                 )}
               </div>
@@ -214,7 +214,8 @@ function DemoParticipationPreview(): React.ReactElement {
         <span>Demo login preview</span>
       </p>
       <p className="text-sm text-[var(--ink-dim)]">
-        `dev:demo` では導線だけを確認します。実際のログインや投稿は行いません。
+        `dev:demo` only checks the navigation path. It does not perform real
+        login or submission.
       </p>
       <div className="flex flex-wrap gap-3">
         <button className="op-btn-primary" type="button">
@@ -295,7 +296,7 @@ function resolveDisplayName(
     catalogDisplayName ??
     (normalizedRouteAthleteName
       ? normalizedRouteAthleteName
-      : "選手情報を一時取得できません")
+      : "Athlete information is temporarily unavailable")
   );
 }
 

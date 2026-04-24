@@ -269,10 +269,10 @@ export default async function HomePage(
         {entries.length === 0 ? (
           <article className="op-surface grid gap-2 text-[var(--ink)]">
             <h3 className="font-display text-2xl">
-              現在表示できる開催中ユニットはありません
+              No active units are available right now
             </h3>
             <p className="text-sm leading-6 text-[var(--ink-dim)]">
-              `pending` な unit が作成されると、 ここに自動で表示されます。
+              When a pending unit is created, it will appear here automatically.
             </p>
           </article>
         ) : (
@@ -653,14 +653,14 @@ function ProgressLabel({
   if (progress.kind === "waiting") {
     return (
       <p className="font-mono-op text-[11px] uppercase tracking-[0.3em] text-[var(--ember)]">
-        待機中 / No active unit
+        Waiting / No active unit
       </p>
     );
   }
 
   return (
     <p className="font-mono-op text-[11px] uppercase tracking-[0.3em] text-[var(--ink-faint)]">
-      進捗を一時取得できません / Progress temporarily unavailable
+      Progress temporarily unavailable
     </p>
   );
 }

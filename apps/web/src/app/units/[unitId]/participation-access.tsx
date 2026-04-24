@@ -76,7 +76,7 @@ const CONSENT_COPY =
  *
  * `retry.kind === "upload"` means the Walrus PUT failed after our internal
  * retries were exhausted, but the locally preprocessed photo is still valid.
- * The UI can offer a "もう一度送信する" button that jumps straight back to
+ * The UI can offer a "Submit again" button that jumps straight back to
  * the uploading phase with the same {@link PreprocessedPhoto}, skipping
  * preprocessing.
  */
@@ -143,7 +143,8 @@ export function ParticipationAccess({
           <span>Submit access</span>
         </p>
         <p className="text-sm text-[var(--ink-dim)]">
-          投稿ログインは未設定です。今は進捗の確認だけ使えます。
+          Submission login is not configured. You can only check progress for
+          now.
         </p>
       </section>
     );
@@ -260,7 +261,7 @@ function ParticipationAccessEnabled({
 
   async function handleLogin(): Promise<void> {
     if (!googleWallet) {
-      setConnectError("Google ログインの設定が見つかりません。");
+      setConnectError("Google login configuration was not found.");
       return;
     }
 
@@ -299,7 +300,7 @@ function ParticipationAccessEnabled({
       setPhase({
         kind: "error",
         message: classifyWalrusError(error),
-        // Keep the preprocessed photo so the "もう一度送信する" button can
+        // Keep the preprocessed photo so the "Submit again" button can
         // retry the Walrus PUT without re-running preprocessing.
         retry: isWalrusRetryable(error) ? { kind: "upload", photo } : undefined,
       });
@@ -318,8 +319,8 @@ function ParticipationAccessEnabled({
       });
     } catch (error) {
       if (isAuthExpired(error)) {
-        // 認証切れは再ログイン導線へ戻す。wallet を切断して
-        // <Google でログイン> ボタンが再表示される状態にする。
+        // Return expired sessions to the login path and disconnect the wallet
+        // so the Google login button is shown again.
         disconnectWallet.mutate();
         setConnectError(toMessage(error));
         setPhase({ kind: "ready" });
@@ -384,7 +385,7 @@ function ParticipationAccessEnabled({
       if (result.status === "failed") {
         setPhase({
           kind: "error",
-          message: "投稿を完了できませんでした。もう一度送信してください。",
+          message: "Could not complete the submission. Please submit again.",
           retry: { kind: "submit", photo: phase.photo },
         });
         return;
@@ -393,7 +394,8 @@ function ParticipationAccessEnabled({
       if (attempts >= recoveryMaxAttempts) {
         setPhase({
           kind: "error",
-          message: "投稿結果を確認できませんでした。もう一度送信してください。",
+          message:
+            "Could not confirm the submission result. Please submit again.",
           retry: { kind: "submit", photo: phase.photo },
         });
         return;
@@ -459,8 +461,8 @@ function ParticipationAccessEnabled({
   const donePhase = phase.kind === "done" ? phase : null;
   const connectedWalletLabel = isGoogleConnected ? "zkLogin" : "Sui wallet";
   const connectedWalletMessage = isGoogleConnected
-    ? "zkLogin アドレスを確認できました。投稿の署名に使うのはこの住所です。"
-    : "Sui wallet アドレスを確認できました。Sponsored Tx の署名に使うのはこの住所です。";
+    ? "zkLogin address confirmed. This address signs the submission."
+    : "Sui wallet address confirmed. This address signs the sponsored transaction.";
 
   return (
     <section className="grid gap-4 border border-[var(--rule)] bg-[rgba(245,239,227,0.03)] p-5">
@@ -500,7 +502,7 @@ function ParticipationAccessEnabled({
               </label>
 
               <label className="grid gap-2 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-                <span>写真を選択</span>
+                <span>Choose photo</span>
                 <input
                   accept="image/*"
                   className="op-file-input block w-full font-mono-op text-[11px] text-[var(--ink)]"
@@ -522,14 +524,14 @@ function ParticipationAccessEnabled({
               className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
               role="status"
             >
-              処理中…
+              Processing...
             </p>
           ) : null}
 
           {previewPhoto ? (
             // biome-ignore lint: client-side object URL preview, next/image not applicable.
             <img
-              alt="投稿プレビュー"
+              alt="Submission preview"
               className="max-w-full border border-[var(--rule-strong)]"
               src={previewPhoto.previewUrl}
             />
@@ -540,7 +542,7 @@ function ParticipationAccessEnabled({
               className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ember)]"
               role="status"
             >
-              Walrus に保存しています…
+              Saving to Walrus...
             </p>
           ) : null}
 
@@ -549,7 +551,7 @@ function ParticipationAccessEnabled({
               className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ember)]"
               role="status"
             >
-              オンチェーンに投稿しています…
+              Submitting on-chain...
             </p>
           ) : null}
 
@@ -558,7 +560,7 @@ function ParticipationAccessEnabled({
               className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
               role="status"
             >
-              投稿結果を確認しています。しばらくお待ちください。
+              Checking the submission result. Please wait.
             </p>
           ) : null}
 
@@ -574,7 +576,7 @@ function ParticipationAccessEnabled({
                 }}
                 type="button"
               >
-                投稿を確定
+                Confirm submission
               </button>
             </div>
           ) : null}
@@ -585,16 +587,16 @@ function ParticipationAccessEnabled({
               role="status"
             >
               <p className="font-display text-[20px] tracking-[0.02em] text-[var(--ok)]">
-                投稿が完了しました。
+                Submission complete.
               </p>
               <p className="text-sm text-[var(--ink-dim)]">
-                この Unit ページで reveal と finalize
-                の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。
+                You can watch the reveal and finalize status on this Unit page,
+                and review your participation record in the history gallery.
               </p>
 
               {/* biome-ignore lint: local object URL preview, next/image N/A. */}
               <img
-                alt="投稿プレビュー"
+                alt="Submission preview"
                 className="max-w-full border border-[var(--rule-strong)]"
                 src={donePhase.photo.previewUrl}
               />
@@ -602,7 +604,7 @@ function ParticipationAccessEnabled({
               <dl className="grid gap-3">
                 <div className="grid gap-0.5">
                   <dt className="font-mono-op text-[10px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
-                    送信アドレス
+                    Sender address
                   </dt>
                   <dd className="font-mono-op text-[11px] break-all text-[var(--ember)]">
                     {donePhase.result.sender}
@@ -616,7 +618,7 @@ function ParticipationAccessEnabled({
                   <dd className="font-display text-[22px] tracking-[0.02em]">
                     {ownedKakera.kakera
                       ? `#${ownedKakera.kakera.submissionNo}`
-                      : "確認中…"}
+                      : "Checking..."}
                   </dd>
                 </div>
 
@@ -639,10 +641,10 @@ function ParticipationAccessEnabled({
 
               <div className="flex flex-wrap gap-3">
                 <Link className="op-btn-primary" href={`/units/${unitId}`}>
-                  完成状況を確認
+                  View completion status
                 </Link>
                 <Link className="op-btn-primary" href="/gallery">
-                  履歴ギャラリーを見る
+                  View history gallery
                 </Link>
               </div>
             </div>
@@ -654,7 +656,7 @@ function ParticipationAccessEnabled({
               onClick={() => disconnectWallet.mutate()}
               type="button"
             >
-              {connectedWalletLabel} を解除する
+              Disconnect {connectedWalletLabel}
             </button>
           </div>
         </>
@@ -663,8 +665,8 @@ function ParticipationAccessEnabled({
       ) : (
         <>
           <p className="text-sm text-[var(--ink-dim)]">
-            Google zkLogin または Sui wallet
-            を接続すると、この待機室から投稿できます。
+            Connect Google zkLogin or Sui wallet to submit from this waiting
+            room.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -676,9 +678,9 @@ function ParticipationAccessEnabled({
               type="button"
             >
               {isConnecting
-                ? "Google zkLogin 接続中…"
+                ? "Connecting Google zkLogin..."
                 : connectError
-                  ? "Google zkLogin をやり直す"
+                  ? "Retry Google zkLogin"
                   : "Google zkLogin"}
             </button>
             <SuiWalletConnectModal
@@ -726,7 +728,7 @@ function ParticipationAccessEnabled({
             }}
             type="button"
           >
-            もう一度送信する
+            Submit again
           </button>
         </div>
       ) : null}
@@ -737,7 +739,7 @@ function ParticipationAccessEnabled({
 function FullUnitMessage(): React.ReactElement {
   return (
     <p className="text-sm text-[var(--ink-dim)]">
-      この Unit は満枠です。新しい投稿は受け付けていません。
+      This Unit is full. New submissions are closed.
     </p>
   );
 }
@@ -747,7 +749,7 @@ function toMessage(error: unknown): string {
     return error.message;
   }
 
-  return "処理に失敗しました。時間をおいて、もう一度お試しください。";
+  return "Processing failed. Please wait a moment and try again.";
 }
 
 /**
@@ -816,11 +818,11 @@ function describeKakeraStatus(
 ): string {
   switch (status) {
     case "found":
-      return "Kakera を受け取りました。";
+      return "Kakera received.";
     case "timeout":
-      return "Kakera を確認できませんでした（タイムアウト）。時間を置いてから再読み込みしてください。";
+      return "Could not confirm Kakera before the timeout. Please wait and reload.";
     case "searching":
-      return "Kakera を確認しています…";
+      return "Checking Kakera...";
     default:
       return "";
   }

@@ -32,8 +32,9 @@ export type UnitStatus = "pending" | "filled" | "finalized";
  * View model returned to consumers (screens, route loaders, hooks).
  *
  * Field semantics:
- *   - `submittedCount`: UI に見せる進捗件数。demo unit では prefilled 分を含む。
- *   - `maxSlots`: UI に見せる総数。`display_max_slots` を優先する。
+ *   - `submittedCount`: Progress count shown in the UI, including prefilled
+ *     slots for demo units.
+ *   - `maxSlots`: Total count shown in the UI, preferring `display_max_slots`.
  *   - `masterId`: `null` until the unit reaches `finalized`.
  */
 export type AthleteProgressView = {

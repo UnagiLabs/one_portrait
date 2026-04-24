@@ -6,19 +6,19 @@ import type { PreprocessedPhoto } from "../image/preprocess";
  * Thin client for uploading a preprocessed photo to a Walrus Publisher.
  *
  * Spec (see `docs/tech.md` §5.3 / §6 / §10):
- * - ブラウザから Walrus Publisher へ直接 `PUT /v1/blobs?epochs=5` で送る。
- * - 一時的な失敗（ネットワーク / 5xx / タイムアウト）は指数バックオフで
- *   合計 3 回まで再試行。
- * - 最終的な失敗は UI が再試行ボタンを出せるよう分類済みのエラーで投げる。
- * - 成功時は `blob_id` と Aggregator 参照 URL を返す。
+ * - Send `PUT /v1/blobs?epochs=5` directly from the browser to Walrus Publisher.
+ * - Retry temporary failures (network / 5xx / timeout) up to 3 total attempts
+ *   with exponential backoff.
+ * - Throw classified errors for final failures so the UI can show retry.
+ * - Return `blob_id` and an Aggregator reference URL on success.
  *
- * 入力は {@link PreprocessedPhoto} に絞っており、10MB 検証・長辺 1024px・
- * JPEG 再エンコード・EXIF 除去を通過した Blob のみが PUT される。原画像が
- * そのまま Walrus に載らないよう型レベルで守る。
+ * Input is restricted to {@link PreprocessedPhoto}, so only Blobs that passed
+ * 10MB validation, 1024px long-edge resizing, JPEG re-encoding, and EXIF
+ * stripping can be PUT. The type boundary prevents raw originals from being
+ * uploaded to Walrus.
  *
- * `fetch` と `setTimeout` は DI で差し替え可能にしている。テストは実時計や実
- * ネットワークに依存せず、リトライ回数・URL 組み立て・エラー分類だけを検証
- * する。
+ * `fetch` and `setTimeout` are injectable, so tests can verify retry counts,
+ * URL construction, and error classification without real clocks or network.
  */
 
 const WALRUS_EPOCHS = 5;
@@ -98,7 +98,7 @@ export async function putBlobToWalrus(
   if (!fetchFn) {
     throw new WalrusPutError(
       "config_missing",
-      "このブラウザでは Walrus へのアップロードがサポートされていません。",
+      "This browser does not support uploads to Walrus.",
     );
   }
 
@@ -128,21 +128,21 @@ export async function putBlobToWalrus(
       lastStatus = response.status;
       lastError = new Error(`Walrus PUT failed with status ${response.status}`);
 
-      // 4xx は再試行しても結果が変わらない。即 final で抜ける。
+      // 4xx responses will not change with retries, so fail as final.
       if (!isTransientStatus(response.status)) {
         throw new WalrusPutError(
           "final",
-          "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+          "Could not save the photo to Walrus. Please try again.",
           { attempts: attempt, status: response.status, cause: lastError },
         );
       }
     } catch (error) {
-      // 既に final 分類を付けて投げた場合はそのまま上げる。
+      // Preserve already-classified final errors.
       if (error instanceof WalrusPutError) {
         throw error;
       }
-      // AbortError（タイムアウトで自発的に中断）は一時失敗として扱う。
-      // fetch がハングしたまま永遠に待つのを防ぐ。
+      // Treat AbortError from our timeout as temporary so fetch cannot hang
+      // forever.
       lastError = error;
     }
 
@@ -163,7 +163,7 @@ export async function putBlobToWalrus(
 
   throw new WalrusPutError(
     "final",
-    "Walrus への写真の保存に失敗しました。通信状況を確認してから、再試行ボタンでもう一度お試しください。",
+    "Could not save the photo to Walrus. Check your connection, then use the retry button to try again.",
     {
       attempts: WALRUS_MAX_ATTEMPTS,
       status: lastStatus,
@@ -182,7 +182,7 @@ function resolveEndpoints(env: WalrusEnv): {
   if (!publisher || !aggregator) {
     throw new WalrusPutError(
       "config_missing",
-      "Walrus のエンドポイントが設定されていません。NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR を確認してください。",
+      "Walrus endpoints are not configured. Check NEXT_PUBLIC_WALRUS_PUBLISHER / NEXT_PUBLIC_WALRUS_AGGREGATOR.",
     );
   }
 
@@ -203,18 +203,16 @@ async function extractBlobId(response: Response): Promise<string> {
   } catch (error) {
     throw new WalrusPutError(
       "final",
-      "Walrus からの応答を解釈できませんでした。",
+      "Could not parse the response from Walrus.",
       { cause: error },
     );
   }
 
   const blobId = readBlobId(payload);
   if (!blobId) {
-    throw new WalrusPutError(
-      "final",
-      "Walrus から blob_id を取得できませんでした。",
-      { cause: payload },
-    );
+    throw new WalrusPutError("final", "Could not get blob_id from Walrus.", {
+      cause: payload,
+    });
   }
   return blobId;
 }
@@ -250,7 +248,7 @@ function readBlobId(payload: unknown): string | null {
 }
 
 function isTransientStatus(status: number): boolean {
-  // 408 Request Timeout と 429 Too Many Requests は一時障害として扱う。
+  // Treat 408 Request Timeout and 429 Too Many Requests as temporary failures.
   if (status === 408 || status === 429) {
     return true;
   }
@@ -259,7 +257,7 @@ function isTransientStatus(status: number): boolean {
 
 function backoffDelayMs(attempt: number): number {
   // attempt = 1 → base * 2^0, attempt = 2 → base * 2^1, ...
-  // 指数的に増える。ハッカソンスコープなので jitter は省略する。
+  // Exponential backoff. Jitter is omitted for this hackathon scope.
   return WALRUS_BASE_BACKOFF_MS * 2 ** (attempt - 1);
 }
 
