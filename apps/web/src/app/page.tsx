@@ -59,9 +59,13 @@ function buildPortraitWorkRail(
   catalog: readonly AthleteCatalogEntry[],
   entries: readonly HomeEntry[],
 ) {
-  const works = catalog.map((catalogEntry, index): PortraitWork => {
+  const entriesByCatalogKey = new Map(
+    entries.map((entry) => [buildPortraitCatalogKey(entry), entry]),
+  );
+
+  const works = catalog.map((catalogEntry): PortraitWork => {
     const work = toPortraitWork(catalogEntry);
-    const entry = entries[index];
+    const entry = entriesByCatalogKey.get(buildPortraitCatalogKey(work));
     if (!entry) {
       return work;
     }
@@ -97,6 +101,13 @@ function buildPortraitWorkRail(
     ...works.map((work) => ({ ...work, railId: `first-${work.slug}` })),
     ...works.map((work) => ({ ...work, railId: `second-${work.slug}` })),
   ];
+}
+
+function buildPortraitCatalogKey({
+  displayName,
+  thumbnailUrl,
+}: Pick<AthleteCatalogEntry, "displayName" | "thumbnailUrl">): string {
+  return JSON.stringify([displayName, thumbnailUrl]);
 }
 
 function toPortraitWork(entry: AthleteCatalogEntry): PortraitWork {

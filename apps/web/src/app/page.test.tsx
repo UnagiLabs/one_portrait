@@ -228,12 +228,13 @@ describe("HomePage", () => {
   });
 
   it("links live portrait menu cards to the upload page", async () => {
+    const firstAthlete = CATALOG[0];
     getActiveHomeUnitsMock.mockResolvedValue([
       {
-        displayName: "chain-only-name",
+        displayName: firstAthlete.displayName,
         maxSlots: unitTileCount,
         submittedCount: 1999,
-        thumbnailUrl: "https://placehold.co/512x512/png?text=chain",
+        thumbnailUrl: firstAthlete.thumbnailUrl,
         unitId: "0xunit-1",
       },
     ]);
@@ -247,7 +248,6 @@ describe("HomePage", () => {
     expect(link?.getAttribute("href")).toBe(
       "/units/0xunit-1?athleteName=Demo+Athlete+One",
     );
-    expect(screen.queryByText("chain-only-name")).toBeNull();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
     expect(screen.getAllByText("1999 / 2000").length).toBeGreaterThan(0);
   });
@@ -283,7 +283,7 @@ describe("HomePage", () => {
       expect(link.getAttribute("href")).toBe(
         `/units/${secondAthlete.unitId}?athleteName=Demo+Athlete+Two`,
       );
-      expect(within(link).getByText("Live")).toBeTruthy();
+      expect(within(link).getAllByText("Live").length).toBeGreaterThan(0);
       expect(within(link).getByText("37 / 2000")).toBeTruthy();
     }
 
