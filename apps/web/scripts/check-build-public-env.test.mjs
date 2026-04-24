@@ -18,6 +18,7 @@ const REQUIRED_LOCAL_KEYS = [
 const REQUIRED_CLOUDFLARE_KEYS = [
   "NEXT_PUBLIC_SUI_NETWORK",
   "NEXT_PUBLIC_PACKAGE_ID",
+  "NEXT_PUBLIC_ORIGINAL_PACKAGE_ID",
   "NEXT_PUBLIC_REGISTRY_OBJECT_ID",
   "NEXT_PUBLIC_ENOKI_API_KEY",
   "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
@@ -80,6 +81,8 @@ test("local build prefers deployment manifest public env over .env.local", () =>
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
+        originalPackageId:
+          "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
         packageId:
           "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
         registryObjectId:
@@ -107,6 +110,10 @@ test("local build prefers deployment manifest public env over .env.local", () =>
     source.NEXT_PUBLIC_PACKAGE_ID,
     "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
   );
+  assert.equal(
+    source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
+    "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+  );
 });
 
 test("local build warns about duplicated canonical public env without values", () => {
@@ -128,6 +135,8 @@ test("local build warns about duplicated canonical public env without values", (
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
+        originalPackageId:
+          "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
         packageId:
           "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
         registryObjectId:
@@ -175,6 +184,7 @@ test("cloudflare build falls back to wrangler.jsonc vars when process.env is mis
         vars: {
           NEXT_PUBLIC_SUI_NETWORK: "testnet",
           NEXT_PUBLIC_PACKAGE_ID: "0xfrom-wrangler",
+          NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "0xoriginal-from-wrangler",
           NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg-from-wrangler",
           NEXT_PUBLIC_ENOKI_API_KEY: "enoki-from-wrangler",
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-from-wrangler",
@@ -197,6 +207,10 @@ test("cloudflare build falls back to wrangler.jsonc vars when process.env is mis
 
   assert.equal(source.NEXT_PUBLIC_PACKAGE_ID, "0xfrom-wrangler");
   assert.equal(
+    source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
+    "0xoriginal-from-wrangler",
+  );
+  assert.equal(
     source.NEXT_PUBLIC_WALRUS_AGGREGATOR,
     "https://aggregator.example.com",
   );
@@ -212,6 +226,7 @@ test("cloudflare build prefers process.env over wrangler.jsonc vars", () => {
         vars: {
           NEXT_PUBLIC_SUI_NETWORK: "testnet",
           NEXT_PUBLIC_PACKAGE_ID: "0xfrom-wrangler",
+          NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "0xoriginal-from-wrangler",
           NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg-from-wrangler",
           NEXT_PUBLIC_ENOKI_API_KEY: "enoki-from-wrangler",
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-from-wrangler",
@@ -249,6 +264,8 @@ test("deployment manifest values override stale build env values", () => {
       enokiPublicApiKey: "enoki-public-manifest",
       googleClientId: "google-manifest",
       network: "testnet",
+      originalPackageId:
+        "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
       packageId:
         "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
       registryObjectId:
@@ -267,6 +284,8 @@ test("deployment manifest values override stale build env values", () => {
       env: {
         NEXT_PUBLIC_PACKAGE_ID:
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        NEXT_PUBLIC_ORIGINAL_PACKAGE_ID:
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       },
       mode: "cloudflare",
     });
@@ -274,6 +293,10 @@ test("deployment manifest values override stale build env values", () => {
     assert.equal(
       source.NEXT_PUBLIC_PACKAGE_ID,
       "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    );
+    assert.equal(
+      source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
+      "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
     );
   } finally {
     if (previousManifestPath === undefined) {
@@ -293,6 +316,7 @@ test("cloudflare build passes when every public build variable is present in pro
       env: {
         NEXT_PUBLIC_SUI_NETWORK: "testnet",
         NEXT_PUBLIC_PACKAGE_ID: "0xpkg",
+        NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "0xoriginal-pkg",
         NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg",
         NEXT_PUBLIC_ENOKI_API_KEY: "enoki-public",
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-client-id",
@@ -313,6 +337,7 @@ test("cloudflare build fails when NEXT_PUBLIC_SUI_NETWORK is invalid", () => {
       env: {
         NEXT_PUBLIC_SUI_NETWORK: "bogus",
         NEXT_PUBLIC_PACKAGE_ID: "0xpkg",
+        NEXT_PUBLIC_ORIGINAL_PACKAGE_ID: "0xoriginal-pkg",
         NEXT_PUBLIC_REGISTRY_OBJECT_ID: "0xreg",
         NEXT_PUBLIC_ENOKI_API_KEY: "enoki-public",
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: "google-client-id",
