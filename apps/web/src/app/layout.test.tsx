@@ -22,7 +22,7 @@ vi.mock("./global-wallet-entry", () => ({
 }));
 
 import { AppShell } from "./app-shell";
-import RootLayout from "./layout";
+import RootLayout, { metadata } from "./layout";
 
 afterEach(() => {
   usePathnameMock.mockReset();
@@ -52,6 +52,14 @@ describe("AppShell", () => {
 });
 
 describe("RootLayout", () => {
+  it("uses the square brand mark for site icons", () => {
+    expect(metadata.icons).toEqual({
+      icon: "/icon.svg",
+      shortcut: "/icon.svg",
+      apple: "/site/apple-icon.png",
+    });
+  });
+
   it("mounts AppShell inside the body element", () => {
     usePathnameMock.mockReturnValue("/");
 
