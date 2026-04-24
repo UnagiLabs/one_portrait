@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import testnetDeploymentManifest from "../../../../../ops/deployments/testnet.json";
 import { getAdminHealth } from "./health";
 
-const MANIFEST_PACKAGE_ID =
-  "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf";
+const MANIFEST_PACKAGE_ID = testnetDeploymentManifest.packageId;
 
 const EXPECTED_DEPLOYMENT = {
-  network: "testnet",
+  network: testnetDeploymentManifest.network,
   packageId: MANIFEST_PACKAGE_ID,
 };
 

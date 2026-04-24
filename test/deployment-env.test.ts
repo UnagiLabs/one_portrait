@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import testnetDeploymentManifest from "../ops/deployments/testnet.json";
 import {
   checkPublishedTomlDrift,
   parseDeploymentManifest,
@@ -7,19 +8,7 @@ import {
   toWebPublicEnv,
 } from "../scripts/deployment-env.mjs";
 
-const VALID_MANIFEST = {
-  network: "testnet",
-  packageId:
-    "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
-  registryObjectId:
-    "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
-  adminCapId:
-    "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e",
-  walrusPublisher: "https://publisher.walrus-testnet.walrus.space",
-  walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
-  enokiPublicApiKey: "enoki_public_example",
-  googleClientId: "google-client-id.apps.googleusercontent.com",
-};
+const VALID_MANIFEST = testnetDeploymentManifest;
 
 describe("deployment manifest", () => {
   it("exports web public and generator env", () => {
