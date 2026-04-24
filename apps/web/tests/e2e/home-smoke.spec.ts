@@ -103,7 +103,7 @@ test.describe("home smoke", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        /Waiting|No active unit|on-chain progress is not available/i,
+        /Waiting \/ No active unit|on-chain progress is not available/i,
       ),
     ).toBeVisible();
 

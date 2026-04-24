@@ -283,7 +283,7 @@ describe("UnitPage", () => {
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
-    expect(screen.getByText(/Waiting|No active unit/i)).toBeTruthy();
+    expect(screen.getByText(/Waiting \/ No active unit/i)).toBeTruthy();
   });
 
   it("shows a waiting-room link to the participation gallery", async () => {
@@ -547,7 +547,7 @@ describe("UnitPage", () => {
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
-    expect(screen.getByText(/Waiting|No active unit/i)).toBeTruthy();
+    expect(screen.getByText(/Waiting \/ No active unit/i)).toBeTruthy();
   });
 
   it("applies the active unit bootstrap only in stub E2E mode", async () => {

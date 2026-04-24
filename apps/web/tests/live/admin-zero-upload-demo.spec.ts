@@ -55,7 +55,7 @@ test("creates and finalizes a zero-upload demo unit from the live admin page", a
   await page.getByRole("radio", { name: /Demo/ }).check();
   await page.getByLabel("Demo real upload count").fill("0");
   await expect(
-    page.getByText(/Immediately after creating 0 photos/),
+    page.getByText(/Treat as filled immediately after creating 0 photos/),
   ).toBeVisible();
   await page.getByRole("button", { name: "Create unit" }).click();
 

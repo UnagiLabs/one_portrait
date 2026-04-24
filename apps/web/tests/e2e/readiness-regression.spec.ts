@@ -152,7 +152,7 @@ test.describe("readiness regression", () => {
       `/?op_e2e_home_card_state=${DEMO_UNIT_ID}:waiting,${DEMO_SECOND_UNIT_ID}:unavailable`,
     );
 
-    await expect(page.getByText(/Waiting|No active unit/i)).toBeVisible();
+    await expect(page.getByText(/Waiting \/ No active unit/i)).toBeVisible();
     await expect(
       page
         .getByText(/Progress temporarily unavailable|temporarily unavailable/i)
@@ -182,7 +182,7 @@ test.describe("readiness regression", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        /Waiting|No active unit|on-chain progress is not available/i,
+        /Waiting \/ No active unit|on-chain progress is not available/i,
       ),
     ).toBeVisible();
 
