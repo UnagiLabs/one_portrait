@@ -24,7 +24,7 @@ const HEALTH_OK = {
   expectedDeployment: {
     network: "testnet",
     packageId:
-      "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      "0x1111111111111111111111111111111111111111111111111111111111111111",
   },
   generatorReadiness: { httpStatus: 200, status: "ok" } as const,
   resolutionStatus: "ok" as const,

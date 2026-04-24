@@ -26,6 +26,11 @@ const REQUIRED_CLOUDFLARE_KEYS = [
   "NEXT_PUBLIC_WALRUS_AGGREGATOR",
 ];
 
+const NEUTRAL_PACKAGE_ID =
+  "0x1111111111111111111111111111111111111111111111111111111111111111";
+const NEUTRAL_ORIGINAL_PACKAGE_ID =
+  "0x2222222222222222222222222222222222222222222222222222222222222222";
+
 test("buildPublicEnvKeys exposes the cloudflare build requirements", () => {
   assert.deepEqual(buildPublicEnvKeys.cloudflare, REQUIRED_CLOUDFLARE_KEYS);
   assert.deepEqual(buildPublicEnvKeys.local, REQUIRED_LOCAL_KEYS);
@@ -81,10 +86,8 @@ test("local build prefers deployment manifest public env over .env.local", () =>
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
-        originalPackageId:
-          "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
-        packageId:
-          "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+        originalPackageId: NEUTRAL_ORIGINAL_PACKAGE_ID,
+        packageId: NEUTRAL_PACKAGE_ID,
         registryObjectId:
           "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
         walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
@@ -108,11 +111,11 @@ test("local build prefers deployment manifest public env over .env.local", () =>
   );
   assert.equal(
     source.NEXT_PUBLIC_PACKAGE_ID,
-    "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    NEUTRAL_PACKAGE_ID,
   );
   assert.equal(
     source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
-    "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    NEUTRAL_ORIGINAL_PACKAGE_ID,
   );
 });
 
@@ -135,10 +138,8 @@ test("local build warns about duplicated canonical public env without values", (
         enokiPublicApiKey: "enoki-public-manifest",
         googleClientId: "google-manifest",
         network: "testnet",
-        originalPackageId:
-          "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
-        packageId:
-          "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+        originalPackageId: NEUTRAL_ORIGINAL_PACKAGE_ID,
+        packageId: NEUTRAL_PACKAGE_ID,
         registryObjectId:
           "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
         walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
@@ -162,7 +163,7 @@ test("local build warns about duplicated canonical public env without values", (
   assert.match(warning, /NEXT_PUBLIC_PACKAGE_ID/);
   assert.match(warning, /ops\/deployments\/testnet\.json/);
   assert.doesNotMatch(warning, /0xenvlocal-secret-shaped-value/);
-  assert.doesNotMatch(warning, /0x8568f91/);
+  assert.doesNotMatch(warning, new RegExp(NEUTRAL_PACKAGE_ID));
 });
 
 test("local build fails when the read-only minimum keys are missing", () => {
@@ -264,10 +265,8 @@ test("deployment manifest values override stale build env values", () => {
       enokiPublicApiKey: "enoki-public-manifest",
       googleClientId: "google-manifest",
       network: "testnet",
-      originalPackageId:
-        "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
-      packageId:
-        "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      originalPackageId: NEUTRAL_ORIGINAL_PACKAGE_ID,
+      packageId: NEUTRAL_PACKAGE_ID,
       registryObjectId:
         "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
       walrusAggregator: "https://aggregator.walrus-testnet.walrus.space",
@@ -292,11 +291,11 @@ test("deployment manifest values override stale build env values", () => {
 
     assert.equal(
       source.NEXT_PUBLIC_PACKAGE_ID,
-      "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      NEUTRAL_PACKAGE_ID,
     );
     assert.equal(
       source.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID,
-      "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+      NEUTRAL_ORIGINAL_PACKAGE_ID,
     );
   } finally {
     if (previousManifestPath === undefined) {
