@@ -35,6 +35,7 @@ apps/web/.cache
 **/e2e/artifacts
 **/test-results
 **/playwright-report*
+apps/web/playwright-report-live/
 **/.e2e-xdg
 
 # Devcontainer / agent runtime state
