@@ -27,7 +27,7 @@ type GalleryRenderableEntry = GalleryEntryView | GalleryUnavailableEntry;
 
 type GalleryUnavailableEntry = {
   readonly unitId: string;
-  readonly athletePublicId: string;
+  readonly displayName: string;
   readonly walrusBlobId: string;
   readonly submissionNo: number;
   readonly mintedAtMs: number;
@@ -341,7 +341,7 @@ function GalleryEntriesSection({
     <section className="grid gap-px bg-[var(--rule)] md:grid-cols-2">
       {entries.map((entry) => (
         <GalleryCard
-          athlete={findAthlete(catalog, entry.athletePublicId)}
+          athlete={findAthlete(catalog, entry.unitId)}
           entry={entry}
           key={`${entry.unitId}:${entry.walrusBlobId}`}
           originalImageFailed={failedOriginalBlobIds.includes(
@@ -434,8 +434,7 @@ function GalleryCard({
   onOriginalImageError,
 }: GalleryCardProps): React.ReactElement {
   const completedEntry = isCompletedEntry(entry) ? entry : null;
-  const displayName =
-    athlete?.displayName ?? `Athlete #${entry.athletePublicId}`;
+  const displayName = athlete?.displayName ?? entry.displayName;
   const originalPhotoUrl = buildWalrusAggregatorUrl(entry.walrusBlobId);
   const completedMosaicUrl = completedEntry
     ? buildWalrusAggregatorUrl(completedEntry.mosaicWalrusBlobId)
@@ -612,11 +611,9 @@ function isCompletedEntry(
 
 function findAthlete(
   catalog: readonly AthleteCatalogEntry[],
-  athletePublicId: string,
+  unitId: string,
 ): AthleteCatalogEntry | null {
-  return (
-    catalog.find((entry) => entry.athletePublicId === athletePublicId) ?? null
-  );
+  return catalog.find((entry) => entry.unitId === unitId) ?? null;
 }
 
 const demoBlobAssetMap: Record<string, string> = {
@@ -665,7 +662,7 @@ function buildUnitPageHref(args: {
 function createUnavailableEntry(kakera: OwnedKakera): GalleryUnavailableEntry {
   return {
     unitId: kakera.unitId,
-    athletePublicId: kakera.athletePublicId,
+    displayName: `Unit ${kakera.unitId.slice(0, 10)}...`,
     walrusBlobId: kakera.walrusBlobId,
     submissionNo: kakera.submissionNo,
     mintedAtMs: kakera.mintedAtMs,

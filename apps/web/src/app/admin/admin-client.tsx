@@ -28,9 +28,6 @@ export function AdminClient({
 }: AdminClientProps): React.ReactElement {
   const [athletes, setAthletes] = useState(initialAthletes);
   const [health, setHealth] = useState(initialHealth);
-  const [createAthleteId, setCreateAthleteId] = useState(
-    initialAthletes[0]?.athletePublicId ?? "",
-  );
   const [createDisplayName, setCreateDisplayName] = useState(
     initialAthletes[0]?.displayName ?? "",
   );
@@ -91,13 +88,12 @@ export function AdminClient({
 
   function loadCreateDraft(entryKey: string): void {
     const athlete = athletes.find(
-      (entry) => (entry.entryId ?? entry.athletePublicId) === entryKey,
+      (entry) => (entry.entryId ?? entry.currentUnit?.unitId) === entryKey,
     );
     if (!athlete) {
       return;
     }
 
-    setCreateAthleteId(athlete.athletePublicId);
     setCreateDisplayName(athlete.displayName);
     setCreateThumbnailUrl(athlete.thumbnailUrl);
 
@@ -159,7 +155,6 @@ export function AdminClient({
 
     try {
       const payload = await postJson("/api/admin/create-unit", {
-        athleteId: Number(createAthleteId),
         blobId: targetBlobId,
         displayMaxSlots: effectiveDisplayMaxSlots,
         displayName: createDisplayName,
@@ -275,10 +270,10 @@ export function AdminClient({
               <option value="">選択してください</option>
               {athletes.map((athlete) => (
                 <option
-                  key={athlete.entryId ?? athlete.athletePublicId}
-                  value={athlete.entryId ?? athlete.athletePublicId}
+                  key={athlete.entryId ?? athlete.currentUnit?.unitId}
+                  value={athlete.entryId ?? athlete.currentUnit?.unitId}
                 >
-                  #{athlete.athletePublicId} {athlete.displayName}
+                  {athlete.displayName}
                 </option>
               ))}
             </select>
@@ -290,17 +285,6 @@ export function AdminClient({
           onSubmit={(event) => void handleCreateUnit(event)}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm text-stone-200">
-              athlete ID
-              <input
-                className="rounded-2xl border border-white/10 bg-stone-900 px-4 py-3"
-                inputMode="numeric"
-                onChange={(event) => setCreateAthleteId(event.target.value)}
-                placeholder="例: 7"
-                value={createAthleteId}
-              />
-            </label>
-
             <label className="grid gap-2 text-sm text-stone-200">
               displayName
               <input
@@ -420,7 +404,6 @@ export function AdminClient({
             disabled={
               isUploading ||
               pendingAction === "create" ||
-              createAthleteId.trim().length === 0 ||
               createDisplayName.trim().length === 0 ||
               createThumbnailUrl.trim().length === 0 ||
               targetBlobId.trim().length === 0 ||
@@ -450,7 +433,7 @@ export function AdminClient({
           {athletes.map((athlete) => (
             <AdminAthleteCard
               athlete={athlete}
-              key={athlete.entryId ?? athlete.athletePublicId}
+              key={athlete.entryId ?? athlete.currentUnit?.unitId}
               onFinalize={handleFinalize}
               pendingAction={pendingAction}
             />
@@ -530,7 +513,6 @@ function AdminAthleteCard({
       {currentUnit ? (
         <>
           <dl className="grid gap-2 text-sm text-stone-200">
-            <InfoRow label="athlete ID" value={athlete.athletePublicId} />
             <InfoRow label="ユニット ID" value={currentUnit.unitId} />
             <InfoRow
               label="表示進行"
@@ -592,14 +574,11 @@ async function postJson(
 
 function formatActionDetail(payload: Record<string, unknown>): string {
   const parts = [
+    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.status === "string" ? `ステータス: ${payload.status}` : null,
     typeof payload.digest === "string"
       ? `ダイジェスト: ${payload.digest}`
       : null,
-    typeof payload.athleteId === "number"
-      ? `athlete ID: ${payload.athleteId}`
-      : null,
-    typeof payload.unitId === "string" ? `ユニットID: ${payload.unitId}` : null,
     typeof payload.mosaicBlobId === "string"
       ? `モザイク Blob ID: ${payload.mosaicBlobId}`
       : null,

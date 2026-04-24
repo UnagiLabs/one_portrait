@@ -24,7 +24,6 @@ export type KakeraOwnedClient = {
 
 export type OwnedKakera = {
   readonly objectId: string;
-  readonly athletePublicId: string;
   readonly unitId: string;
   readonly walrusBlobId: string;
   readonly submissionNo: number;
@@ -244,11 +243,6 @@ function parseOwnedKakera(
     return null;
   }
 
-  const athletePublicId = readAthletePublicId(fields.athlete_id);
-  if (athletePublicId == null) {
-    return null;
-  }
-
   const walrusBlobId = readVectorU8AsString(fields.walrus_blob_id);
   if (walrusBlobId == null) {
     return null;
@@ -256,20 +250,9 @@ function parseOwnedKakera(
 
   return {
     objectId,
-    athletePublicId,
     unitId,
     walrusBlobId,
     submissionNo: readIntegerField(fields.submission_no),
     mintedAtMs: readIntegerField(fields.minted_at_ms),
   };
-}
-
-function readAthletePublicId(value: unknown): string | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-  if (typeof value === "string" && /^[0-9]+$/.test(value)) {
-    return value;
-  }
-  return null;
 }

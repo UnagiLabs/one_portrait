@@ -17,7 +17,7 @@ export type PreparedSubmission = GeneratorSubmissionRef & {
 };
 
 export type PreparedFinalizeInput = {
-  readonly athleteId: number;
+  readonly displayName: string;
   readonly submissions: readonly PreparedSubmission[];
   readonly targetImageBytes: Uint8Array;
   readonly targetWalrusBlobId: string;
@@ -54,12 +54,6 @@ export async function prepareFinalizeInput(
     snapshot.targetWalrusBlobId,
   );
   const submissions = sortSubmissions(snapshot.submissions);
-  const displayMaxSlots =
-    typeof snapshot.displayMaxSlots === "number" &&
-    Number.isInteger(snapshot.displayMaxSlots) &&
-    snapshot.displayMaxSlots > 0
-      ? snapshot.displayMaxSlots
-      : submissions.length;
 
   const preparedRealSubmissions = await Promise.all(
     submissions.map(async (submission) => {
@@ -81,7 +75,7 @@ export async function prepareFinalizeInput(
   );
 
   return {
-    athleteId: snapshot.athleteId,
+    displayName: snapshot.displayName,
     submissions: [...preparedRealSubmissions, ...preparedDummySubmissions],
     targetImageBytes,
     targetWalrusBlobId: snapshot.targetWalrusBlobId,

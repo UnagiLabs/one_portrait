@@ -10,7 +10,7 @@
  */
 
 import { athleteCatalogEntries } from "../../data/athlete-catalog";
-import type { AthleteCatalogEntry, AthletePublicId } from "./types";
+import type { AthleteCatalogEntry } from "./types";
 
 export async function getAthleteCatalog(): Promise<
   readonly AthleteCatalogEntry[]
@@ -25,9 +25,9 @@ export async function getAthleteBySlug(
   return catalog.find((entry) => entry.slug === slug);
 }
 
-export async function getAthleteByPublicId(
-  athletePublicId: AthletePublicId,
+export async function getAthleteByUnitId(
+  unitId: string,
 ): Promise<AthleteCatalogEntry | undefined> {
   const catalog = await getAthleteCatalog();
-  return catalog.find((entry) => entry.athletePublicId === athletePublicId);
+  return catalog.find((entry) => entry.unitId === unitId);
 }

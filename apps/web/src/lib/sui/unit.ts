@@ -37,14 +37,10 @@ export async function getUnitProgress(
     parseOptionalIntegerField(fields.display_max_slots) ?? realMaxSlots;
   const submittedCount =
     Math.max(0, displayMaxSlots - realMaxSlots) + realSubmittedCount;
-  const athletePublicId = String(
-    parseIntegerField(fields.athlete_id, "athlete_id"),
-  );
   const masterId = extractOptionalId(fields.master_id);
 
   return {
     unitId: data.objectId,
-    athletePublicId,
     displayName: readVectorU8AsString(fields.display_name, "display_name"),
     submittedCount,
     masterId,

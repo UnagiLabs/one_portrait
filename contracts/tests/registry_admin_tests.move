@@ -29,7 +29,6 @@ fun init_creates_admin_cap_and_shared_registry() {
 #[test]
 fun create_unit_sets_initial_state_and_appends_registry_index() {
     let publisher = @0xA11CE;
-    let athlete_id = 7;
     let max_slots = 500;
     let display_max_slots = 2_000;
     let target_blob = b"target-blob";
@@ -46,7 +45,6 @@ fun create_unit_sets_initial_state_and_appends_registry_index() {
     let unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        athlete_id,
         display_name,
         thumbnail_url,
         target_blob,
@@ -64,7 +62,6 @@ fun create_unit_sets_initial_state_and_appends_registry_index() {
     let unit = scenario.take_shared_by_id<Unit>(unit_id);
 
     assert_eq!(object::id(&unit), unit_id);
-    assert_eq!(unit::athlete_id_for_testing(&unit), athlete_id);
     assert_eq!(unit::display_name_for_testing(&unit), display_name);
     assert_eq!(unit::thumbnail_url_for_testing(&unit), thumbnail_url);
     assert_eq!(unit::max_slots_for_testing(&unit), max_slots);
@@ -95,7 +92,6 @@ fun create_unit_keeps_existing_units_in_registry_order() {
     let first_unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        9,
         b"Demo Athlete Nine",
         b"https://example.com/9.png",
         b"target-1",
@@ -114,7 +110,6 @@ fun create_unit_keeps_existing_units_in_registry_order() {
     let second_unit_id = admin_api::create_unit(
         &admin_cap,
         &mut registry,
-        9,
         b"Demo Athlete Nine Encore",
         b"https://example.com/9b.png",
         b"target-2",

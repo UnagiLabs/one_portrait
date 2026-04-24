@@ -1282,7 +1282,6 @@ describe("ParticipationAccess", () => {
         capturedOnSubmitted?.({
           kind: "submitted",
           unitId: "0xunit-1",
-          athletePublicId: "1",
           submitter: "0xabc123",
           walrusBlobId: [],
           submissionNo: 42,

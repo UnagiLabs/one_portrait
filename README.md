@@ -84,8 +84,8 @@ flowchart LR
         │  UnitFilled 検知 → POST /api/finalize
         ▼
 [ Sui Testnet  Move package: one_portrait ]
-        ├─ Registry (shared)        athlete_id -> current_unit_id
-        ├─ Unit (shared)            athlete_id / target blob / submitters / submissions / status / master_id?
+        ├─ Registry (shared)        unit_ids
+        ├─ Unit (shared)            display_name / target blob / submitters / submissions / status / master_id?
         ├─ MasterPortrait           placements: Table<blob_id, Placement>
         └─ Kakera (Soulbound)       blob_id / submission_no / unit_id
 

@@ -34,13 +34,14 @@ import HomePage from "./page";
 
 const CATALOG = [
   {
-    athletePublicId: "1",
+    unitId: demoUnitId,
     slug: "demo-athlete-one",
     displayName: "Demo Athlete One",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+1",
   },
   {
-    athletePublicId: "2",
+    unitId:
+      "0x00000000000000000000000000000000000000000000000000000000000000d4",
     slug: "demo-athlete-two",
     displayName: "Demo Athlete Two",
     thumbnailUrl: "https://placehold.co/512x512/png?text=Athlete+2",
@@ -199,7 +200,7 @@ describe("HomePage", () => {
 
     const ui = await HomePage({
       searchParams: Promise.resolve({
-        op_e2e_home_card_state: "1:waiting,2:unavailable",
+        op_e2e_home_card_state: `${demoUnitId}:waiting,0x00000000000000000000000000000000000000000000000000000000000000d4:unavailable`,
       }),
     });
     render(ui);
@@ -225,7 +226,7 @@ describe("HomePage", () => {
 
     const ui = await HomePage({
       searchParams: Promise.resolve({
-        op_e2e_home_card_state: "1:waiting",
+        op_e2e_home_card_state: "0xunit-1:waiting",
       }),
     });
     render(ui);

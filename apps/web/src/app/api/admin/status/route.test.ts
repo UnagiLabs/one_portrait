@@ -14,9 +14,7 @@ describe("GET /api/admin/status", () => {
   it("returns the on-chain admin athlete entries", async () => {
     loadAdminAthletesMock.mockResolvedValue([
       {
-        athletePublicId: "1",
         currentUnit: {
-          athletePublicId: "1",
           masterId: null,
           maxSlots: 2000,
           status: "filled",
@@ -31,7 +29,6 @@ describe("GET /api/admin/status", () => {
         thumbnailUrl: "https://example.com/1.png",
       },
       {
-        athletePublicId: "2",
         currentUnit: null,
         displayName: "Athlete #2",
         lookupState: "missing",
@@ -47,9 +44,7 @@ describe("GET /api/admin/status", () => {
     await expect(response.json()).resolves.toEqual({
       athletes: [
         {
-          athletePublicId: "1",
           currentUnit: {
-            athletePublicId: "1",
             masterId: null,
             maxSlots: 2000,
             status: "filled",
@@ -64,7 +59,6 @@ describe("GET /api/admin/status", () => {
           thumbnailUrl: "https://example.com/1.png",
         },
         {
-          athletePublicId: "2",
           currentUnit: null,
           displayName: "Athlete #2",
           lookupState: "missing",

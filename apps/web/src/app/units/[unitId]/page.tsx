@@ -13,13 +13,8 @@
 import { unitTileCount } from "@one-portrait/shared";
 import Link from "next/link";
 
-import { getAthleteByPublicId } from "../../../lib/catalog";
 import { getDemoUnitProgress, isDemoModeEnabled } from "../../../lib/demo";
-import {
-  STUB_ATHLETE_ID,
-  STUB_MASTER_ID,
-  STUB_UNIT_ID,
-} from "../../../lib/e2e/stub-data";
+import { STUB_MASTER_ID, STUB_UNIT_ID } from "../../../lib/e2e/stub-data";
 import { getUnitProgress } from "../../../lib/sui";
 import type { WalrusEnv } from "../../../lib/walrus/put";
 
@@ -38,7 +33,6 @@ type ResolvedProgress = {
   readonly displayName: string | null;
   readonly submittedCount: number;
   readonly maxSlots: number;
-  readonly athletePublicId: string | null;
   readonly masterId: string | null;
   readonly thumbnailUrl: string | null;
 };
@@ -71,19 +65,13 @@ export default async function UnitPage(
   const progress = demoMode
     ? safeGetDemoUnitProgress(unitId)
     : (e2eBootstrapProgress ?? (await safeGetUnitProgress(unitId)));
-  const athlete =
-    demoMode && progress.athletePublicId
-      ? await safeGetAthleteByPublicId(progress.athletePublicId)
-      : null;
-
   const displayName = resolveDisplayName(
     searchParams.athleteName,
-    progress.displayName ?? athlete?.displayName ?? null,
+    progress.displayName,
   );
-  const thumbnailUrl = progress.thumbnailUrl ?? athlete?.thumbnailUrl ?? null;
+  const thumbnailUrl = progress.thumbnailUrl;
 
-  const hasProgress =
-    progress.submittedCount >= 0 && progress.athletePublicId !== null;
+  const hasProgress = progress.submittedCount >= 0;
 
   return (
     <main className="grain relative min-h-screen overflow-hidden text-[var(--ink)]">
@@ -269,7 +257,6 @@ function safeGetDemoUnitProgress(unitId: string): ResolvedProgress {
     displayName: view.displayName,
     submittedCount: view.submittedCount,
     maxSlots: view.maxSlots,
-    athletePublicId: view.athletePublicId,
     masterId: view.masterId,
     thumbnailUrl: view.thumbnailUrl,
   };
@@ -282,20 +269,11 @@ async function safeGetUnitProgress(unitId: string): Promise<ResolvedProgress> {
       displayName: view.displayName,
       submittedCount: view.submittedCount,
       maxSlots: view.maxSlots,
-      athletePublicId: view.athletePublicId,
       masterId: view.masterId,
       thumbnailUrl: view.thumbnailUrl,
     };
   } catch {
     return degradedProgress();
-  }
-}
-
-async function safeGetAthleteByPublicId(athletePublicId: string) {
-  try {
-    return (await getAthleteByPublicId(athletePublicId)) ?? null;
-  } catch {
-    return null;
   }
 }
 
@@ -317,7 +295,6 @@ function degradedProgress(): ResolvedProgress {
     displayName: null,
     submittedCount: -1,
     maxSlots: FALLBACK_MAX_SLOTS,
-    athletePublicId: null,
     masterId: null,
     thumbnailUrl: null,
   };
@@ -351,7 +328,6 @@ function activeProgress(): ResolvedProgress {
     displayName: "Demo Athlete One",
     submittedCount: FALLBACK_MAX_SLOTS - 1,
     maxSlots: FALLBACK_MAX_SLOTS,
-    athletePublicId: "1",
     masterId: null,
     thumbnailUrl: null,
   };
@@ -362,7 +338,6 @@ function finalizedProgress(): ResolvedProgress {
     displayName: "Demo Athlete One",
     submittedCount: FALLBACK_MAX_SLOTS,
     maxSlots: FALLBACK_MAX_SLOTS,
-    athletePublicId: STUB_ATHLETE_ID,
     masterId: STUB_MASTER_ID,
     thumbnailUrl: null,
   };

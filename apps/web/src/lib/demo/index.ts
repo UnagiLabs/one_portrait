@@ -16,7 +16,6 @@ const demoProgressByUnitId = new Map<string, AthleteProgressView>([
     demoUnitId,
     {
       unitId: demoUnitId,
-      athletePublicId: "1",
       displayName: "Demo Athlete One",
       submittedCount: 347,
       maxSlots: unitTileCount,
@@ -29,16 +28,10 @@ const demoProgressByUnitId = new Map<string, AthleteProgressView>([
   ],
 ]);
 
-const demoCurrentUnitIdsByAthlete = new Map<string, string | null>([
-  ["1", demoUnitId],
-  ["2", null],
-  ["3", null],
-]);
-
 const demoGalleryEntries = [
   {
     unitId: demoUnitId,
-    athletePublicId: "1",
+    displayName: "Demo Athlete One",
     walrusBlobId: "demo-original-one",
     submissionNo: 347,
     mintedAtMs: 1_800_000_000_000,
@@ -55,7 +48,7 @@ const demoGalleryEntries = [
   {
     unitId:
       "0x00000000000000000000000000000000000000000000000000000000000000d4",
-    athletePublicId: "2",
+    displayName: "Demo Athlete Two",
     walrusBlobId: "demo-original-two",
     submissionNo: 88,
     mintedAtMs: 1_790_000_000_000,
@@ -78,12 +71,6 @@ export function getDemoModeSource(): Readonly<
   return {
     NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
   };
-}
-
-export function getDemoCurrentUnitIdForAthlete(
-  athletePublicId: string,
-): string | null {
-  return demoCurrentUnitIdsByAthlete.get(athletePublicId) ?? null;
 }
 
 export function getDemoUnitProgress(

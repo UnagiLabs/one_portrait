@@ -33,7 +33,6 @@ function unitData(fields: Record<string, unknown>) {
       type: "0xpkg::unit::Unit",
       fields: {
         id: { id: UNIT_ID },
-        athlete_id: 1,
         display_name: bytes("Demo Athlete One"),
         thumbnail_url: bytes("https://example.com/1.png"),
         target_walrus_blob: [],
@@ -62,7 +61,6 @@ describe("getUnitProgress", () => {
 
     await expect(getUnitProgress(UNIT_ID, { client })).resolves.toEqual({
       unitId: UNIT_ID,
-      athletePublicId: "1",
       displayName: "Demo Athlete One",
       masterId: null,
       maxSlots: 2000,

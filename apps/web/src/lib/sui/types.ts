@@ -1,25 +1,20 @@
-import type { AthletePublicId } from "../catalog/types";
-
 export type RegistryView = {
   readonly objectId: string;
   readonly unitIds: readonly string[];
 };
 
 export type AthleteMetadataView = {
-  readonly athletePublicId: AthletePublicId;
   readonly displayName: string;
   readonly slug: string;
   readonly thumbnailUrl: string;
 };
 
 export type RegistryAthleteView = {
-  readonly athletePublicId: AthletePublicId;
   readonly currentUnitId: string;
   readonly metadata: AthleteMetadataView;
 };
 
 export type ActiveHomeUnitView = {
-  readonly athletePublicId: AthletePublicId;
   readonly displayName: string;
   readonly maxSlots: number;
   readonly submittedCount: number;
@@ -42,7 +37,6 @@ export type UnitStatus = "pending" | "filled" | "finalized";
  *   - `masterId`: `null` until the unit reaches `finalized`.
  */
 export type AthleteProgressView = {
-  readonly athletePublicId: AthletePublicId;
   readonly displayName: string;
   readonly masterId: string | null;
   readonly maxSlots: number;
@@ -70,7 +64,7 @@ export type MasterPlacementLookupView = {
 export type GalleryEntryView =
   | {
       readonly unitId: string;
-      readonly athletePublicId: AthletePublicId;
+      readonly displayName: string;
       readonly walrusBlobId: string;
       readonly submissionNo: number;
       readonly mintedAtMs: number;
@@ -81,7 +75,7 @@ export type GalleryEntryView =
     }
   | {
       readonly unitId: string;
-      readonly athletePublicId: AthletePublicId;
+      readonly displayName: string;
       readonly walrusBlobId: string;
       readonly submissionNo: number;
       readonly mintedAtMs: number;

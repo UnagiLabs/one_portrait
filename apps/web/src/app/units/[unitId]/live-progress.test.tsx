@@ -66,7 +66,6 @@ describe("LiveProgress", () => {
       capturedOnSubmitted?.({
         kind: "submitted",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         submitter: "0xabc",
         walrusBlobId: [],
         submissionNo: 11,
@@ -101,7 +100,6 @@ describe("LiveProgress", () => {
       capturedOnSubmitted?.({
         kind: "submitted",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         submitter: "0xabc",
         walrusBlobId: [],
         submissionNo: 1,
@@ -132,7 +130,6 @@ describe("LiveProgress", () => {
       capturedOnSubmitted?.({
         kind: "submitted",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         submitter: "0xabc",
         walrusBlobId: [],
         submissionNo: 5,
@@ -205,7 +202,6 @@ describe("LiveProgress", () => {
       capturedOnMosaicReady?.({
         kind: "mosaicReady",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         masterId: "0xmaster-1",
         mosaicWalrusBlobId: [109, 111, 115, 97, 105, 99],
       });
@@ -242,7 +238,6 @@ describe("LiveProgress", () => {
       capturedOnFilled?.({
         kind: "filled",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         filledCount: unitTileCount,
         maxSlots: unitTileCount,
       });
@@ -274,7 +269,6 @@ describe("LiveProgress", () => {
       const event: UnitFilledEvent = {
         kind: "filled",
         unitId: "0xunit-1",
-        athletePublicId: "1",
         filledCount: unitTileCount,
         maxSlots: unitTileCount,
       };

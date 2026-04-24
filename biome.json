@@ -15,6 +15,7 @@
       "biome.json",
       "!apps/web/.next",
       "!apps/web/.open-next",
+      "!apps/web/.e2e-xdg",
       "!apps/web/.wrangler",
       "!apps/web/playwright-report",
       "!apps/web/test-results",

@@ -29,7 +29,6 @@ function kakeraObject() {
         fields: {
           id: { id: "0xkakera-1" },
           unit_id: UNIT_ID,
-          athlete_id: 1,
           submitter: OWNER,
           walrus_blob_id: encodeBytes(WALRUS_BLOB_ID),
           submission_no: "42",
@@ -123,7 +122,6 @@ describe("checkSubmissionExecution", () => {
       status: "success",
       kakera: {
         objectId: "0xkakera-1",
-        athletePublicId: "1",
         unitId: UNIT_ID,
         walrusBlobId: WALRUS_BLOB_ID,
         submissionNo: 42,

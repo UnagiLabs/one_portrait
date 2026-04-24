@@ -48,7 +48,6 @@ vi.mock("./live-progress", () => ({
     onMosaicReady?: (event: {
       readonly kind: "mosaicReady";
       readonly unitId: string;
-      readonly athletePublicId: string;
       readonly masterId: string;
       readonly mosaicWalrusBlobId: readonly number[];
     }) => void;
@@ -62,7 +61,6 @@ vi.mock("./live-progress", () => ({
           onMosaicReady?.({
             kind: "mosaicReady",
             unitId: "0xunit-1",
-            athletePublicId: "1",
             masterId: "0xmaster-1",
             mosaicWalrusBlobId: Array.from(
               new TextEncoder().encode("mosaic-event-blob"),
@@ -88,7 +86,7 @@ function completedEntry(
 ): Extract<GalleryEntryView, { status: { kind: "completed" } }> {
   return {
     unitId: "0xunit-1",
-    athletePublicId: "1",
+    displayName: "Demo Athlete One",
     walrusBlobId: "walrus-blob-1",
     submissionNo: 42,
     mintedAtMs: 1700000000000,
@@ -108,7 +106,6 @@ function completedEntry(
 function ownedKakera(overrides: Partial<OwnedKakera> = {}): OwnedKakera {
   return {
     objectId: "0xkakera-1",
-    athletePublicId: "1",
     unitId: "0xunit-1",
     walrusBlobId: "walrus-blob-1",
     submissionNo: 42,

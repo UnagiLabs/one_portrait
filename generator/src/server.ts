@@ -207,7 +207,6 @@ function parseDispatchInput(input: unknown): { readonly unitId: string } {
 }
 
 function parseCreateUnitInput(input: unknown): {
-  readonly athleteId: number;
   readonly blobId: string;
   readonly displayMaxSlots: number;
   readonly displayName: string;
@@ -228,7 +227,6 @@ function parseCreateUnitInput(input: unknown): {
   }
 
   return {
-    athleteId: parseAthleteId(record.athleteId),
     blobId: parseNonEmptyString(record.blobId, "blobId"),
     displayMaxSlots,
     displayName: parseNonEmptyString(record.displayName, "displayName"),
@@ -247,23 +245,6 @@ function parseJsonRecord(input: unknown): Record<string, unknown> {
   }
 
   return input as Record<string, unknown>;
-}
-
-function parseAthleteId(value: unknown): number {
-  const athleteId =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && /^[0-9]+$/.test(value)
-        ? Number(value)
-        : NaN;
-
-  if (!Number.isInteger(athleteId) || athleteId < 0 || athleteId > 65_535) {
-    throw new InvalidPayloadError(
-      "Payload requires athleteId as a u16 integer.",
-    );
-  }
-
-  return athleteId;
 }
 
 function parsePositiveInteger(value: unknown, fieldName: string): number {
@@ -314,11 +295,6 @@ function writeJson(
         readonly digest: string;
         readonly status: "created" | "rotated";
         readonly unitId: string;
-      }
-    | {
-        readonly athleteId: number;
-        readonly digest: string;
-        readonly status: "upserted";
       }
     | {
         readonly status: "ok";

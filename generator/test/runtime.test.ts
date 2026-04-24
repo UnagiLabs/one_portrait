@@ -136,6 +136,11 @@ describe("createFinalizeRunner", () => {
       },
     ];
     const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+    const prepared = preparedInput();
+    const firstSubmission = prepared.submissions[0];
+    if (firstSubmission == null) {
+      throw new Error("missing prepared submission");
+    }
 
     const runner = createFinalizeRunner({
       readUnitSnapshot: vi.fn(async () => ({
@@ -144,9 +149,9 @@ describe("createFinalizeRunner", () => {
         masterId: null,
       })),
       prepareInput: vi.fn(async () => ({
-        ...preparedInput(),
+        ...prepared,
         submissions: [
-          preparedInput().submissions[0]!,
+          firstSubmission,
           {
             submissionNo: 2,
             submitter: "0xdemo-dummy-0001",
@@ -305,7 +310,7 @@ describe("createDefaultFinalizeRunner", () => {
 
 function snapshot() {
   return {
-    athleteId: 1,
+    displayName: "Demo Athlete",
     displayMaxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
@@ -322,7 +327,7 @@ function snapshot() {
 
 function preparedInput(): PreparedFinalizeInput {
   return {
-    athleteId: 1,
+    displayName: "Demo Athlete",
     unitId: "0xunit-1",
     targetWalrusBlobId: "target-blob",
     targetImageBytes: new Uint8Array([1, 2, 3]),

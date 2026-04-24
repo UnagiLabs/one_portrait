@@ -3,7 +3,7 @@
  *
  * `/gallery` needs to merge three on-chain sources:
  *   - owned Kakera metadata (`walrusBlobId`, `submissionNo`, `unitId`)
- *   - the current Unit state (`athletePublicId`, `masterId`)
+ *   - the current Unit state (`displayName`, `masterId`)
  *   - the finalized MasterPortrait placement (`blob_id -> Placement`)
  *
  * The important failure boundary is the placement reverse lookup:
@@ -76,7 +76,7 @@ export async function getGalleryEntry(args: {
   if (progress.masterId == null) {
     return {
       unitId: args.kakera.unitId,
-      athletePublicId: progress.athletePublicId,
+      displayName: progress.displayName,
       walrusBlobId: args.kakera.walrusBlobId,
       submissionNo: args.kakera.submissionNo,
       mintedAtMs: args.kakera.mintedAtMs,
@@ -95,7 +95,7 @@ export async function getGalleryEntry(args: {
 
   return {
     unitId: args.kakera.unitId,
-    athletePublicId: progress.athletePublicId,
+    displayName: progress.displayName,
     walrusBlobId: args.kakera.walrusBlobId,
     submissionNo: args.kakera.submissionNo,
     mintedAtMs: args.kakera.mintedAtMs,

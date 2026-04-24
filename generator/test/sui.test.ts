@@ -30,7 +30,7 @@ describe("createUnitSnapshotLoader", () => {
 
     expect(snapshot).toEqual({
       unitId: UNIT_ID,
-      athleteId: 1,
+      displayName: "Demo Athlete",
       displayMaxSlots: 2000,
       targetWalrusBlobId: "target-blob",
       submissions: [],
@@ -74,7 +74,7 @@ describe("createSeedingSnapshotLoader", () => {
 
     expect(snapshot).toEqual({
       unitId: UNIT_ID,
-      athleteId: 1,
+      displayName: "Demo Athlete",
       displayMaxSlots: 5,
       targetWalrusBlobId: "target-blob",
       submissions: [
@@ -192,7 +192,6 @@ describe("createCreateUnitTransactionExecutor", () => {
 
     await expect(
       createUnit({
-        athleteId: 12,
         blobId: "target-blob-12",
         displayMaxSlots: 2000,
         displayName: "Demo Athlete Twelve",
@@ -232,7 +231,7 @@ function unitData(fields: Record<string, unknown>) {
       type: "0xpkg::unit::Unit",
       fields: {
         id: { id: UNIT_ID },
-        athlete_id: 1,
+        display_name: Array.from(new TextEncoder().encode("Demo Athlete")),
         target_walrus_blob: Array.from(new TextEncoder().encode("target-blob")),
         display_max_slots: "4",
         max_slots: "4",

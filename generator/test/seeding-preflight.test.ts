@@ -71,7 +71,7 @@ function snapshot(
   overrides: Partial<GeneratorSeedingSnapshot> = {},
 ): GeneratorSeedingSnapshot {
   return {
-    athleteId: overrides.athleteId ?? 1,
+    displayName: overrides.displayName ?? "Demo Athlete",
     displayMaxSlots: overrides.displayMaxSlots ?? overrides.maxSlots ?? 5,
     targetWalrusBlobId: overrides.targetWalrusBlobId ?? "target-blob",
     unitId: overrides.unitId ?? "0xunit-1",

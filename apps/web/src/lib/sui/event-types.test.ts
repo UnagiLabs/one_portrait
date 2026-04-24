@@ -8,7 +8,6 @@ import {
 } from "./event-types";
 
 const UNIT_ID = "0xunit-1";
-const ATHLETE_ID = 7;
 const SUBMITTER = "0xsubmitter";
 const MASTER_ID = "0xmaster";
 
@@ -17,7 +16,6 @@ function submittedRaw(overrides: Record<string, unknown> = {}) {
     type: "0xpkg::events::SubmittedEvent",
     parsedJson: {
       unit_id: UNIT_ID,
-      athlete_id: ATHLETE_ID,
       submitter: SUBMITTER,
       walrus_blob_id: [1, 2, 3],
       submission_no: "1",
@@ -33,7 +31,6 @@ function unitFilledRaw(overrides: Record<string, unknown> = {}) {
     type: "0xpkg::events::UnitFilledEvent",
     parsedJson: {
       unit_id: UNIT_ID,
-      athlete_id: ATHLETE_ID,
       filled_count: String(unitTileCount),
       max_slots: String(unitTileCount),
       ...overrides,
@@ -46,7 +43,6 @@ function mosaicReadyRaw(overrides: Record<string, unknown> = {}) {
     type: "0xpkg::events::MosaicReadyEvent",
     parsedJson: {
       unit_id: UNIT_ID,
-      athlete_id: ATHLETE_ID,
       master_id: MASTER_ID,
       mosaic_walrus_blob_id: [9, 8, 7],
       ...overrides,
@@ -61,7 +57,6 @@ describe("parseSubmittedEvent", () => {
     expect(event).toEqual({
       kind: "submitted",
       unitId: UNIT_ID,
-      athletePublicId: "7",
       submitter: SUBMITTER,
       walrusBlobId: [1, 2, 3],
       submissionNo: 1,
@@ -98,7 +93,6 @@ describe("parseUnitFilledEvent", () => {
     expect(event).toEqual({
       kind: "filled",
       unitId: UNIT_ID,
-      athletePublicId: "7",
       filledCount: unitTileCount,
       maxSlots: unitTileCount,
     });
@@ -118,7 +112,6 @@ describe("parseMosaicReadyEvent", () => {
     expect(event).toEqual({
       kind: "mosaicReady",
       unitId: UNIT_ID,
-      athletePublicId: "7",
       masterId: MASTER_ID,
       mosaicWalrusBlobId: [9, 8, 7],
     });

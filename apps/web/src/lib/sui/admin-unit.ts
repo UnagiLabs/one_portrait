@@ -6,7 +6,6 @@ import { UnitNotFoundError } from "./unit";
 export { UnitNotFoundError } from "./unit";
 
 export type AdminUnitSnapshot = {
-  readonly athletePublicId: string;
   readonly displayName: string;
   readonly displayMaxSlots: number;
   readonly masterId: string | null;
@@ -44,7 +43,6 @@ export async function getAdminUnitSnapshot(
   const realSubmittedCount = countSubmissions(fields.submissions);
 
   return {
-    athletePublicId: String(parseIntegerField(fields.athlete_id, "athlete_id")),
     displayName: readVectorU8AsString(fields.display_name, "display_name"),
     displayMaxSlots,
     masterId: extractOptionalId(fields.master_id),

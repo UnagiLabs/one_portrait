@@ -4,11 +4,7 @@ import Link from "next/link";
 const mosaicAspectRatio = `${unitTileGrid.cols} / ${unitTileGrid.rows}`;
 
 import { getAthleteCatalog } from "../lib/catalog";
-import {
-  getDemoCurrentUnitIdForAthlete,
-  getDemoUnitProgress,
-  isDemoModeEnabled,
-} from "../lib/demo";
+import { getDemoUnitProgress, isDemoModeEnabled } from "../lib/demo";
 import { getActiveHomeUnits, RegistrySchemaError } from "../lib/sui";
 
 function formatProgressCount(value: number): string {
@@ -22,7 +18,7 @@ type HomePageProps = {
 };
 
 type HomeEntry = {
-  readonly athletePublicId: string;
+  readonly unitId: string;
   readonly displayName: string;
   readonly thumbnailUrl: string;
   readonly progress:
@@ -150,11 +146,7 @@ export default async function HomePage(
         ) : (
           <div className="grid gap-px bg-[var(--rule)] md:grid-cols-2 xl:grid-cols-4">
             {entries.map((athlete, idx) => (
-              <AthleteCard
-                athlete={athlete}
-                idx={idx}
-                key={athlete.athletePublicId}
-              />
+              <AthleteCard athlete={athlete} idx={idx} key={athlete.unitId} />
             ))}
           </div>
         )}
@@ -355,7 +347,7 @@ async function loadChainEntries(): Promise<readonly HomeEntry[]> {
   try {
     const units = await getActiveHomeUnits();
     return units.map((unit) => ({
-      athletePublicId: unit.athletePublicId,
+      unitId: unit.unitId,
       displayName: unit.displayName,
       thumbnailUrl: unit.thumbnailUrl,
       progress: {
@@ -386,9 +378,9 @@ async function loadDemoEntries(
   const entries: HomeEntry[] = [];
 
   for (const athlete of catalog) {
-    const unitId = getDemoCurrentUnitIdForAthlete(athlete.athletePublicId);
+    const unitId = athlete.unitId;
     const override = resolveE2ECardOverride(
-      athlete.athletePublicId,
+      athlete.unitId,
       rawOverride,
       unitId,
     );
@@ -429,7 +421,7 @@ function buildWaitingRoomHref(unitId: string, athleteName: string): string {
 }
 
 function resolveE2ECardOverride(
-  athletePublicId: string,
+  entryUnitId: string,
   rawOverride: string | undefined,
   unitId: string | null,
 ):
@@ -452,8 +444,8 @@ function resolveE2ECardOverride(
     .filter(Boolean);
 
   for (const token of tokens) {
-    const [targetAthleteId, kind] = token.split(":");
-    if (targetAthleteId !== athletePublicId) {
+    const [targetUnitId, kind] = token.split(":");
+    if (targetUnitId !== entryUnitId) {
       continue;
     }
 

@@ -24,8 +24,8 @@
    │  UnitFilled 検知 → POST /api/finalize
    ▼
 [Sui Testnet: Move package one_portrait]
-   ├─ Registry (shared): athlete_id -> current_unit_id
-   ├─ Unit (shared): athlete_id / target_walrus_blob / 状態 / submitters / submissions / master_id?
+   ├─ Registry (shared): unit_ids
+   ├─ Unit (shared): display_name / target_walrus_blob / 状態 / submitters / submissions / master_id?
    ├─ MasterPortrait (運営保有, 将来選手移管): placements Table<blob_id, Placement>
    └─ Kakera (Soulbound, ファン保有): blob_id, submission_no, unit_id
 
@@ -125,8 +125,8 @@ one_portrait/
 | モジュール | 主要型 | 責務 |
 | :--- | :--- | :--- |
 | `registry` | `Registry` (shared) | 作成済み `Unit` の ID 一覧を保持し、home / admin が同じ一覧をたどれるようにする。 |
-| `unit` | `Unit` (shared), `SubmissionRef` | `athlete_id`、表示名、サムネイル、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。公開 API から委譲される内部状態遷移を担う。 |
-| `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, athlete_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
+| `unit` | `Unit` (shared), `SubmissionRef` | 表示名、サムネイル、`target_walrus_blob`、進捗カウンター、`submitters` Table による重複チェック、順序付き `submissions`、`status` 遷移、`master_id` 保持。公開 API から委譲される内部状態遷移を担う。 |
+| `kakera` | `Kakera` (key only, Soulbound) | ファン投稿時に即時 mint → sender へ transfer。`{ unit_id, submitter, walrus_blob_id, submission_no, minted_at_ms }` を保持。座標は持たない。 |
 | `master_portrait` | `MasterPortrait` (key+store), `Placement` | 完成モザイクNFT。`placements: Table<blob_id, Placement>` で blob_id → `(x, y, submitter, submission_no)` を逆引き可能にする。MVPは運営保有、将来選手移管。 |
 | `events` | `SubmittedEvent` / `UnitFilledEvent` / `MosaicReadyEvent` | クライアント購読用。進捗表示・リビール遷移のトリガー。 |
 | `admin_api` | - | 管理者向け `create_unit` / `finalize` のみを公開し、配置入力の構築は package 内 helper に閉じる。 |
@@ -136,7 +136,6 @@ one_portrait/
 - `Registry`
   - shared object。`unit_ids: vector<ID>` を持ち、作成済み `Unit` の一覧を指す。
 - `Unit`
-  - `athlete_id: u16`
   - `display_name`
   - `thumbnail_url`
   - `target_walrus_blob`
@@ -153,7 +152,6 @@ one_portrait/
   - `submitted_at_ms`
 - `Kakera`
   - `unit_id`
-  - `athlete_id`
   - `submitter`
   - `walrus_blob_id`
   - `submission_no`
@@ -195,7 +193,7 @@ one_portrait/
 
 | ルート | 責務 |
 | :--- | :--- |
-| `/` | `Registry` から各選手の `current_unit_id` を取得し、off-chain catalog で選手メタデータを解決して一覧表示する。 |
+| `/` | `Registry` の `unit_ids` から Unit を取得し、Unit の表示名とサムネイルで一覧表示する。demo catalog がある場合は `unitId` で表示補助情報を解決する。 |
 | `/units/[unitId]` | 待機ページ。`submitted_count / max_slots` のみ表示（モザイクは非公開）。アップロード前に原画像公開性への明示同意を必須にする。投稿完了時に自ウォレットの Kakera を `getOwnedObjects` で取得し「あなたの欠片」として表示（localStorage 非依存）。Sui WebSocket で `SubmittedEvent`→カウンタ更新、`UnitFilledEvent`→`/api/finalize` 発火、`MosaicReadyEvent`→Framer Motion でリビール演出 + Master から自分のマスを逆引きハイライト。 |
 | `/gallery` | 保有 Kakera を `getOwnedObjects` で取得。`master_id` 未設定ユニットは「完成待ち」、設定済みは MasterPortrait を取得して `placements[blob_id]` を逆引き → 座標・`submission_no` を表示。元写真が取得できる間は表示し、取得不能後は完成作品と欠片メタデータを表示する。SWR / sessionStorage でキャッシュ。 |
 | `/api/og/[kakeraId]` | Satori で SNS共有用 OG 画像生成。 |
@@ -302,7 +300,7 @@ one_portrait/
 
 | 優先度 | 項目 |
 | :--- | :--- |
-| P0 | `Registry` による `athlete_id -> current_unit_id` 解決と off-chain catalog による選手表示 |
+| P0 | `Registry.unit_ids` から Unit を取得し、`display_name` と `thumbnail_url` で選手表示 |
 | P0 | zkLogin、写真アップロード、`submit_photo` + Kakera即時mint（同一Tx） |
 | P0 | 原画像公開性への明示同意UI |
 | P0 | 進捗カウンター購読、ブラウザ分散トリガーによる `/api/finalize` 発火 |
@@ -317,7 +315,7 @@ one_portrait/
 ## 14. 実装時の確認観点
 - 投稿成功時に `submission_no` 付き Kakera が即時発行されること
 - 同一アドレスの同一 unit への再投稿が拒否され、別 unit では参加できること
-- `Registry` から各選手の `current_unit_id` を一意に解決できること
+- `Registry` から作成済み Unit の一覧を取得できること
 - finalize 再実行で同一 `placements` が得られること
 - `/gallery` が `master_id` 未設定 unit を「完成待ち」と表示できること
 - 原画像が取得可能な間は表示され、取得不能後も `/gallery` が fallback 表示で破綻しないこと
