@@ -10,6 +10,8 @@ import {
 
 const MANIFEST_PACKAGE_ID =
   "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf";
+const MANIFEST_ORIGINAL_PACKAGE_ID =
+  "0x7568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf";
 const MANIFEST_ADMIN_CAP_ID =
   "0x3799b336f8163162451f4583c9213c432df2bd5145514fcc8089cc3f67de416e";
 const MANIFEST_WALRUS_AGGREGATOR =
@@ -273,6 +275,9 @@ describe("loadWebScriptEnv", () => {
     });
 
     expect(env.NEXT_PUBLIC_PACKAGE_ID).toBe(MANIFEST_PACKAGE_ID);
+    expect(env.NEXT_PUBLIC_ORIGINAL_PACKAGE_ID).toBe(
+      MANIFEST_ORIGINAL_PACKAGE_ID,
+    );
     expect(env.PACKAGE_ID).toBe(MANIFEST_PACKAGE_ID);
     expect(env.NEXT_PUBLIC_WALRUS_PUBLISHER).toBe(MANIFEST_WALRUS_PUBLISHER);
     expect(env.WALRUS_PUBLISHER).toBe(MANIFEST_WALRUS_PUBLISHER);
@@ -338,6 +343,7 @@ function writeManifest(repoRoot) {
     enokiPublicApiKey: "enoki-public-manifest",
     googleClientId: "google-manifest",
     network: "testnet",
+    originalPackageId: MANIFEST_ORIGINAL_PACKAGE_ID,
     packageId: MANIFEST_PACKAGE_ID,
     registryObjectId:
       "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
