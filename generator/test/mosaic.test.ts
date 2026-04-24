@@ -1,7 +1,14 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
-import { generateFinalizeMosaic, generateMosaic } from "../src";
+import {
+  FINALIZE_MOSAIC_CONTENT_TYPE,
+  FINALIZE_MOSAIC_HEIGHT,
+  FINALIZE_MOSAIC_TILE_SIZE,
+  FINALIZE_MOSAIC_WIDTH,
+  generateFinalizeMosaic,
+  generateMosaic,
+} from "../src";
 
 describe("generateMosaic", () => {
   it("renders a mosaic with unique tile placement and expected dimensions", async () => {
@@ -94,6 +101,35 @@ describe("generateMosaic", () => {
       x: 1,
       y: 1,
     });
+  });
+
+  it("uses finalize WebP defaults without changing the shared mosaic API", async () => {
+    const targetImage = await buildQuadrantTarget();
+    const submissions = [
+      await buildSubmission("tile-black", 1, "0x1", { r: 10, g: 10, b: 10 }),
+      await buildSubmission("tile-red", 2, "0x2", { r: 210, g: 40, b: 30 }),
+      await buildSubmission("tile-green", 3, "0x3", { r: 35, g: 180, b: 70 }),
+      await buildSubmission("tile-blue", 4, "0x4", { r: 30, g: 80, b: 210 }),
+    ];
+
+    const result = await generateFinalizeMosaic({
+      targetImage,
+      submissions,
+      grid: { cols: 2, rows: 2 },
+    });
+    const metadata = await sharp(result.image).metadata();
+
+    expect(FINALIZE_MOSAIC_TILE_SIZE).toBe(40);
+    expect(FINALIZE_MOSAIC_WIDTH).toBe(1600);
+    expect(FINALIZE_MOSAIC_HEIGHT).toBe(2000);
+    expect(FINALIZE_MOSAIC_CONTENT_TYPE).toBe("image/webp");
+    expect(result.width).toBe(80);
+    expect(result.height).toBe(80);
+    expect(result.contentType).toBe("image/webp");
+    expect(metadata.width).toBe(80);
+    expect(metadata.height).toBe(80);
+    expect(metadata.format).toBe("webp");
+    expect(result.placements).toHaveLength(4);
   });
 
   it("derives an exact fallback grid from submission count when none is provided", async () => {
