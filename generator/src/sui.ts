@@ -11,6 +11,7 @@ import type { SuiNetwork } from "./env";
 import type { SeedingDigestStatus } from "./seeding-reconciliation";
 
 export type GeneratorFinalizeSnapshot = GeneratorUnitSnapshot & {
+  readonly displayMaxSlots: number;
   readonly masterId: string | null;
   readonly status: "filled" | "finalized" | "pending";
 };
@@ -79,6 +80,7 @@ export function createUnitSnapshotLoader(
     const snapshot = await readUnitSnapshot(client, unitId);
 
     return {
+      displayMaxSlots: snapshot.displayMaxSlots,
       unitId,
       athleteId: snapshot.athleteId,
       targetWalrusBlobId: snapshot.targetWalrusBlobId,
@@ -430,6 +432,10 @@ async function readUnitSnapshot(
   return {
     unitId,
     athleteId: readIntegerField(fields.athlete_id, "athlete_id"),
+    displayMaxSlots: readOptionalIntegerField(
+      fields.display_max_slots,
+      "display_max_slots",
+    ) ?? readIntegerField(fields.max_slots, "max_slots"),
     targetWalrusBlobId: readVectorU8AsString(
       fields.target_walrus_blob,
       "target_walrus_blob",
@@ -491,6 +497,17 @@ function readIntegerField(value: unknown, label: string): number {
   }
 
   throw new Error(`${label} is not a numeric value: ${String(value)}`);
+}
+
+function readOptionalIntegerField(
+  value: unknown,
+  label: string,
+): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return readIntegerField(value, label);
 }
 
 function readAddressField(value: unknown, label: string): string {

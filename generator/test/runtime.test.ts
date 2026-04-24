@@ -177,11 +177,87 @@ describe("createDefaultFinalizeRunner", () => {
       ],
     });
   });
+
+  it("keeps dummy demo tiles in the mosaic but finalizes only real submissions", async () => {
+    const generateFinalizeMosaic = vi.fn(async () => ({
+      image: new Uint8Array([7, 8, 9]),
+      placements: [
+        {
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+          submitter: "0xsubmitter",
+          targetColor: { red: 1, green: 2, blue: 3 },
+          x: 0,
+          y: 0,
+        },
+        {
+          walrusBlobId: "dummy-locked-tile-0001",
+          submissionNo: 2,
+          submitter: `0x${"0".repeat(64)}`,
+          targetColor: { red: 4, green: 5, blue: 6 },
+          x: 1,
+          y: 0,
+        },
+      ],
+    }));
+    const putBlob = vi.fn(async () => ({
+      blobId: "mosaic-blob",
+      aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+    }));
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createDefaultFinalizeRunner({
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        displayMaxSlots: 2,
+        status: "filled" as const,
+        masterId: null,
+      })),
+      walrusRead: {
+        getBlob: vi.fn(async (blobId: string) =>
+          new TextEncoder().encode(blobId),
+        ),
+      },
+      walrusWrite: {
+        putBlob,
+      },
+      finalizeTransaction,
+      sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+      generateFinalizeMosaic,
+    });
+
+    await expect(runner.run("0xunit-1")).resolves.toEqual({
+      status: "finalized",
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 1,
+    });
+    expect(generateFinalizeMosaic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submissions: expect.arrayContaining([
+          expect.objectContaining({ walrusBlobId: "submission-1" }),
+          expect.objectContaining({ walrusBlobId: "dummy-locked-tile-0001" }),
+        ]),
+      }),
+    );
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      placements: [
+        expect.objectContaining({
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+        }),
+      ],
+    });
+  });
 });
 
 function snapshot() {
   return {
     athleteId: 1,
+    displayMaxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [

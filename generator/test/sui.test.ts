@@ -32,6 +32,7 @@ describe("createSeedingSnapshotLoader", () => {
               type: "0x2::table::Table<address, bool>",
               fields: { id: { id: "0xsubmitters" }, size: "2" },
             },
+            display_max_slots: "2000",
             max_slots: "5",
           }),
         };
@@ -44,6 +45,7 @@ describe("createSeedingSnapshotLoader", () => {
     expect(snapshot).toEqual({
       unitId: UNIT_ID,
       athleteId: 1,
+      displayMaxSlots: 2000,
       targetWalrusBlobId: "target-blob",
       submissions: [
         parsedSubmission({
@@ -186,6 +188,7 @@ function unitData(fields: Record<string, unknown>) {
         athlete_id: 1,
         target_walrus_blob: Array.from(new TextEncoder().encode("target-blob")),
         max_slots: "4",
+        display_max_slots: "4",
         status: 0,
         master_id: { fields: { vec: [] } },
         submitters: {
