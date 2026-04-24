@@ -98,9 +98,9 @@ export function createFinalizeRunner(deps: FinalizeRunnerDeps): FinalizeRunner {
         submissions: prepared.submissions,
         targetTiles,
       });
-      const finalizePlacements = filterFinalizePlacements(
+      const finalizePlacements = filterPlacementsForFinalize(
         placements,
-        snapshot.submissions,
+        prepared.submissions,
       );
       const mosaicBytes = await deps.composeMosaicPng({
         submissions: prepared.submissions,
@@ -160,9 +160,9 @@ export function createDefaultFinalizeRunner(
           deps.sampleAverageColor ?? createSharpAverageColorSampler(),
       });
       const mosaicResult = await buildFinalizeMosaic(prepared);
-      const finalizePlacements = filterFinalizePlacements(
+      const finalizePlacements = filterPlacementsForFinalize(
         mosaicResult.placements,
-        snapshot.submissions,
+        prepared.submissions,
       );
       const mosaic = await deps.walrusWrite.putBlob(mosaicResult.image);
       const finalized = await deps.finalizeTransaction({
@@ -205,23 +205,17 @@ export function createFinalizeRunnerFromEndpoints(input: {
 
 export type { GeneratorFinalizeSnapshot };
 
-function filterFinalizePlacements(
+function filterPlacementsForFinalize(
   placements: readonly MosaicPlacement[],
-  submissions: GeneratorUnitSnapshot["submissions"],
+  submissions: PreparedFinalizeInput["submissions"],
 ): MosaicPlacement[] {
-  const realSubmissionKeys = new Set(
-    submissions.map((submission) => submissionIdentity(submission)),
+  const realWalrusBlobIds = new Set(
+    submissions
+      .filter((submission) => submission.isDummy !== true)
+      .map((submission) => submission.walrusBlobId),
   );
 
   return placements.filter((placement) =>
-    realSubmissionKeys.has(submissionIdentity(placement)),
+    realWalrusBlobIds.has(placement.walrusBlobId),
   );
-}
-
-function submissionIdentity(input: {
-  readonly submissionNo: number;
-  readonly submitter: string;
-  readonly walrusBlobId: string;
-}): string {
-  return `${input.submissionNo}:${input.submitter}:${input.walrusBlobId}`;
 }

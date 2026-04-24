@@ -115,6 +115,79 @@ describe("createFinalizeRunner", () => {
       placements,
     });
   });
+
+  it("keeps dummy placements out of the finalize transaction", async () => {
+    const placements = [
+      {
+        walrusBlobId: "submission-1",
+        submissionNo: 1,
+        submitter: "0xsubmitter",
+        x: 0,
+        y: 0,
+        targetColor: { red: 1, green: 2, blue: 3 },
+      },
+      {
+        walrusBlobId: "demo-dummy:dummy-1.png",
+        submissionNo: 2,
+        submitter: "0xdemo-dummy-0001",
+        x: 1,
+        y: 0,
+        targetColor: { red: 4, green: 5, blue: 6 },
+      },
+    ];
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createFinalizeRunner({
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        status: "filled" as const,
+        masterId: null,
+      })),
+      prepareInput: vi.fn(async () => ({
+        ...preparedInput(),
+        submissions: [
+          preparedInput().submissions[0]!,
+          {
+            submissionNo: 2,
+            submitter: "0xdemo-dummy-0001",
+            submittedAtMs: 0,
+            walrusBlobId: "demo-dummy:dummy-1.png",
+            averageColor: { red: 4, green: 5, blue: 6 },
+            imageBytes: new Uint8Array([7, 8, 9]),
+            isDummy: true,
+          },
+        ],
+      })),
+      extractTargetTiles: vi.fn(async () => [
+        {
+          index: 0,
+          x: 0,
+          y: 0,
+          averageColor: { red: 1, green: 2, blue: 3 },
+        },
+      ]),
+      assignPlacements: vi.fn(() => placements),
+      composeMosaicPng: vi.fn(async () => new Uint8Array([9, 9, 9])),
+      putMosaic: vi.fn(async () => ({
+        blobId: "mosaic-blob",
+        aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+      })),
+      finalizeTransaction,
+    });
+
+    await expect(runner.run("0xunit-1")).resolves.toEqual({
+      status: "finalized",
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      digest: "0xdigest",
+      placementCount: 1,
+    });
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      placements: [placements[0]],
+    });
+  });
 });
 
 describe("createDefaultFinalizeRunner", () => {
@@ -177,12 +250,63 @@ describe("createDefaultFinalizeRunner", () => {
       ],
     });
   });
+
+  it("leaves normal units unchanged when there are no dummy submissions", async () => {
+    const finalizeTransaction = vi.fn(async () => ({ digest: "0xdigest" }));
+
+    const runner = createDefaultFinalizeRunner({
+      readUnitSnapshot: vi.fn(async () => ({
+        ...snapshot(),
+        status: "filled" as const,
+        masterId: null,
+      })),
+      walrusRead: {
+        getBlob: vi.fn(async (blobId: string) =>
+          new TextEncoder().encode(blobId),
+        ),
+      },
+      walrusWrite: {
+        putBlob: vi.fn(async () => ({
+          blobId: "mosaic-blob",
+          aggregatorUrl: "https://agg/v1/blobs/mosaic-blob",
+        })),
+      },
+      finalizeTransaction,
+      sampleAverageColor: vi.fn(() => ({ red: 1, green: 2, blue: 3 })),
+      generateFinalizeMosaic: vi.fn(async () => ({
+        image: new Uint8Array([7, 8, 9]),
+        placements: [
+          {
+            walrusBlobId: "submission-1",
+            submissionNo: 1,
+            submitter: "0xsubmitter",
+            targetColor: { red: 1, green: 2, blue: 3 },
+            x: 0,
+            y: 0,
+          },
+        ],
+      })),
+    });
+
+    await runner.run("0xunit-1");
+
+    expect(finalizeTransaction).toHaveBeenCalledWith({
+      unitId: "0xunit-1",
+      mosaicBlobId: "mosaic-blob",
+      placements: [
+        expect.objectContaining({
+          walrusBlobId: "submission-1",
+          submissionNo: 1,
+        }),
+      ],
+    });
+  });
 });
 
 function snapshot() {
   return {
     athleteId: 1,
-    displayMaxSlots: 2000,
+    displayMaxSlots: 1,
     targetWalrusBlobId: "target-blob",
     unitId: "0xunit-1",
     submissions: [
@@ -208,6 +332,7 @@ function preparedInput(): PreparedFinalizeInput {
         submitter: "0xsubmitter",
         submittedAtMs: 1_700_000_000_000,
         walrusBlobId: "submission-1",
+        isDummy: false,
         averageColor: { red: 10, green: 20, blue: 30 },
         imageBytes: new Uint8Array([4, 5, 6]),
       },
