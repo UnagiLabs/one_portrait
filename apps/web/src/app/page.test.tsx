@@ -306,13 +306,14 @@ describe("HomePage", () => {
     expect(screen.queryByText("1998 / 2000")).toBeNull();
   });
 
-  it("shows matched active entries that reached max slots as Complete in the UI guard after getActiveHomeUnits filters filled units", async () => {
+  it("shows matched completed entries as Complete when chain lifecycle is complete", async () => {
     const firstAthlete = CATALOG[0];
     getActiveHomeUnitsMock.mockResolvedValue([
       {
         displayName: firstAthlete.displayName,
+        lifecycleState: "complete",
         maxSlots: unitTileCount,
-        submittedCount: unitTileCount,
+        submittedCount: 347,
         thumbnailUrl: firstAthlete.thumbnailUrl,
         unitId: "0xunit-complete",
       },
@@ -337,7 +338,7 @@ describe("HomePage", () => {
       expect(cardElement.closest("a")).toBeNull();
       expect(within(cardElement).getAllByText("Complete").length).toBe(2);
       expect(within(cardElement).queryByText("Live")).toBeNull();
-      expect(within(cardElement).getByText("2000 / 2000")).toBeTruthy();
+      expect(within(cardElement).getByText("347 / 2000")).toBeTruthy();
     }
 
     expect(
