@@ -21,20 +21,22 @@ describe("RevealPanel", () => {
       screen.getByRole("img", { name: /Demo Athlete One completed mosaic/i }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("img", { name: /Demo Athlete One original submission/i }),
+      screen.getByRole("img", {
+        name: /Demo Athlete One original submission/i,
+      }),
     ).toBeTruthy();
-    expect(screen.getByTestId("placement-highlight").getAttribute("style")).toContain(
-      `left: ${(12 / unitTileGrid.cols) * 100}%`,
-    );
-    expect(screen.getByTestId("placement-highlight").getAttribute("style")).toContain(
-      `top: ${(34 / unitTileGrid.rows) * 100}%`,
-    );
-    expect(screen.getByTestId("placement-highlight").getAttribute("style")).toContain(
-      `width: ${100 / unitTileGrid.cols}%`,
-    );
-    expect(screen.getByTestId("placement-highlight").getAttribute("style")).toContain(
-      `height: ${100 / unitTileGrid.rows}%`,
-    );
+    expect(
+      screen.getByTestId("placement-highlight").getAttribute("style"),
+    ).toContain(`left: ${(12 / unitTileGrid.cols) * 100}%`);
+    expect(
+      screen.getByTestId("placement-highlight").getAttribute("style"),
+    ).toContain(`top: ${(34 / unitTileGrid.rows) * 100}%`);
+    expect(
+      screen.getByTestId("placement-highlight").getAttribute("style"),
+    ).toContain(`width: ${100 / unitTileGrid.cols}%`);
+    expect(
+      screen.getByTestId("placement-highlight").getAttribute("style"),
+    ).toContain(`height: ${100 / unitTileGrid.rows}%`);
   });
 
   it("toggles the highlight visibility", () => {

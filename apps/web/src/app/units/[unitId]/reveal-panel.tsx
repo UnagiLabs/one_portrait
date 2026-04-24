@@ -110,8 +110,8 @@ export function RevealPanel({
             </p>
             {placement ? (
               <p className="font-serif-display italic text-[15px] text-[var(--ink)]">
-                Your Kakera is highlighted at ({placement.x}, {placement.y})
-                as #{placement.submissionNo}.
+                Your Kakera is highlighted at ({placement.x}, {placement.y}) as
+                #{placement.submissionNo}.
               </p>
             ) : (
               <p className="font-serif-display italic text-[15px] text-[var(--ink-dim)]">
