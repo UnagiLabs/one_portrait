@@ -110,7 +110,7 @@ import { LiveProgress } from "./live-progress";
 import { ParticipationAccess } from "./participation-access";
 import { UnitFullStateProvider } from "./unit-full-state";
 
-const FILE_INPUT_LABEL = "写真を選択";
+const FILE_INPUT_LABEL = "Choose photo";
 const CONSENT_LABEL =
   /I understand that the original image I submit will be stored on Walrus and can be retrieved by anyone who knows the blob_id\. I also agree that a Soulbound, non-transferable Kakera NFT will be issued to my wallet as proof of participation\./;
 
@@ -176,7 +176,7 @@ describe("ParticipationAccess", () => {
 
     render(<ParticipationAccess unitId="0xunit-1" />);
 
-    expect(screen.getByText(/進捗の確認だけ使えます/)).toBeTruthy();
+    expect(screen.getByText(/only progress checking is available/)).toBeTruthy();
   });
 
   it("uses the server-provided packageId for Kakera lookup by default", () => {
@@ -247,7 +247,7 @@ describe("ParticipationAccess", () => {
 
     expect(
       screen.getByText(
-        /Google zkLogin または Sui wallet を接続すると、この待機室から投稿できます。/,
+        /Connect Google zkLogin or Sui wallet to submit from this waiting room./,
       ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
@@ -282,7 +282,7 @@ describe("ParticipationAccess", () => {
 
     expect(screen.queryByRole("button", { name: "Google zkLogin" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sui wallet" })).toBeNull();
-    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+    expect(screen.getByText(/This Unit is full/)).toBeTruthy();
   });
 
   it("keeps the signed-out Sui wallet modal controlled", async () => {
@@ -328,11 +328,11 @@ describe("ParticipationAccess", () => {
     render(<ParticipationAccess unitId="0xunit-1" />);
 
     expect(
-      screen.getByText(/Sui wallet アドレスを確認できました/),
+      screen.getByText(/Sui wallet address confirmed/),
     ).toBeTruthy();
     expect(screen.getByLabelText(FILE_INPUT_LABEL)).toBeTruthy();
     expect(
-      screen.queryByText(/履歴ギャラリーの確認だけ利用できます。/),
+      screen.queryByText(/Only the history gallery is available./),
     ).toBeNull();
   });
 
@@ -368,7 +368,7 @@ describe("ParticipationAccess", () => {
       );
     });
     expect(
-      screen.getByRole("button", { name: "Google zkLogin をやり直す" }),
+      screen.getByRole("button", { name: "Retry Google zkLogin" }),
     ).toBeTruthy();
   });
 
@@ -402,8 +402,8 @@ describe("ParticipationAccess", () => {
 
     expect(screen.queryByRole("checkbox", { name: CONSENT_LABEL })).toBeNull();
     expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
-    expect(screen.queryByRole("button", { name: /投稿を確定/ })).toBeNull();
-    expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Confirm submission/ })).toBeNull();
+    expect(screen.getByText(/This Unit is full/)).toBeTruthy();
   });
 
   it("calls preprocessPhoto with the chosen file and renders the preview URL", async () => {
@@ -439,7 +439,7 @@ describe("ParticipationAccess", () => {
     expect(preprocessPhoto.mock.calls[0][0]).toBe(file);
 
     await waitFor(() => {
-      const preview = screen.getByAltText("投稿プレビュー") as HTMLImageElement;
+      const preview = screen.getByAltText("Submission preview") as HTMLImageElement;
       expect(preview.src).toContain("blob:preview-abc");
     });
   });
@@ -469,7 +469,7 @@ describe("ParticipationAccess", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/処理中/)).toBeTruthy();
+      expect(screen.getByText(/Processing/)).toBeTruthy();
     });
 
     resolvePreprocess({
@@ -482,7 +482,7 @@ describe("ParticipationAccess", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByAltText("投稿プレビュー")).toBeTruthy();
+      expect(screen.getByAltText("Submission preview")).toBeTruthy();
     });
   });
 
@@ -492,7 +492,7 @@ describe("ParticipationAccess", () => {
     const preprocessPhoto = vi
       .fn()
       .mockRejectedValue(
-        new Error("写真のサイズが上限（10MB）を超えています。"),
+        new Error("The photo exceeds the 10MB size limit."),
       );
 
     render(
@@ -509,13 +509,13 @@ describe("ParticipationAccess", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toContain(
-        "写真のサイズが上限",
+        "photo exceeds the size limit",
       );
     });
   });
 
   describe("submission flow (Walrus PUT + Sponsored Tx)", () => {
-    const SUBMIT_BUTTON_NAME = /投稿を確定/;
+    const SUBMIT_BUTTON_NAME = /Confirm submission/;
 
     type PreprocessedLike = {
       readonly blob: Blob;
@@ -571,7 +571,7 @@ describe("ParticipationAccess", () => {
         expect(preprocessPhoto).toHaveBeenCalledTimes(1);
       });
       await waitFor(() => {
-        expect(screen.getByAltText("投稿プレビュー")).toBeTruthy();
+        expect(screen.getByAltText("Submission preview")).toBeTruthy();
       });
     }
 
@@ -693,7 +693,7 @@ describe("ParticipationAccess", () => {
         .mockRejectedValue(
           new WalrusPutError(
             "final",
-            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+            "Could not save the photo to Walrus. Please try again.",
           ),
         );
 
@@ -715,7 +715,7 @@ describe("ParticipationAccess", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("alert").textContent).toContain(
-          "Walrus への写真の保存に失敗",
+          "Could not save the photo to Walrus",
         );
       });
       expect(submitPhoto).not.toHaveBeenCalled();
@@ -729,7 +729,7 @@ describe("ParticipationAccess", () => {
         .mockRejectedValueOnce(
           new WalrusPutError(
             "final",
-            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+            "Could not save the photo to Walrus. Please try again.",
           ),
         )
         .mockResolvedValueOnce({
@@ -760,12 +760,12 @@ describe("ParticipationAccess", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("alert").textContent).toContain(
-          "Walrus への写真の保存に失敗",
+          "Could not save the photo to Walrus",
         );
       });
 
       const retryButton = screen.getByRole("button", {
-        name: /もう一度送信する/,
+        name: /Submit again/,
       });
       expect(retryButton).toBeTruthy();
 
@@ -788,7 +788,7 @@ describe("ParticipationAccess", () => {
         expect(submitPhoto).toHaveBeenCalledWith("walrus-blob-retry");
       });
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
     });
 
@@ -804,7 +804,7 @@ describe("ParticipationAccess", () => {
         .mockRejectedValue(
           new WalrusPutError(
             "final",
-            "Walrus への写真の保存に失敗しました。もう一度お試しください。",
+            "Could not save the photo to Walrus. Please try again.",
           ),
         );
 
@@ -833,7 +833,7 @@ describe("ParticipationAccess", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole("button", { name: /もう一度送信する/ }),
+          screen.getByRole("button", { name: /Submit again/ }),
         ).toBeTruthy();
       });
 
@@ -850,9 +850,9 @@ describe("ParticipationAccess", () => {
       });
 
       expect(
-        screen.queryByRole("button", { name: /もう一度送信する/ }),
+        screen.queryByRole("button", { name: /Submit again/ }),
       ).toBeNull();
-      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+      expect(screen.getByText(/This Unit is full/)).toBeTruthy();
       expect(putBlob).toHaveBeenCalledTimes(1);
     });
 
@@ -872,7 +872,7 @@ describe("ParticipationAccess", () => {
         new EnokiSubmitClientError(
           401,
           "auth_expired",
-          "ログインが切れました。Google でもう一度ログインしてください。",
+          "Your login expired. Please sign in with Google again.",
         ),
       );
 
@@ -897,7 +897,7 @@ describe("ParticipationAccess", () => {
       });
       await waitFor(() => {
         expect(screen.getByRole("alert").textContent).toContain(
-          "ログインが切れました",
+          "Your login expired",
         );
       });
     });
@@ -930,22 +930,22 @@ describe("ParticipationAccess", () => {
       fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
       expect(screen.getByText(/final-digest-XYZ/)).toBeTruthy();
       expect(
         screen.getByText(
-          /この Unit ページで reveal と finalize の状況を見ながら、履歴ギャラリーでも参加記録を確認できます。/,
+          /You can watch the reveal and finalize status on this Unit page, and review your participation record in the history gallery./,
         ),
       ).toBeTruthy();
       expect(
         screen
-          .getByRole("link", { name: "完成状況を確認" })
+          .getByRole("link", { name: "View completion status" })
           .getAttribute("href"),
       ).toBe("/units/0xunit-1");
       expect(
         screen
-          .getByRole("link", { name: "履歴ギャラリーを見る" })
+          .getByRole("link", { name: "View history gallery" })
           .getAttribute("href"),
       ).toBe("/gallery");
     });
@@ -1010,10 +1010,10 @@ describe("ParticipationAccess", () => {
       });
 
       expect(
-        screen.getByText(/投稿結果を確認しています。しばらくお待ちください。/),
+        screen.getByText(/Checking the submission result. Please wait./),
       ).toBeTruthy();
       expect(
-        screen.queryByRole("button", { name: /もう一度送信する/ }),
+        screen.queryByRole("button", { name: /Submit again/ }),
       ).toBeNull();
 
       resolveExecutionCheck({
@@ -1023,11 +1023,11 @@ describe("ParticipationAccess", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("alert").textContent).toContain(
-          "投稿を完了できませんでした",
+          "Could not complete the submission",
         );
       });
       expect(
-        screen.getByRole("button", { name: /もう一度送信する/ }),
+        screen.getByRole("button", { name: /Submit again/ }),
       ).toBeTruthy();
     });
 
@@ -1080,7 +1080,7 @@ describe("ParticipationAccess", () => {
         expect(checkSubmissionExecutionMock).toHaveBeenCalledTimes(1);
       });
       expect(
-        screen.queryByRole("button", { name: /もう一度送信する/ }),
+        screen.queryByRole("button", { name: /Submit again/ }),
       ).toBeNull();
 
       await waitFor(
@@ -1091,7 +1091,7 @@ describe("ParticipationAccess", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
       expect(screen.getByText(/recover-digest/)).toBeTruthy();
       expect(useOwnedKakeraMock).toHaveBeenLastCalledWith(
@@ -1177,13 +1177,13 @@ describe("ParticipationAccess", () => {
       await waitFor(
         () => {
           expect(screen.getByRole("alert").textContent).toContain(
-            "投稿結果を確認できませんでした",
+            "Could not confirm the submission result",
           );
         },
         { timeout: 1_000 },
       );
       expect(
-        screen.getByRole("button", { name: /もう一度送信する/ }),
+        screen.getByRole("button", { name: /Submit again/ }),
       ).toBeTruthy();
     });
 
@@ -1219,12 +1219,12 @@ describe("ParticipationAccess", () => {
       fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
 
-      // 参加証 card shows the locally-preprocessed preview image.
+      // The participation card shows the locally preprocessed preview image.
       const previews = screen.getAllByAltText(
-        "投稿プレビュー",
+        "Submission preview",
       ) as HTMLImageElement[];
       expect(previews.some((img) => img.src.includes("blob:preview-xyz"))).toBe(
         true,
@@ -1237,9 +1237,9 @@ describe("ParticipationAccess", () => {
       // submission_no is still being confirmed: show a pending indicator.
       const submissionHeading = screen.getByText(/submission_no/i);
       const submissionValue = submissionHeading.nextElementSibling;
-      expect(submissionValue?.textContent).toMatch(/確認中/);
+      expect(submissionValue?.textContent).toMatch(/Checking/);
       expect(
-        screen.getByText(/Kakera.*確認しています|Kakera を確認しています/),
+        screen.getByText(/Checking Kakera/),
       ).toBeTruthy();
     });
 
@@ -1280,12 +1280,12 @@ describe("ParticipationAccess", () => {
       fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
       await waitFor(() => {
         expect(screen.getByText(/#128/)).toBeTruthy();
       });
-      expect(screen.getByText(/Kakera を受け取りました/)).toBeTruthy();
+      expect(screen.getByText(/Kakera received/)).toBeTruthy();
     });
 
     it("shows a timeout notice when the Kakera lookup hits its retry budget", async () => {
@@ -1320,10 +1320,10 @@ describe("ParticipationAccess", () => {
       fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
       await waitFor(() => {
-        expect(screen.getByText(/確認できませんでした/)).toBeTruthy();
+        expect(screen.getByText(/Could not confirm/)).toBeTruthy();
       });
     });
   });
@@ -1337,7 +1337,7 @@ describe("ParticipationAccess", () => {
    *   - Only a `SubmittedEvent` observation increments the counter.
    */
   describe("integration with LiveProgress (SubmittedEvent is source of truth)", () => {
-    const SUBMIT_BUTTON_NAME = /投稿を確定/;
+    const SUBMIT_BUTTON_NAME = /Confirm submission/;
 
     it("keeps the counter flat after submit success, then increments on SubmittedEvent", async () => {
       setupSignedInEnv();
@@ -1398,13 +1398,13 @@ describe("ParticipationAccess", () => {
         target: { files: [makeFile()] },
       });
       await waitFor(() => {
-        expect(screen.getByAltText("投稿プレビュー")).toBeTruthy();
+        expect(screen.getByAltText("Submission preview")).toBeTruthy();
       });
 
       fireEvent.click(screen.getByRole("button", { name: SUBMIT_BUTTON_NAME }));
 
       await waitFor(() => {
-        expect(screen.getByText(/投稿が完了しました/)).toBeTruthy();
+        expect(screen.getByText(/Submission complete/)).toBeTruthy();
       });
 
       // Progress counter MUST still be at its initial value — no optimistic
@@ -1484,7 +1484,7 @@ describe("ParticipationAccess", () => {
       });
 
       expect(screen.queryByLabelText(FILE_INPUT_LABEL)).toBeNull();
-      expect(screen.getByText(/この Unit は満枠です/)).toBeTruthy();
+      expect(screen.getByText(/This Unit is full/)).toBeTruthy();
     });
   });
 });

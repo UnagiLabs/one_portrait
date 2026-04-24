@@ -155,7 +155,7 @@ describe("GalleryClient", () => {
 
     expect(
       screen.getByText(
-        /Google zkLogin または Sui wallet を接続すると、あなたの Kakera 履歴を読み込めます。/,
+        /Connect Google zkLogin or Sui wallet to load your Kakera history./,
       ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Google zkLogin" })).toBeTruthy();
@@ -215,7 +215,7 @@ describe("GalleryClient", () => {
     useConnectWalletMock.mockReturnValue({
       mutateAsync: vi
         .fn()
-        .mockRejectedValue(new Error("ログインに失敗しました。")),
+        .mockRejectedValue(new Error("Login failed.")),
     });
 
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
@@ -223,10 +223,10 @@ describe("GalleryClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Google zkLogin" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "ログインに失敗しました。",
+      "Login failed.",
     );
     expect(
-      screen.getByRole("button", { name: "Google zkLogin をやり直す" }),
+      screen.getByRole("button", { name: "Retry Google zkLogin" }),
     ).toBeTruthy();
   });
 
@@ -238,7 +238,7 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
     const button = screen.getByRole("button", {
-      name: "Google zkLogin 接続中…",
+      name: "Connecting Google zkLogin...",
     });
 
     expect(button.getAttribute("disabled")).not.toBeNull();
@@ -269,7 +269,7 @@ describe("GalleryClient", () => {
 
     expect(
       screen.getByText(
-        /ログインを確認できました。Sui から Kakera を読んでいます。/,
+        /Login confirmed. Reading Kakera from Sui./,
       ),
     ).toBeTruthy();
     expect(listOwnedKakeraMock).toHaveBeenCalledWith({
@@ -344,14 +344,14 @@ describe("GalleryClient", () => {
     });
 
     expect(screen.getByText("Empty")).toBeTruthy();
-    expect(screen.getByText(/まだ Kakera が見つかりません。/)).toBeTruthy();
+    expect(screen.getByText(/No Kakera found yet./)).toBeTruthy();
     expect(
       screen.getByText(
-        /投稿直後なら、少し待ってからもう一度確認してください。/,
+        /If you just submitted, wait a moment and check again./,
       ),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "もう一度確認する" }),
+      screen.getByRole("button", { name: "Check again" }),
     ).toBeTruthy();
   });
 
@@ -365,12 +365,12 @@ describe("GalleryClient", () => {
       expect(screen.getByText("Unavailable")).toBeTruthy();
     });
 
-    expect(screen.getByText(/履歴を読み込めませんでした。/)).toBeTruthy();
+    expect(screen.getByText(/Could not load history./)).toBeTruthy();
     expect(
-      screen.getByText(/時間をおいて、もう一度確認してください。/),
+      screen.getByText(/Wait a moment and check again./),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "もう一度確認する" }),
+      screen.getByRole("button", { name: "Check again" }),
     ).toBeTruthy();
   });
 
@@ -380,14 +380,14 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="" />);
 
     expect(screen.getByText("Unavailable")).toBeTruthy();
-    expect(screen.getByText(/公開設定を確認できません。/)).toBeTruthy();
+    expect(screen.getByText(/Could not verify public configuration./)).toBeTruthy();
     expect(
       screen.getByText(
-        /Sui 接続の公開設定が不足しているため、ギャラリーを開けません。/,
+        /The Sui connection public configuration is incomplete, so the gallery cannot open./,
       ),
     ).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: "もう一度確認する" }),
+      screen.queryByRole("button", { name: "Check again" }),
     ).toBeNull();
   });
 
@@ -401,7 +401,7 @@ describe("GalleryClient", () => {
       expect(listOwnedKakeraMock).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "もう一度確認する" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
 
     await waitFor(() => {
       expect(listOwnedKakeraMock).toHaveBeenCalledTimes(2);
@@ -427,7 +427,7 @@ describe("GalleryClient", () => {
         .getAttribute("src"),
     ).toBe(`${WALRUS_AGGREGATOR}/v1/blobs/walrus-original-1`);
     expect(
-      screen.queryByRole("link", { name: /unit ページで位置を見る/i }),
+      screen.queryByRole("link", { name: /View position on Unit page/i }),
     ).toBeNull();
   });
 
@@ -462,7 +462,7 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
     const unitLink = await screen.findByRole("link", {
-      name: /unit ページで位置を見る/i,
+      name: /View position on Unit page/i,
     });
 
     expect(unitLink.getAttribute("href")).toBe(
@@ -479,7 +479,7 @@ describe("GalleryClient", () => {
     render(<GalleryClient catalog={CATALOG} packageId="0xpkg" />);
 
     const unitLink = await screen.findByRole("link", {
-      name: /unit ページで位置を見る/i,
+      name: /View position on Unit page/i,
     });
 
     expect(unitLink.getAttribute("href")).toBe(

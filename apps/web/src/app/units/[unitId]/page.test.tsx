@@ -283,7 +283,7 @@ describe("UnitPage", () => {
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
-    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+    expect(screen.getByText(/Waiting|No active unit/i)).toBeTruthy();
   });
 
   it("shows a waiting-room link to the participation gallery", async () => {
@@ -323,7 +323,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "選手情報を一時取得できません" }),
+      screen.getByRole("heading", { name: "Athlete information is temporarily unavailable" }),
     ).toBeTruthy();
   });
 
@@ -342,7 +342,7 @@ describe("UnitPage", () => {
     render(ui);
 
     expect(
-      screen.getByRole("heading", { name: "選手情報を一時取得できません" }),
+      screen.getByRole("heading", { name: "Athlete information is temporarily unavailable" }),
     ).toBeTruthy();
   });
 
@@ -543,7 +543,7 @@ describe("UnitPage", () => {
     expect(
       screen.getByRole("heading", { name: "Demo Athlete One" }),
     ).toBeTruthy();
-    expect(screen.getByText(/待機中|No active unit/i)).toBeTruthy();
+    expect(screen.getByText(/Waiting|No active unit/i)).toBeTruthy();
   });
 
   it("applies the active unit bootstrap only in stub E2E mode", async () => {
