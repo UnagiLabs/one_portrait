@@ -88,6 +88,47 @@ test.describe("home smoke", () => {
     expect(hasNoHorizontalOverflow).toBe(true);
   });
 
+  test("keeps the portrait rail autoplay and arrow controls responsive", async ({
+    page,
+  }) => {
+    await installDefaultMocks(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    await page.goto("/");
+    await page.locator("#portrait-works").scrollIntoViewIfNeeded();
+
+    const rail = page.locator(".op-home-portrait-rail");
+    await expect(rail).toBeVisible();
+
+    const autoplayBefore = await rail.evaluate((element) => element.scrollLeft);
+    await page.waitForTimeout(450);
+    const autoplayAfter = await rail.evaluate((element) => element.scrollLeft);
+    expect(autoplayAfter - autoplayBefore).toBeGreaterThan(10);
+
+    const step = await page
+      .locator(".op-home-portrait-track")
+      .evaluate((track) => {
+        const card = track.querySelector<HTMLElement>(
+          ".op-home-portrait-card, .op-home-portrait-card-link",
+        );
+        const cardWidth = card?.getBoundingClientRect().width ?? 250;
+        const gap = Number.parseFloat(getComputedStyle(track).columnGap);
+        return Math.round(cardWidth + (Number.isFinite(gap) ? gap : 0));
+      });
+
+    const beforeNext = await rail.evaluate((element) => element.scrollLeft);
+    await page.getByRole("button", { name: "Next portraits" }).click();
+    const afterNext = await rail.evaluate((element) => element.scrollLeft);
+    expect(afterNext - beforeNext).toBeGreaterThanOrEqual(step - 2);
+    expect(afterNext - beforeNext).toBeLessThanOrEqual(step + 80);
+
+    const beforePrev = await rail.evaluate((element) => element.scrollLeft);
+    await page.getByRole("button", { name: "Previous portraits" }).click();
+    const afterPrev = await rail.evaluate((element) => element.scrollLeft);
+    expect(beforePrev - afterPrev).toBeGreaterThanOrEqual(step - 80);
+    expect(beforePrev - afterPrev).toBeLessThanOrEqual(step + 2);
+  });
+
   test("keeps the waiting room readable on a mobile viewport", async ({
     page,
   }) => {

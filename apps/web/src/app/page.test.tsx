@@ -107,34 +107,55 @@ describe("HomePage", () => {
   it("lets users move the portrait rail one card at a time", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([]);
     const originalScrollBy = HTMLElement.prototype.scrollBy;
-    const scrollByMock = vi.fn();
+    const originalScrollWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollWidth",
+    );
     Object.defineProperty(HTMLElement.prototype, "scrollBy", {
       configurable: true,
-      value: scrollByMock,
+      value: vi.fn(),
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get() {
+        return this.classList.contains("op-home-portrait-track") ? 1000 : 0;
+      },
     });
 
     try {
       const ui = await HomePage();
       render(ui);
 
+      const rail = document.querySelector<HTMLElement>(
+        ".op-home-portrait-rail",
+      );
+      expect(rail).toBeTruthy();
+      if (!rail) {
+        throw new Error("Portrait rail was not rendered");
+      }
+
+      rail.scrollLeft = 10;
       fireEvent.click(screen.getByRole("button", { name: "Next portraits" }));
-      expect(scrollByMock).toHaveBeenLastCalledWith({
-        behavior: "smooth",
-        left: 266,
-      });
+      expect(rail.scrollLeft).toBe(276);
 
       fireEvent.click(
         screen.getByRole("button", { name: "Previous portraits" }),
       );
-      expect(scrollByMock).toHaveBeenLastCalledWith({
-        behavior: "smooth",
-        left: -266,
-      });
+      expect(rail.scrollLeft).toBe(10);
     } finally {
       Object.defineProperty(HTMLElement.prototype, "scrollBy", {
         configurable: true,
         value: originalScrollBy,
       });
+      if (originalScrollWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollWidth",
+          originalScrollWidth,
+        );
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollWidth");
+      }
     }
   });
 

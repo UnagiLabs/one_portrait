@@ -71,10 +71,7 @@ export function HomePortraitRail({
         rail.scrollLeft -= loopWidth;
       }
 
-      rail.scrollBy({
-        behavior: "smooth",
-        left: direction * step,
-      });
+      rail.scrollLeft += direction * step;
     },
     [getCardStep, getLoopWidth],
   );
