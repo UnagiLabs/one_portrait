@@ -13,9 +13,9 @@
   ],
   "vars": {
     "NEXT_PUBLIC_SUI_NETWORK": "testnet",
-    // Published on testnet 2026-04-23 and verified to expose `unit_ids`.
-    "NEXT_PUBLIC_PACKAGE_ID": "0x5c3805e6c6308a04802b003bc8039ff27dbe88aaf7e137b13940a124fdf02d95",
-    "NEXT_PUBLIC_REGISTRY_OBJECT_ID": "0x37a0db048a0cf733712a15f8941c8a6103cc1a70ec5c7089ca108bd98a7bc339",
+    // Published on testnet 2026-04-24 and verified to expose `unit_ids`.
+    "NEXT_PUBLIC_PACKAGE_ID": "0x8568f91f71674184b5c8711b550ec6b001e88f09adbc22c7ad31e1173f02ffbf",
+    "NEXT_PUBLIC_REGISTRY_OBJECT_ID": "0x22cca7fbd9392a1fc24c4b1e038c99d23c5a23d72ed63a67893c39ce8374533f",
     "NEXT_PUBLIC_ENOKI_API_KEY": "enoki_public_f6adc0082f791a0a226ac20f81a9f635",
     "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "317939856639-5m1cu2msauk1s66q6u6jj35ja0ir1mar.apps.googleusercontent.com",
     "NEXT_PUBLIC_WALRUS_PUBLISHER": "https://publisher.walrus-testnet.walrus.space",
