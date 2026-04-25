@@ -274,7 +274,9 @@ it("falls back to Cloudflare DNS for Quick Tunnel external health", async () => 
   const clock = createClock();
   const fetchImpl = vi.fn().mockRejectedValue(new Error("fetch failed"));
   const resolveHostname = vi.fn().mockResolvedValue("104.16.230.132");
-  const requestWithResolvedHostname = vi.fn().mockResolvedValue({ status: 200 });
+  const requestWithResolvedHostname = vi
+    .fn()
+    .mockResolvedValue({ status: 200 });
 
   const result = await waitForGeneratorStackHealth({
     fetchImpl,
@@ -293,7 +295,9 @@ it("falls back to Cloudflare DNS for Quick Tunnel external health", async () => 
     marker: "[generator-stack][health][external][ready]",
   });
   expect(fetchImpl).toHaveBeenCalledTimes(1);
-  expect(resolveHostname).toHaveBeenCalledWith("fresh-runtime.trycloudflare.com");
+  expect(resolveHostname).toHaveBeenCalledWith(
+    "fresh-runtime.trycloudflare.com",
+  );
   expect(requestWithResolvedHostname).toHaveBeenCalledWith(
     expect.objectContaining({
       hostname: "fresh-runtime.trycloudflare.com",

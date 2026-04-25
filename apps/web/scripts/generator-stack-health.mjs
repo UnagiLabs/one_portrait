@@ -183,11 +183,7 @@ async function defaultResolveHostname(hostname) {
   return addresses[0] ?? null;
 }
 
-async function defaultRequestWithResolvedHostname({
-  ipAddress,
-  signal,
-  url,
-}) {
+async function defaultRequestWithResolvedHostname({ ipAddress, signal, url }) {
   return new Promise((resolve, reject) => {
     const family = ipAddress.includes(":") ? 6 : 4;
     const request = https.request(
