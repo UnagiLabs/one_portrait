@@ -371,6 +371,47 @@ describe("LiveProgress", () => {
     expect(triggerFinalize).toHaveBeenLastCalledWith("0xunit-1");
   });
 
+  it("renders the spinner and elapsed counter while finalize is running", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const triggerFinalize = vi.fn(
+        () =>
+          new Promise<{
+            readonly status: "queued";
+            readonly unitId: string;
+          }>(() => {
+            // never resolve so the running state stays mounted
+          }),
+      );
+      useUnitEventsMock.mockImplementation(() => undefined);
+
+      const { container } = render(
+        <LiveProgress
+          initialMasterId={null}
+          initialSubmittedCount={unitTileCount}
+          maxSlots={unitTileCount}
+          packageId="0xpkg"
+          triggerFinalize={triggerFinalize}
+          unitId="0xunit-1"
+        />,
+      );
+
+      expect(screen.getByText(/Finalizing your mosaic/i)).toBeTruthy();
+      expect(container.querySelector(".op-finalize-spinner")).toBeTruthy();
+      expect(container.querySelector(".op-indeterminate-bar")).toBeTruthy();
+      expect(screen.getByText(/Elapsed 00:00/)).toBeTruthy();
+
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+        await Promise.resolve();
+      });
+
+      expect(screen.getByText(/Elapsed 00:05/)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps completed revisit progress from auto-finalizing", () => {
     const triggerFinalize = vi.fn(async () => ({
       status: "queued" as const,

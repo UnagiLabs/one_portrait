@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
@@ -17,6 +18,30 @@ import {
 
 export const DISPATCH_SECRET_HEADER = "x-op-finalize-dispatch-secret";
 
+type LogLevel = "info" | "warn" | "error";
+
+function logLine(level: LogLevel, tag: string, message: string): void {
+  const prefix =
+    level === "info" ? "[INFO]" : level === "warn" ? "[WARN]" : "[ERR ]";
+  const raw = `${prefix} ${new Date().toISOString()} [${tag}] ${message}`;
+  const line = raw.replace(/[\r\n]+/g, " ");
+
+  if (level === "error") {
+    console.error(line);
+    return;
+  }
+
+  console.log(line);
+}
+
+function shortenObjectId(value: string): string {
+  if (value.length <= 14) {
+    return value;
+  }
+
+  return `${value.slice(0, 10)}..${value.slice(-4)}`;
+}
+
 class InvalidPayloadError extends Error {
   constructor(message: string) {
     super(message);
@@ -34,9 +59,18 @@ export async function handleRequest(
   request: http.IncomingMessage,
   response: http.ServerResponse,
 ): Promise<void> {
+  const reqId = randomUUID().slice(0, 8);
+  const reqTag = `req ${reqId}`;
+  const startedAt = Date.now();
+
   if (request.method === "GET" && request.url === "/health") {
     const readiness = getGeneratorReadiness(process.env);
     if (!readiness.ready) {
+      logLine(
+        "warn",
+        reqTag,
+        `health misconfigured missing=${readiness.missing.join(",")}`,
+      );
       writeJson(response, 503, {
         error: "server_misconfigured",
         message: `Missing required generator env variable(s): ${readiness.missing.join(", ")}.`,
@@ -54,8 +88,14 @@ export async function handleRequest(
   }
 
   if (request.method === "POST" && request.url === "/dispatch") {
+    logLine("info", reqTag, `POST /dispatch`);
     const authorizationError = validateDispatchAuthorization(request);
     if (authorizationError !== null) {
+      logLine(
+        "warn",
+        reqTag,
+        `dispatch unauthorized status=${authorizationError.status}`,
+      );
       writeJson(
         response,
         authorizationError.status,
@@ -66,6 +106,11 @@ export async function handleRequest(
 
     try {
       const input = parseDispatchInput(await readJsonBody(request));
+      logLine(
+        "info",
+        reqTag,
+        `dispatch start unitId=${shortenObjectId(input.unitId)}`,
+      );
       const env = loadGeneratorRuntimeEnv(process.env);
       const client = createSuiClient({
         network: env.suiNetwork,
@@ -83,13 +128,30 @@ export async function handleRequest(
         walrusPublisherBaseUrl: env.walrusPublisherBaseUrl,
       });
       const result = await runner.run(input.unitId);
+      const elapsedMs = Date.now() - startedAt;
+
+      if (result.status === "finalized") {
+        logLine(
+          "info",
+          reqTag,
+          `dispatch done status=${result.status} ms=${elapsedMs} mosaicBlobId=${result.mosaicBlobId} digest=${result.digest} placements=${result.placementCount}`,
+        );
+      } else {
+        logLine(
+          "info",
+          reqTag,
+          `dispatch done status=${result.status} ms=${elapsedMs}`,
+        );
+      }
 
       writeJson(response, 200, result);
       return;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logLine("error", reqTag, `dispatch failed message=${message}`);
       writeJson(response, 500, {
         error: "finalize_failed",
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
       return;
     }
@@ -98,6 +160,11 @@ export async function handleRequest(
   if (request.method === "GET" && request.url === "/dispatch-auth-probe") {
     const authorizationError = validateDispatchAuthorization(request);
     if (authorizationError !== null) {
+      logLine(
+        "warn",
+        reqTag,
+        `auth probe unauthorized status=${authorizationError.status}`,
+      );
       writeJson(
         response,
         authorizationError.status,
@@ -113,8 +180,14 @@ export async function handleRequest(
   }
 
   if (request.method === "POST" && request.url === "/admin/create-unit") {
+    logLine("info", reqTag, `POST /admin/create-unit`);
     const authorizationError = validateDispatchAuthorization(request);
     if (authorizationError !== null) {
+      logLine(
+        "warn",
+        reqTag,
+        `create-unit unauthorized status=${authorizationError.status}`,
+      );
       writeJson(
         response,
         authorizationError.status,
@@ -125,6 +198,11 @@ export async function handleRequest(
 
     try {
       const input = parseCreateUnitInput(await readJsonBody(request));
+      logLine(
+        "info",
+        reqTag,
+        `create-unit start displayName=${JSON.stringify(input.displayName)} maxSlots=${input.maxSlots} displayMaxSlots=${input.displayMaxSlots}`,
+      );
       const env = loadGeneratorRuntimeEnv(process.env);
       const client = createSuiClient({
         network: env.suiNetwork,
@@ -136,6 +214,12 @@ export async function handleRequest(
         privateKey: env.adminPrivateKey,
       });
       const result = await executeCreateUnit(input);
+      const elapsedMs = Date.now() - startedAt;
+      logLine(
+        "info",
+        reqTag,
+        `create-unit done unitId=${shortenObjectId(result.unitId)} digest=${result.digest} ms=${elapsedMs}`,
+      );
 
       writeJson(response, 200, {
         digest: result.digest,
@@ -144,22 +228,30 @@ export async function handleRequest(
       });
       return;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       if (error instanceof InvalidPayloadError) {
+        logLine("warn", reqTag, `create-unit invalid_args message=${message}`);
         writeJson(response, 400, {
           error: "invalid_args",
-          message: error.message,
+          message,
         });
         return;
       }
 
+      logLine("error", reqTag, `create-unit failed message=${message}`);
       writeJson(response, 500, {
         error: "create_unit_failed",
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
       return;
     }
   }
 
+  logLine(
+    "warn",
+    reqTag,
+    `not_found method=${request.method ?? "?"} url=${request.url ?? "?"}`,
+  );
   writeJson(response, 404, {
     error: "not_found",
     message: "Unknown route.",
@@ -432,5 +524,11 @@ function isMainModule() {
 if (isMainModule()) {
   const port = Number(process.env.PORT ?? "8080");
   const server = createGeneratorServer();
-  server.listen(port, "0.0.0.0");
+  server.listen(port, "0.0.0.0", () => {
+    logLine(
+      "info",
+      "boot",
+      `ONE Portrait generator listening port=${port} routes=/health,/dispatch,/dispatch-auth-probe,/admin/create-unit`,
+    );
+  });
 }
