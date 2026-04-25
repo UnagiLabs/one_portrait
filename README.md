@@ -102,6 +102,22 @@ flowchart LR
 
 ---
 
+## 🔍 Find Your Tile in the Mosaic
+
+<div align="center">
+
+<img src="apps/web/public/readme/find-your-tile.png" alt="The completed mosaic with the participant's own tile highlighted on the right" width="100%" />
+
+<sub>Tap your Kakera, and your tile lights up inside the finished portrait.</sub>
+
+</div>
+
+After the synchronous reveal, every participant can pinpoint **exactly where their own photo lives inside the artwork**. Open your Kakera in the gallery and the completed portrait highlights your tile — the row, the column, the original photo zoomed in beside it. Your single submission is no longer just *one of 2,000*; it becomes a specific brushstroke at a specific coordinate, addressable forever.
+
+This works without any off-chain database. The Kakera SBT carries the `blob_id`, `submission_no`, and `unit_id` on-chain, and `MasterPortrait.placements: Table<blob_id, Placement>` resolves them back to a tile position with a single Sui query — so even if you switch devices or lose the original photo, your place in the portrait is permanently recoverable from the SBT alone.
+
+---
+
 ## 💡 Where ONE Portrait Shines
 
 The same primitive — *a 2,000-tile reveal gated by presence, with a Soulbound proof per fan* — can power very different moments. Each scenario below uses the exact same Move package and reveal flow; only the unit definition, the target image, and the access window change.
