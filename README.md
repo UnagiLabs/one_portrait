@@ -119,7 +119,7 @@ flowchart LR
 
 [ Walrus ]      2,000 fan-uploaded photos (epochs=5, no long-term guarantee in MVP) + 1 completed mosaic (epochs=100)
 [ Cloudflare ]  Finalize Worker ─▶ External Mosaic Generator
-[ manji PC ]    Node/TypeScript generator + Cloudflare Tunnel
+[ Generator Host ]  External Node/TypeScript generator + Cloudflare Tunnel
 ```
 
 For the full component and sequence diagrams, see [`docs/tech.md` §1](docs/tech.md).
@@ -150,7 +150,7 @@ For the full component and sequence diagrams, see [`docs/tech.md` §1](docs/tech
 | Sui SDK | `@mysten/sui` (PTB / event subscriptions) |
 | Storage | Walrus (Publisher / Aggregator HTTP API) |
 | Smart Contract | Sui Move — single package `one_portrait` |
-| Backend | Cloudflare Worker + external Node/TypeScript generator on the `manji` PC (`sharp` / `libvips`) |
+| Backend | Cloudflare Worker + external Node/TypeScript generator on a self-hosted server (`sharp` / `libvips`), exposed via Cloudflare Tunnel |
 | Runtime | Node.js 20+ / pnpm workspace |
 
 ---
@@ -161,7 +161,7 @@ For the full component and sequence diagrams, see [`docs/tech.md` §1](docs/tech
 one_portrait/
 ├── apps/web/        Next.js App Router foundation
 ├── contracts/       Move package `one_portrait`
-├── generator/       Finalize generator that runs on the `manji` PC
+├── generator/       Finalize generator that runs on an external self-hosted server
 ├── shared/          Shared types and constants between Web and Generator
 ├── docs/            Specifications
 └── scripts/         Development helper scripts
