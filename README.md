@@ -1,9 +1,10 @@
 <div align="center">
 
+<img src="apps/web/public/nft/kakera-image.jpg" alt="ONE Portrait — Kakera SBT" width="180" />
+
 # ONE Portrait — The Faces of Fans
 
-### あなたの笑顔が、ヒーローの力になる
-#### *Your Smile Becomes Their Strength*
+### *Your smile becomes their strength.*
 
 [![Hackathon](https://img.shields.io/badge/Hackathon-Sui%20x%20ONE%20Samurai%20%E2%80%94%20Apr%202026-1F8FFF?style=flat-square)](https://luma.com/suionesamurai)
 [![Network](https://img.shields.io/badge/Sui-Testnet-4DA2FF?style=flat-square&logo=sui)](https://sui.io/)
@@ -14,32 +15,40 @@
 
 </div>
 
-ONE Championship のファン **2,000人がそれぞれ1枚ずつ写真を投稿**し、**1枚の選手モザイク肖像画**を共同制作する非営利プロジェクト。完成までモザイク全体は伏せられ、2,000枚到達の瞬間に**全員一斉にリビール**される。各参加者には自分の担当マスを刻んだSoulbound NFT「欠片 (かけら / Kakera)」が永久に届く。
-
-> A non-profit, on-chain co-creation experience: 2,000 ONE Championship fans each upload one photo, and the moment the 2,000th lands, a single high-resolution mosaic portrait of an athlete is revealed simultaneously to everyone — and a soulbound "Kakera" NFT carrying their own tile is minted to each participant.
+ONE Portrait is a non-profit, on-chain co-creation experience: **2,000 ONE Championship fans each upload a single photo**, and the moment the 2,000th lands, **a single high-resolution mosaic portrait of an athlete is revealed simultaneously** to everyone — and a soulbound "Kakera" NFT carrying their own tile is minted to each participant. Until that moment, the full image stays hidden; only a remaining-photo counter is shared, so everyone witnesses the reveal together.
 
 ---
 
-## 🎯 The Problem & The Insight / なぜ今これを作るのか
+<div align="center">
 
-既存のファングッズや選手NFTは「**所有**」か「**投機**」に偏重しており、ファン一人ひとりの熱狂を *作品そのものとして残す* 仕組みは存在しない。ONE Portrait は、**2,000人のファンの日常写真を1枚の肖像画に編み込む**ことで、応援の熱量を**改ざん不可能なオンチェーン共同制作アート**として永続化する。
+<img src="apps/web/public/demo/demo_mozaiku.png" alt="Completed mosaic portrait composed of 2,000 fan photos" width="100%" />
+
+<sub>2,000 fan photos → one revealed mosaic portrait.</sub>
+
+</div>
+
+---
+
+## 🎯 The Problem & The Insight
+
+Existing fan goods and athlete NFTs lean heavily into **ownership** or **speculation**. There is no mechanism that preserves the enthusiasm of each individual fan *as part of the artwork itself*. ONE Portrait answers that gap by **weaving 2,000 fans' everyday photos into a single portrait**, turning collective support into a tamper-proof, on-chain, co-created piece of art.
 
 This project is a direct answer to the hackathon theme — **"a new way to connect ONE Championship and Japanese fans / a mechanism to close the distance between athletes and their fans"** — implemented in a way only Sui, Walrus, and Move make possible. The non-profit, soulbound design also aligns naturally with ONE Samurai's values of *respect, courage, integrity, and humility*.
 
-- 🥋 **テーマ適合性:** ハッカソン公式テーマ「ONE Championship と日本のファンをつなぐ / アスリートとファンの距離を縮める」への直球回答。
-- 🤝 **Samurai 価値観との整合:** 譲渡不可・非営利の Soulbound 設計は「リスペクト・誠実さ・謙虚さ」の体現。
-- 🎁 **ファンへの還元:** 完成 Master Portrait は選手（運営）に、各 Kakera は参加ファンへ。投機ではなく**証**としてのNFT。
+- 🥋 **On-theme:** A direct response to the official hackathon theme of bridging ONE Championship and Japanese fans, and shrinking the distance between athletes and their supporters.
+- 🤝 **Aligned with Samurai values:** A non-transferable, non-profit Soulbound design embodies *respect, integrity, and humility*.
+- 🎁 **Reward to the fans:** The completed Master Portrait goes to the athlete (operations); each Kakera goes to the participating fan. The NFT is a **proof of presence**, not an instrument of speculation.
 
 ---
 
-## ✨ Key Features / 主な特徴
+## ✨ Key Features
 
-| | Feature | 説明 |
+| | Feature | Description |
 | :---: | :--- | :--- |
-| 🟦 | **摩擦ゼロ参加 / Zero-Friction Onboarding** | zkLogin (Google) + Enoki **Sponsored Transaction**。ウォレットも SUI トークンも不要。Web2 と同じUXで参加可能。 |
-| 🎭 | **リビール演出 / Synchronous Reveal** | 2,000枚到達まで全体像は非公開。残り枚数カウンターのみで進捗を共有し、**完成の瞬間に全参加者の画面で同時にリビール**。 |
-| 💎 | **Soulbound 欠片NFT / Tamper-Proof Proof-of-Participation** | Move の能力設計（`key only` / `store` 不付与）で**型レベルに譲渡を禁止**。転売不可の「ファンの証」。 |
-| 🖼 | **マイギャラリー / On-Chain History** | 保有 Kakera を Sui からクエリするだけで参加履歴を完全復元。**オフチェーンDB不要**、SBT そのものが正本。 |
+| 🟦 | **Zero-Friction Onboarding** | zkLogin (Google) + Enoki **Sponsored Transactions**. No wallet, no SUI tokens required — participate with the same UX as any Web2 app. |
+| 🎭 | **Synchronous Reveal** | The full image stays hidden until the 2,000th photo lands. Only the remaining-photo counter is shared during the run, so **the completed portrait reveals on every participant's screen at the same instant**. |
+| 💎 | **Soulbound Proof-of-Participation** | Move's capability design (`key` only, no `store`) makes the Kakera NFT **non-transferable at the type level** — proof of fandom that cannot be resold. |
+| 🖼 | **On-Chain History** | A simple Sui query over the holder's Kakera fully reconstructs their participation history. **No off-chain database needed** — the SBT itself is the source of truth. |
 
 ---
 
@@ -52,36 +61,55 @@ This project is a direct answer to the hackathon theme — **"a new way to conne
 
 ---
 
-## 🔄 How It Works / 体験フロー
+## 🔄 How It Works
 
 ```mermaid
 flowchart LR
-    A[アクセス & QR] --> B[zkLogin<br/>Google で1タップ]
-    B --> C[選手選択<br/>進行中ユニット]
-    C --> D[写真投稿<br/>Walrus PUT]
-    D --> E[Kakera 即時受領<br/>Soulbound NFT]
-    E -. 2,000枚到達 .-> F[一斉リビール<br/>Master Portrait]
-    F --> G[マイギャラリー<br/>履歴を永続参照]
+    A[Land via QR] --> B[zkLogin<br/>One-tap Google]
+    B --> C[Pick an athlete<br/>Active unit]
+    C --> D[Submit photo<br/>Walrus PUT]
+    D --> E[Receive Kakera<br/>Soulbound NFT]
+    E -. 2,000 photos reached .-> F[Synchronous Reveal<br/>Master Portrait]
+    F --> G[My Gallery<br/>Persistent history]
 ```
 
-1. **アクセス** — 会場/SNSのQRから着地。
-2. **zkLogin** — Google アカウントで認証、Sui アドレスがその場で発行。
-3. **選手選択** — 参加したい選手の進行中ユニット (2,000マス) を選ぶ。
-4. **写真投稿** — 原画像公開性に同意したうえで、ブラウザでリサイズ+EXIF除去 → Walrus に直接 PUT。
-5. **Kakera 即時受領** — `submit_photo` と同一 Tx で `submission_no` 付き Soulbound NFT が自分のアドレスに mint。
-6. **リビール** — 2,000枚目着弾 → ブラウザ分散トリガーが finalize 起動 → モザイク生成 → 全画面同時公開。
-7. **マイギャラリー** — 後日アクセスすれば、保有 Kakera から参加履歴が自動復元。元写真が取得できない場合でも、完成作品と欠片情報は残る。
+1. **Land** — arrive via a venue or social-media QR code.
+2. **zkLogin** — sign in with Google; a Sui address is provisioned on the spot.
+3. **Pick an athlete** — choose the active unit (2,000 tiles) for the athlete you want to support.
+4. **Submit a photo** — after consenting to original-image publication, the browser resizes and strips EXIF, then PUTs directly to Walrus.
+5. **Receive Kakera** — in the same transaction as `submit_photo`, a Soulbound NFT bearing your `submission_no` is minted to your address.
+6. **Reveal** — when the 2,000th photo lands, a browser-distributed trigger calls finalize, the mosaic is generated, and the full image goes public on every screen at once.
+7. **My Gallery** — return any time; the participation history is auto-restored from your Kakera. Even if the original photo cannot be retrieved, the completed artwork and the tile metadata persist.
 
 ---
 
-## 🏗 Architecture / 構成
+## 🖼 What a Submission Looks Like
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <img src="apps/web/public/demo/fan-upload-dogs.png" alt="A fan's photo before submission" width="100%" />
+      <br />
+      <sub>A fan's photo</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="apps/web/public/demo/demo_mozaiku.png" alt="The same photo, now one tile in the completed mosaic" width="100%" />
+      <br />
+      <sub>…becomes one tile in the mosaic.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🏗 Architecture
 
 ```
 [ Browser  Next.js + OpenNext on Cloudflare Workers ]
-        │  zkLogin → 画像前処理 → Walrus 直接 PUT
-        │  submit_photo PTB (Sponsored, Kakera即時 mint)
-        │  Sui WS で Submitted / UnitFilled / MosaicReady を購読
-        │  UnitFilled 検知 → POST /api/finalize
+        │  zkLogin → image preprocessing → direct PUT to Walrus
+        │  submit_photo PTB (Sponsored, Kakera minted in the same Tx)
+        │  Subscribe to Submitted / UnitFilled / MosaicReady via Sui WS
+        │  On UnitFilled → POST /api/finalize
         ▼
 [ Sui Testnet  Move package: one_portrait ]
         ├─ Registry (shared)        unit_ids
@@ -89,40 +117,40 @@ flowchart LR
         ├─ MasterPortrait           placements: Table<blob_id, Placement>
         └─ Kakera (Soulbound)       blob_id / submission_no / unit_id
 
-[ Walrus ]      ファン投稿 2,000枚 (epochs=5, MVPでは長期保証なし) + 完成モザイク 1枚 (epochs=100)
+[ Walrus ]      2,000 fan-uploaded photos (epochs=5, no long-term guarantee in MVP) + 1 completed mosaic (epochs=100)
 [ Cloudflare ]  Finalize Worker ─▶ External Mosaic Generator
 [ manji PC ]    Node/TypeScript generator + Cloudflare Tunnel
 ```
 
-詳細なコンポーネント図とシーケンス図は [`docs/tech.md` §1](docs/tech.md) を参照。
+For the full component and sequence diagrams, see [`docs/tech.md` §1](docs/tech.md).
 
 ---
 
-## ⛓ Why Sui × Walrus / 技術的ハイライト
+## ⛓ Why Sui × Walrus
 
-| ハイライト | 意義 |
+| Highlight | Why it matters |
 | :--- | :--- |
-| **Walrus による永続保存** | 完成モザイクと目標画像を分散ストレージに保存。ファン投稿原画像は `blob_id` を正本識別子として保持しつつ、MVPでは長期可用性を保証しない。 |
-| **Sui `Table` で逆引き正本化** | `MasterPortrait.placements: Table<blob_id, Placement>` により blob_id → 配置座標を**ガス低コストでオンチェーン解決**。NFT 内部に 2,000件をベタ書きしないスマート設計。 |
-| **Soulbound を型で保証** | Kakera は Move の能力設計 (`key only`、`store` 不付与) で**コンパイル時から譲渡不能**。実行時チェックではなく型レベルで担保。 |
-| **zkLogin + Sponsored Tx** | Enoki でユーザーは Google ログインのみ。`submit_photo` は運営が Sponsored で gas 負担、`moveCallTargets` で対象を厳格に絞る。SUI 保有ゼロでフル参加。 |
-| **ブラウザ分散トリガー** | `UnitFilled` 検知 → `/api/finalize` 起動を**参加者ブラウザが担う**。常駐 Listener / Cron / Queue 不要。冪等性は Move 側 (`status == Filled && master_id.is_none()`) で担保し、同時多重発火を 1件だけ成功させる。 |
-| **Gas はすべて Sponsored** | ファンの全 Tx は Enoki Sponsored Transaction。`finalize` のみ AdminCap 保有運営アドレスが自己負担。 |
+| **Persistent storage on Walrus** | The completed mosaic and the target image are stored on decentralized storage. Fan-uploaded originals are referenced by `blob_id` as the canonical identifier, with no long-term availability guarantee at the MVP stage. |
+| **Reverse lookup via Sui `Table`** | `MasterPortrait.placements: Table<blob_id, Placement>` resolves `blob_id → tile placement` **on-chain at low gas cost**. We avoid hard-coding 2,000 entries inside the NFT object. |
+| **Soulbound enforced by type** | Kakera uses Move's capability design (`key` only, no `store`) so it is **non-transferable at compile time** — a type-level guarantee, not a runtime check. |
+| **zkLogin + Sponsored Tx** | With Enoki, users only sign in with Google. `submit_photo` is sponsored by operations and locked to a tightly scoped `moveCallTargets`. Full participation with zero SUI required. |
+| **Browser-distributed trigger** | Detection of `UnitFilled` and the call to `/api/finalize` are **handled by participant browsers**. No long-running listener, cron, or queue. Idempotency is enforced on the Move side (`status == Filled && master_id.is_none()`), so concurrent triggers collapse to exactly one successful finalize. |
+| **All gas is sponsored** | Every fan transaction goes through Enoki Sponsored Transaction. Only `finalize` is paid by the AdminCap-holding operator address. |
 
 ---
 
 ## 📦 Tech Stack
 
-| レイヤー | 技術 |
+| Layer | Technology |
 | :--- | :--- |
 | Frontend | Next.js (App Router, TypeScript) |
 | Hosting | Cloudflare Workers + OpenNext (`@opennextjs/cloudflare`) |
-| UI / 演出 | Tailwind CSS + shadcn/ui + Framer Motion |
-| Web3 認証 | zkLogin (Sui) + Enoki |
-| Sui SDK | `@mysten/sui` (PTB / イベント購読) |
+| UI / Motion | Tailwind CSS + shadcn/ui + Framer Motion |
+| Web3 Auth | zkLogin (Sui) + Enoki |
+| Sui SDK | `@mysten/sui` (PTB / event subscriptions) |
 | Storage | Walrus (Publisher / Aggregator HTTP API) |
-| Smart Contract | Sui Move — 単一パッケージ `one_portrait` |
-| Backend | Cloudflare Worker + external Node/TypeScript generator on `manji` PC (`sharp` / `libvips`) |
+| Smart Contract | Sui Move — single package `one_portrait` |
+| Backend | Cloudflare Worker + external Node/TypeScript generator on the `manji` PC (`sharp` / `libvips`) |
 | Runtime | Node.js 20+ / pnpm workspace |
 
 ---
@@ -131,16 +159,16 @@ flowchart LR
 
 ```text
 one_portrait/
-├── apps/web/        Next.js App Router の土台
+├── apps/web/        Next.js App Router foundation
 ├── contracts/       Move package `one_portrait`
-├── generator/       `manji` PC 上で動かす finalize generator
-├── shared/          Web / Generator 共通の型と定数
-├── docs/            仕様書
-└── scripts/         開発補助スクリプト
+├── generator/       Finalize generator that runs on the `manji` PC
+├── shared/          Shared types and constants between Web and Generator
+├── docs/            Specifications
+└── scripts/         Development helper scripts
 ```
 
-現時点では、`apps/web` と `generator` は最小の TypeScript 土台です。
-`contracts` は Move package の雛形までを置いています。
+At this point, `apps/web` and `generator` contain only a minimal TypeScript skeleton.
+`contracts` ships a Move-package skeleton.
 
 ---
 
@@ -160,19 +188,19 @@ corepack pnpm run check
 corepack pnpm --filter web build
 ```
 
-- Web の公開環境変数は `apps/web/.env.example` を起点に用意します
-- root の `check` は workspace 全体の `typecheck` と `test` をまとめて実行します
+- Public web env vars start from `apps/web/.env.example`.
+- The root `check` script runs workspace-wide `typecheck` and `test` together.
 
-### 起動モード
+### Run modes
 
-| コマンド | 目的 | 挙動 |
+| Command | Purpose | Behavior |
 | :--- | :--- | :--- |
-| `corepack pnpm run dev` | 通常開発 | `apps/web/.env.local` をそのまま使います。E2E 用の stub 値が残っていたら起動を止めます。 |
-| `corepack pnpm run dev:demo` | UI の目視確認 | demo fixture を使って、top / waiting room / gallery を外部依存なしで確認しやすい状態にします。waiting room の Google login は位置確認用で、実ログインや投稿は行いません。 |
-| `corepack pnpm run dev:e2e` | Playwright 用 web server | E2E 用の stub env を子 process にだけ注入します。`.env.local` は書き換えません。 |
-| `corepack pnpm run test:e2e:readiness` | デモ前の自動回帰確認 | `#23` `#24` `#25` の回帰だけを stub E2E でまとめて確認します。`#22` の実送信確認は含みません。 |
-| `corepack pnpm run dev:smoke` | デモ前の実送信確認 | 実 env のまま Next.js を起動し、Google login / Walrus / Sponsored submit / Kakera 確認を手で通します。手順と証跡は `docs/demo-smoke.md` にまとめています。 |
-| `corepack pnpm run test:e2e` | Playwright 実行 | `dev:e2e` を使ってブラウザテストを実行します。通常開発用の env は汚しません。 |
+| `corepack pnpm run dev` | Regular development | Uses `apps/web/.env.local` as-is. If E2E stub values are still present, startup is aborted. |
+| `corepack pnpm run dev:demo` | Visual UI check | Uses demo fixtures so top / waiting room / gallery can be verified without external dependencies. The waiting-room Google login is for layout verification only — no real login or submission happens. |
+| `corepack pnpm run dev:e2e` | Web server for Playwright | Injects E2E stub env vars into the child process only. `.env.local` is not modified. |
+| `corepack pnpm run test:e2e:readiness` | Pre-demo regression check | Bundles only the regression checks for `#23` `#24` `#25` as a stub E2E run. Live-send verification for `#22` is not included. |
+| `corepack pnpm run dev:smoke` | Pre-demo live-send check | Starts Next.js with the real env intact and walks Google login / Walrus / Sponsored submit / Kakera verification by hand. The procedure and evidence trail live in `docs/demo-smoke.md`. |
+| `corepack pnpm run test:e2e` | Run Playwright | Runs the browser tests via `dev:e2e`. The regular development env is not contaminated. |
 
 ### Move
 
@@ -183,17 +211,25 @@ sui move test --test
 sui move test --list --test
 ```
 
-- 独立した Move テストモジュールは `contracts/tests/` に置きます。`contracts/sources/` には本番モジュールと `#[test_only]` helper だけを残します
-- `sui move test --help` のとおり、`contracts/tests/` を確実に含める標準コマンドは `sui move test --test` です
-- `sui` CLI が入っていない環境では、`contracts/Move.toml` と `contracts/{sources,tests}/` の雛形を確認してください
-- 本リポジトリの devcontainer には Node は入っていますが、`sui` CLI は別途用意が必要です
+- Standalone Move test modules go under `contracts/tests/`. `contracts/sources/` keeps only production modules and `#[test_only]` helpers.
+- As `sui move test --help` shows, the canonical command that includes `contracts/tests/` is `sui move test --test`.
+- On environments without the `sui` CLI, inspect `contracts/Move.toml` and the skeletons under `contracts/{sources,tests}/`.
+- The devcontainer in this repo includes Node, but the `sui` CLI must be installed separately.
 
 ---
 
 ## 📚 Further Reading
 
-- 📘 [`docs/spec.md`](docs/spec.md) — プロダクト・体験仕様（ユーザー層 / 機能要件 / フロー / Sui・Walrus 活用意義）
-- 🛠 [`docs/tech.md`](docs/tech.md) — 技術仕様（アーキテクチャ / シーケンス図 / Move / Frontend / Backend / 整合性 / セキュリティ）
-- ✅ [`docs/demo-smoke.md`](docs/demo-smoke.md) — デモ前に実送信主線を 1 回確認する runbook
-- 🚦 [`docs/finalize-generator-runbook.md`](docs/finalize-generator-runbook.md) — generator 起動、Cloudflare Tunnel、復旧手順
-- ✅ [`docs/demo-seeding.md`](docs/demo-seeding.md) — デモ前に 1,999 件を事前投入する seeding runbook
+- 📘 [`docs/spec.md`](docs/spec.md) — Product / experience specification (target users, functional requirements, flow, rationale for using Sui and Walrus).
+- 🛠 [`docs/tech.md`](docs/tech.md) — Technical specification (architecture, sequence diagrams, Move, Frontend, Backend, consistency, security).
+- ✅ [`docs/demo-smoke.md`](docs/demo-smoke.md) — Pre-demo runbook for performing one live end-to-end submission.
+- 🚦 [`docs/finalize-generator-runbook.md`](docs/finalize-generator-runbook.md) — Generator startup, Cloudflare Tunnel, and recovery procedures.
+- ✅ [`docs/demo-seeding.md`](docs/demo-seeding.md) — Pre-demo seeding runbook for pre-loading 1,999 submissions.
+
+---
+
+<div align="center">
+
+<sub>Built for the Sui × ONE Samurai Hackathon, April 2026.</sub>
+
+</div>
