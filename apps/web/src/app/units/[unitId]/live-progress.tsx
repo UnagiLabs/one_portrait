@@ -34,6 +34,14 @@ function formatProgressCount(value: number): string {
   return String(value);
 }
 
+function formatElapsed(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const padded = (n: number) => String(n).padStart(2, "0");
+  return `${padded(minutes)}:${padded(seconds)}`;
+}
+
 export type LiveProgressProps = {
   readonly eventSubscriptionEnabled?: boolean;
   readonly packageId: string;
@@ -88,6 +96,10 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   const [finalizeState, setFinalizeState] = useState<FinalizeState>(
     needsInitialFinalize ? { status: "running" } : { status: "idle" },
   );
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(
+    needsInitialFinalize ? Date.now() : null,
+  );
+  const [elapsedMs, setElapsedMs] = useState(0);
   const finalizeTriggeredRef = useRef(false);
   const { markFullIfAtCap } = useUnitFullState();
 
@@ -97,6 +109,8 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
     }
 
     finalizeTriggeredRef.current = true;
+    setStartedAtMs(Date.now());
+    setElapsedMs(0);
     setFinalizeState({ status: "running" });
     void triggerFinalize(unitId)
       .then((result) => {
@@ -131,6 +145,27 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
   useEffect(() => {
     markFullIfAtCap(initialSubmittedCount, maxSlots);
   }, [initialSubmittedCount, markFullIfAtCap, maxSlots]);
+
+  useEffect(() => {
+    if (finalizeState.status !== "running") {
+      setStartedAtMs(null);
+      setElapsedMs(0);
+      return;
+    }
+
+    if (startedAtMs === null) {
+      return;
+    }
+
+    setElapsedMs(Date.now() - startedAtMs);
+    const interval = window.setInterval(() => {
+      setElapsedMs(Date.now() - startedAtMs);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [finalizeState.status, startedAtMs]);
 
   useUnitEvents({
     packageId: eventSubscriptionEnabled ? packageId : "",
@@ -213,12 +248,32 @@ export function LiveProgress(props: LiveProgressProps): React.ReactElement {
               </button>
             </>
           ) : (
-            <p
-              aria-live="polite"
-              className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]"
-            >
-              finalize is running
-            </p>
+            <div className="grid gap-3">
+              <span aria-live="polite" className="sr-only">
+                finalize is running
+              </span>
+              <div className="flex items-center gap-3">
+                <span aria-hidden="true" className="op-finalize-spinner" />
+                <p className="font-mono-op text-[13px] uppercase tracking-[0.18em] text-[var(--ember)]">
+                  Finalizing your mosaic
+                </p>
+              </div>
+              <p className="text-sm text-[var(--ink-dim)]">
+                Composing the 2,000-tile mosaic and writing to Walrus — this can
+                take a minute or two.
+              </p>
+              <div
+                aria-hidden="true"
+                className="op-indeterminate-bar"
+                role="presentation"
+              />
+              <p
+                aria-hidden="true"
+                className="font-mono-op text-[11px] uppercase tracking-[0.14em] tabular-nums text-[var(--ink-faint)]"
+              >
+                Elapsed {formatElapsed(elapsedMs)}
+              </p>
+            </div>
           )}
         </div>
       ) : null}

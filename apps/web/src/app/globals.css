@@ -419,6 +419,45 @@ a {
   transition: width 0.4s;
 }
 
+@keyframes op-finalize-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.op-finalize-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 148, 54, 0.25);
+  border-top-color: var(--ember);
+  animation: op-finalize-spin 0.9s linear infinite;
+  flex: none;
+}
+
+@keyframes op-indeterminate-bar {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+.op-indeterminate-bar {
+  position: relative;
+  height: 2px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.op-indeterminate-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--ember), transparent);
+  animation: op-indeterminate-bar 1.6s ease-in-out infinite;
+}
+
 /* Athlete card */
 .op-athlete-card {
   background: var(--bg-2);
@@ -2261,7 +2300,9 @@ a {
   .op-home-teaser-scan,
   .op-demo-hero-athlete.primary,
   .op-demo-grid-glow,
-  .op-demo-athlete-track {
+  .op-demo-athlete-track,
+  .op-finalize-spinner,
+  .op-indeterminate-bar::after {
     animation: none;
   }
 

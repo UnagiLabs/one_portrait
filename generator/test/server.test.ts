@@ -177,6 +177,40 @@ describe("generator server", () => {
     }
   });
 
+  it("logs dispatch start and done lines for /dispatch", async () => {
+    setReadyGeneratorEnv();
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const server = createGeneratorServer();
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/dispatch`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          [DISPATCH_SECRET_HEADER]: "shared-secret",
+        },
+        body: JSON.stringify({ unitId: VALID_UNIT_ID }),
+      });
+      expect(response.status).toBe(200);
+      await response.json();
+
+      const logLines = logSpy.mock.calls.map((call) => String(call[0] ?? ""));
+      expect(
+        logLines.some((line) =>
+          /\[req [0-9a-f]{8}\] dispatch start/.test(line),
+        ),
+      ).toBe(true);
+      expect(
+        logLines.some((line) => /\[req [0-9a-f]{8}\] dispatch done/.test(line)),
+      ).toBe(true);
+    } finally {
+      logSpy.mockRestore();
+      await close(server);
+    }
+  });
+
   it("accepts /admin/create-unit when the payload is valid", async () => {
     setReadyGeneratorEnv();
 
