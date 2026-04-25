@@ -54,10 +54,8 @@ This project is a direct answer to the hackathon theme — **"a new way to conne
 
 ## 🎬 Demo
 
-<!-- DEMO:TODO -->
-- 🌐 **Live Demo:** `<https://TODO>` <!-- DEMO:TODO -->
-- 🎥 **Walkthrough Video (3min):** `<https://TODO>` <!-- DEMO:TODO -->
-- 🖼 **Screenshots:** `docs/img/01-landing.png` / `02-reveal.png` / `03-gallery.png` <!-- DEMO:TODO -->
+- 🌐 **Live Demo:** https://one-portrait-web.bububutasan00.workers.dev
+- 🎥 **Walkthrough Video (3min):** https://youtu.be/NF8CEfGh6eI
 
 ---
 
