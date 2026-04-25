@@ -102,6 +102,30 @@ flowchart LR
 
 ---
 
+## 💡 Where ONE Portrait Shines
+
+The same primitive — *a 2,000-tile reveal gated by presence, with a Soulbound proof per fan* — can power very different moments. Each scenario below uses the exact same Move package and reveal flow; only the unit definition, the target image, and the access window change.
+
+### 🥋 1. Match-day exclusive — "I was there when he took the belt"
+
+The QR opens only inside the arena (or during the live-broadcast window). The target portrait is the winning fighter; the 2,000 tiles are the faces of the fans who actually showed up that night. The reveal fires as the venue empties, and only attendees walk out holding a Kakera. **The artwork itself becomes proof of a moment that cannot be reproduced after the fact** — and a Kakera in someone's wallet is the on-chain ticket stub.
+
+### 🤝 2. Fan meeting — a group photo that *is* the room
+
+At a fan meet, the target image is the official group photo taken on stage with the athlete. Each attendee then submits one personal photo from the day — a selfie, a backstage glimpse, a candid from the after-party. **The completed mosaic recreates the group photo from 2,000 personal perspectives**, and every tile carries a story only that fan knows. The same room, retold by everyone in it.
+
+### 🏟 3. Stadium synchronized reveal — one frame, every screen
+
+Because the reveal is synchronous by design, the venue's LED screen, the broadcast feed, and every fan's phone can fire the same frame at the same instant. No staff cue, no countdown timer — the 2,000th submission triggers it. Use it as the climax of an entrance walk, a championship celebration, or a memorial tribute. **The reveal is the show.**
+
+### 🌏 4. Tour series — one mosaic per city, one Kakera per stop
+
+Each tour stop is its own unit. Tokyo fans complete the Tokyo portrait, Osaka fans complete the Osaka portrait, Bangkok fans complete the Bangkok portrait. Comparing the mosaics maps who showed up where, and **the Kakera collection in a single wallet replays a fan's personal tour history** — without any off-chain attendance database. Sui's `Table` and the per-Kakera `unit_id` are enough to reconstruct the whole journey.
+
+> The mechanism is the product; the moment is the content.
+
+---
+
 ## 🏗 Architecture
 
 ```
