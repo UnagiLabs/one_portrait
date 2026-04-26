@@ -83,10 +83,10 @@ describe("DemoClient", () => {
     render(<DemoClient />);
 
     const googleButton = screen.getByRole("button", {
-      name: /Continue with Google zkLogin/i,
+      name: /Google zkLogin/i,
     });
     const suiButton = screen.getByRole("button", {
-      name: /Connect Sui wallet/i,
+      name: /Sui wallet/i,
     });
 
     expect(googleButton.className).toContain("op-btn-primary");
@@ -95,8 +95,8 @@ describe("DemoClient", () => {
   });
 
   it.each([
-    ["Google zkLogin", /Continue with Google zkLogin/i],
-    ["Sui wallet", /Connect Sui wallet/i],
+    ["Google zkLogin", /Google zkLogin/i],
+    ["Sui wallet", /Sui wallet/i],
   ])("connects locally with %s and exposes image selection", (_, buttonName) => {
     render(<DemoClient />);
 
@@ -105,14 +105,15 @@ describe("DemoClient", () => {
     expect(screen.getByText(/Demo wallet address confirmed/i)).toBeTruthy();
     expect(screen.getByText("0xdemo...2000")).toBeTruthy();
     expect(screen.getByLabelText(/Choose one image/i)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    ).toBeTruthy();
   });
 
   it("previews a selected local image and advances demo progress", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -135,9 +136,7 @@ describe("DemoClient", () => {
   it("starts a demo completion reveal after image selection", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -151,9 +150,7 @@ describe("DemoClient", () => {
   it("references the completed mosaic asset in the reveal area", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Connect Sui wallet/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -164,9 +161,7 @@ describe("DemoClient", () => {
   it("shows the selected original photo in the completed panel", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -179,9 +174,7 @@ describe("DemoClient", () => {
   it("shows the fixed demo placement highlight using unit grid math", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -200,9 +193,7 @@ describe("DemoClient", () => {
   it("toggles the fixed placement highlight", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Connect Sui wallet/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -230,9 +221,7 @@ describe("DemoClient", () => {
     }));
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
 
@@ -244,9 +233,7 @@ describe("DemoClient", () => {
       .mockReturnValueOnce("blob:demo-preview-1")
       .mockReturnValueOnce("blob:demo-preview-2");
     const { unmount } = render(<DemoClient />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Connect Sui wallet/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
     selectImage(new File(["first"], "first.png", { type: "image/png" }));
     selectImage(new File(["second"], "second.png", { type: "image/png" }));

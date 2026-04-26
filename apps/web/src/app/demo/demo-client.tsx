@@ -247,7 +247,7 @@ function DemoSubmissionPanel({
           ) : null}
 
           <button className="op-btn-primary" disabled type="button">
-            Mock local submit
+            Confirm submission
           </button>
         </>
       ) : (
@@ -262,14 +262,14 @@ function DemoSubmissionPanel({
               onClick={connectDemoWallet}
               type="button"
             >
-              Continue with Google zkLogin
+              Google zkLogin
             </button>
             <button
               className="op-btn-ghost"
               onClick={connectDemoWallet}
               type="button"
             >
-              Connect Sui wallet
+              Sui wallet
             </button>
           </div>
         </>

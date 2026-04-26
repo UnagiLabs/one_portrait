@@ -99,18 +99,17 @@ async function runDemoStageFlow(page: Page): Promise<void> {
   ).toBeVisible();
   await expect(page.getByText(/1999\s*\/\s*2000/)).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /Continue with Google zkLogin/i }),
+    page.getByRole("button", { name: /Google zkLogin/i }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /Connect Sui wallet/i }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /Sui wallet/i })).toBeVisible();
 
-  await page
-    .getByRole("button", { name: /Continue with Google zkLogin/i })
-    .click();
+  await page.getByRole("button", { name: /Google zkLogin/i }).click();
 
   await expect(page.getByText(/Demo wallet address confirmed/i)).toBeVisible();
   await expect(page.getByText(/0xdemo\.\.\.2000/i)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Confirm submission/i }),
+  ).toBeVisible();
 
   await selectTinyImage(page);
 
