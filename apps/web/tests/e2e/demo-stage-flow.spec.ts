@@ -114,7 +114,7 @@ async function expectElementsDoNotOverlap(
 }
 
 async function runDemoStageFlow(page: Page): Promise<void> {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/demo");
 
   await expect(
@@ -145,9 +145,18 @@ async function runDemoStageFlow(page: Page): Promise<void> {
 
   await expect(page.getByText(/2000\s*\/\s*2000/)).toBeVisible();
   await expect(page.getByText(/1999\s*\/\s*2000/)).toHaveCount(0);
+  await expect(page.getByTestId("demo-reveal-overlay")).toBeVisible();
+  await expect(page.getByTestId("demo-reveal-canvas")).toBeVisible();
+  await expect(
+    page.getByText(/Photo tiles converge into one mosaic/i),
+  ).toBeVisible();
+  await expectFullScreenOverlay(page);
+  await expect(page.getByTestId("demo-reveal-overlay")).toHaveCount(0, {
+    timeout: 10_000,
+  });
+
   await expect(page.getByTestId("demo-completion-reveal")).toBeVisible();
   await expect(page.getByAltText("Takeru completed mosaic")).toBeVisible();
-  await expect(page.getByText(/Completed mosaic revealed/i)).toBeVisible();
   await expect(page.getByAltText("Takeru original submission")).toBeVisible();
   await expect(page.getByTestId("placement-highlight")).toBeVisible();
   await expect(
@@ -173,6 +182,25 @@ async function runDemoStageFlow(page: Page): Promise<void> {
   await expect(
     page.getByRole("button", { name: /Hide highlight/i }),
   ).toHaveAttribute("aria-pressed", "true");
+}
+
+async function expectFullScreenOverlay(page: Page): Promise<void> {
+  const overlayBox = await page
+    .getByTestId("demo-reveal-overlay")
+    .boundingBox();
+  const viewport = page.viewportSize();
+
+  expect(overlayBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+
+  if (!overlayBox || !viewport) {
+    return;
+  }
+
+  expect(overlayBox.x).toBeLessThanOrEqual(1);
+  expect(overlayBox.y).toBeLessThanOrEqual(1);
+  expect(overlayBox.width).toBeGreaterThanOrEqual(viewport.width - 2);
+  expect(overlayBox.height).toBeGreaterThanOrEqual(viewport.height - 2);
 }
 
 test.describe("/demo stage flow", () => {

@@ -28,6 +28,24 @@ function selectImage(file: File): void {
   fireEvent.change(input);
 }
 
+function mockReducedMotion(matches: boolean): void {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    addEventListener: vi.fn(),
+    addListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+    matches: matches && query === "(prefers-reduced-motion: reduce)",
+    media: query,
+    onchange: null,
+    removeEventListener: vi.fn(),
+    removeListener: vi.fn(),
+  }));
+}
+
+function submitDemoImage(): void {
+  selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+  fireEvent.click(screen.getByRole("button", { name: /Confirm submission/i }));
+}
+
 describe("DemoClient", () => {
   afterEach(() => {
     cleanup();
@@ -140,46 +158,39 @@ describe("DemoClient", () => {
     expect(screen.queryByTestId("demo-completion-canvas")).toBeNull();
   });
 
-  it("starts a demo completion reveal after submission confirmation", () => {
+  it("shows a full-screen demo reveal overlay after submission confirmation", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
-    expect(screen.getByTestId("demo-completion-reveal")).toBeTruthy();
-    expect(screen.getByTestId("demo-completion-canvas")).toBeTruthy();
-    expect(screen.getByText(/40\s*x\s*50/i)).toBeTruthy();
-    expect(screen.getByText(/2000 tiles/i)).toBeTruthy();
+    expect(screen.getByTestId("demo-reveal-overlay")).toBeTruthy();
+    expect(screen.getByTestId("demo-reveal-canvas")).toBeTruthy();
+    expect(screen.getByText(/Loading assets/i)).toBeTruthy();
     expect(screen.getByText(/2000\s*\/\s*2000/)).toBeTruthy();
+    expect(screen.queryByTestId("reveal-panel")).toBeNull();
   });
 
   it("references the completed mosaic asset in the reveal area", () => {
+    mockReducedMotion(true);
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
     const completedMosaic = screen.getByAltText("Takeru completed mosaic");
     expect(completedMosaic.getAttribute("src")).toBe("/demo/demo_mozaiku.png");
   });
 
   it("shows the selected original photo in the completed panel", () => {
+    mockReducedMotion(true);
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
     const completedOriginal = screen.getByRole("img", {
       name: /Takeru original submission/i,
@@ -188,14 +199,12 @@ describe("DemoClient", () => {
   });
 
   it("shows the fixed demo placement highlight using unit grid math", () => {
+    mockReducedMotion(true);
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
     expect(
       screen.getByText(/highlighted at \(37, 46\) as #2000/i),
@@ -210,14 +219,12 @@ describe("DemoClient", () => {
   });
 
   it("toggles the fixed placement highlight", () => {
+    mockReducedMotion(true);
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
     expect(screen.getByTestId("placement-highlight")).toBeTruthy();
 
@@ -231,26 +238,15 @@ describe("DemoClient", () => {
   });
 
   it("shows the completed reveal immediately for reduced motion", () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      addEventListener: vi.fn(),
-      addListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-      matches: query === "(prefers-reduced-motion: reduce)",
-      media: query,
-      onchange: null,
-      removeEventListener: vi.fn(),
-      removeListener: vi.fn(),
-    }));
+    mockReducedMotion(true);
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
-    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Confirm submission/i }),
-    );
+    submitDemoImage();
 
-    expect(screen.getByText(/Completed mosaic revealed/i)).toBeTruthy();
+    expect(screen.getByTestId("reveal-panel")).toBeTruthy();
+    expect(screen.queryByTestId("demo-reveal-overlay")).toBeNull();
   });
 
   it("revokes local preview URLs on reselection and unmount", () => {

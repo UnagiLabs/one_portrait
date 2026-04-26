@@ -104,6 +104,17 @@ describe("HomePage", () => {
     expect(link.getAttribute("href")).toBe("/gallery");
   });
 
+  it("keeps the home mosaic reveal controls available", async () => {
+    getActiveHomeUnitsMock.mockResolvedValue([]);
+
+    const ui = await HomePage();
+    render(ui);
+
+    expect(screen.getByText(/Loading assets/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Replay reveal/i })).toBeTruthy();
+    expect(screen.getByText(/Unit active — hidden until reveal/i)).toBeTruthy();
+  });
+
   it("lets users move the portrait rail one card at a time", async () => {
     getActiveHomeUnitsMock.mockResolvedValue([]);
     const originalScrollBy = HTMLElement.prototype.scrollBy;

@@ -2700,6 +2700,43 @@ a {
   }
 }
 
+.op-demo-reveal-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #050302;
+}
+
+.op-demo-reveal-fullscreen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(5, 3, 2, 0.78), rgba(5, 3, 2, 0.08) 58%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(245, 239, 227, 0.04) 0,
+      rgba(245, 239, 227, 0.04) 1px,
+      transparent 1px,
+      transparent 6px
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.72;
+}
+
+.op-demo-reveal-fullscreen .op-demo-reveal-overlay {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.op-demo-reveal-fullscreen .op-demo-reveal-controls {
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .grain::after,
   .op-btn-primary::before,
