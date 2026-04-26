@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const mosaicSrc = "/demo/demo_mozaiku.png";
 const fanUploadSrc = "/demo/fan-upload-dogs.png";
 const revealDurationMs = 15000;
+const emptyTileSources: readonly string[] = [];
 const photoTileSources = [
   fanUploadSrc,
   "/demo/generator-tiles/0.webp",
@@ -210,35 +211,67 @@ export function HomeMosaicReveal(): React.ReactElement {
   );
 }
 
-function MosaicConvergence(): React.ReactElement {
+type MosaicConvergenceProps = {
+  readonly className?: string;
+  readonly copyClassName?: string;
+  readonly durationMs?: number;
+  readonly eyebrowText?: string;
+  readonly finalCount?: number;
+  readonly initialChapter?: string;
+  readonly initialCount?: number;
+  readonly loadingText?: string;
+  readonly mode?: "loop" | "once";
+  readonly onComplete?: () => void;
+  readonly readyText?: string;
+  readonly showReplay?: boolean;
+  readonly tileSources?: readonly string[];
+};
+
+export function MosaicConvergence({
+  className,
+  copyClassName = "op-home-scroll-reveal",
+  durationMs = revealDurationMs,
+  eyebrowText = "Unit active — hidden until reveal",
+  finalCount = unitTileCount,
+  initialChapter = "Photos incoming",
+  initialCount = 1873,
+  loadingText = "Loading assets",
+  mode = "loop",
+  onComplete,
+  readyText = "Photo tiles converge into one mosaic",
+  showReplay = true,
+  tileSources = emptyTileSources,
+}: MosaicConvergenceProps = {}): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
+  const completedRef = useRef(false);
   const tileCacheRef = useRef<{
     readonly height: number;
     readonly tiles: readonly Tile[];
     readonly width: number;
   } | null>(null);
   const lastChapterRef = useRef("");
-  const lastCountRef = useRef(1873);
-  const [submittedCount, setSubmittedCount] = useState(1873);
-  const [chapter, setChapter] = useState("Photos incoming");
+  const lastCountRef = useRef(initialCount);
+  const [submittedCount, setSubmittedCount] = useState(initialCount);
+  const [chapter, setChapter] = useState(initialChapter);
   const [isReady, setIsReady] = useState(false);
 
   const imageSources = useMemo(
-    () => [mosaicSrc, ...photoTileSources] as const,
-    [],
+    () => [mosaicSrc, ...tileSources, ...photoTileSources] as const,
+    [tileSources],
   );
   const images = useLoadedImages(imageSources);
 
   const replay = useCallback(() => {
     startRef.current = null;
+    completedRef.current = false;
     tileCacheRef.current = null;
     lastChapterRef.current = "";
-    lastCountRef.current = 1873;
-    setSubmittedCount(1873);
-    setChapter("Photos incoming");
-  }, []);
+    lastCountRef.current = initialCount;
+    setSubmittedCount(initialCount);
+    setChapter(initialChapter);
+  }, [initialChapter, initialCount]);
 
   useEffect(() => {
     if (!images) {
@@ -251,6 +284,7 @@ function MosaicConvergence(): React.ReactElement {
     }
 
     setIsReady(true);
+    completedRef.current = false;
     const context = canvas.getContext("2d");
     if (!context) {
       return;
@@ -269,9 +303,11 @@ function MosaicConvergence(): React.ReactElement {
 
       const elapsed = timestamp - startRef.current;
       const loopElapsed = prefersReducedMotion
-        ? revealDurationMs
-        : elapsed % revealDurationMs;
-      const progress = clamp(loopElapsed / revealDurationMs, 0, 1);
+        ? durationMs
+        : mode === "loop"
+          ? elapsed % durationMs
+          : Math.min(elapsed, durationMs);
+      const progress = clamp(loopElapsed / durationMs, 0, 1);
       const layout = prepareCanvas(canvas, context);
       const cached = tileCacheRef.current;
       const tiles =
@@ -292,8 +328,8 @@ function MosaicConvergence(): React.ReactElement {
 
       const countProgress = smoothstep(0.08, 0.78, progress);
       const nextCount = Math.min(
-        unitTileCount,
-        1873 + Math.round((unitTileCount - 1873) * countProgress),
+        finalCount,
+        initialCount + Math.round((finalCount - initialCount) * countProgress),
       );
       if (lastCountRef.current !== nextCount) {
         lastCountRef.current = nextCount;
@@ -306,6 +342,14 @@ function MosaicConvergence(): React.ReactElement {
         setChapter(nextChapter);
       }
 
+      if (mode === "once" && progress >= 1) {
+        if (!completedRef.current) {
+          completedRef.current = true;
+          onComplete?.();
+        }
+        return;
+      }
+
       animationRef.current = window.requestAnimationFrame(render);
     };
 
@@ -316,35 +360,42 @@ function MosaicConvergence(): React.ReactElement {
         window.cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [images]);
+  }, [durationMs, finalCount, images, initialCount, mode, onComplete]);
 
   return (
     <>
-      <canvas className="op-demo-reveal-canvas" ref={canvasRef} aria-hidden />
+      <canvas
+        className={["op-demo-reveal-canvas", className]
+          .filter(Boolean)
+          .join(" ")}
+        data-testid="demo-reveal-canvas"
+        ref={canvasRef}
+        aria-hidden
+      />
       <div className="op-demo-reveal-overlay">
         <div
-          className="op-demo-reveal-copy op-home-scroll-reveal"
+          className={["op-demo-reveal-copy", copyClassName]
+            .filter(Boolean)
+            .join(" ")}
           data-op-motion="headline"
         >
           <p className="op-eyebrow">
             <span className="bar" />
-            <span>Unit active — hidden until reveal</span>
+            <span>{eyebrowText}</span>
           </p>
           <h2>
             {submittedCount.toLocaleString()}
-            <span> / {unitTileCount.toLocaleString()}</span>
+            <span> / {finalCount.toLocaleString()}</span>
           </h2>
           <p>{chapter}</p>
         </div>
         <div className="op-demo-reveal-controls">
-          <span>
-            {isReady
-              ? "Photo tiles converge into one mosaic"
-              : "Loading assets"}
-          </span>
-          <button className="op-btn-ghost" onClick={replay} type="button">
-            Replay reveal
-          </button>
+          <span>{isReady ? readyText : loadingText}</span>
+          {showReplay ? (
+            <button className="op-btn-ghost" onClick={replay} type="button">
+              Replay reveal
+            </button>
+          ) : null}
         </div>
       </div>
     </>

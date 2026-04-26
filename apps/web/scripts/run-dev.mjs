@@ -10,11 +10,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, "..");
 const lockPath = path.join(webRoot, ".next", "dev", "lock");
+const turbopackCachePath = path.join(
+  webRoot,
+  ".next",
+  "dev",
+  "cache",
+  "turbopack",
+);
 const nextBin = path.join(webRoot, "node_modules", ".bin", "next");
 
 export function startDev({
   cwd = webRoot,
   env = process.env,
+  extraArgs = [],
   nextDevBin = path.join(cwd, "node_modules", ".bin", "next"),
   spawnImpl = spawn,
 }) {
@@ -24,7 +32,7 @@ export function startDev({
     webRoot: cwd,
   });
 
-  return spawnImpl(nextDevBin, ["dev"], {
+  return spawnImpl(nextDevBin, ["dev", ...extraArgs], {
     cwd,
     env: {
       ...env,
@@ -40,11 +48,13 @@ export function startDev({
 
 if (isExecutedDirectly()) {
   cleanupStaleNextDevLock(lockPath);
+  cleanupNextDevCacheOnRequest(turbopackCachePath, process.env);
   assertNormalDevEnvironment({ cwd: webRoot, env: process.env });
 
   const child = startDev({
     cwd: webRoot,
     env: process.env,
+    extraArgs: process.argv.slice(2),
     nextDevBin: nextBin,
     spawnImpl: spawn,
   });
@@ -57,6 +67,14 @@ if (isExecutedDirectly()) {
 
     process.exit(code ?? 0);
   });
+}
+
+function cleanupNextDevCacheOnRequest(cachePath, env) {
+  if (env.OP_NEXT_DEV_CLEAN_CACHE !== "1") {
+    return;
+  }
+
+  fs.rmSync(cachePath, { force: true, recursive: true });
 }
 
 function cleanupStaleNextDevLock(filePath) {

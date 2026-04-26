@@ -45,6 +45,18 @@ describe("local runtime entrypoints", () => {
     );
   });
 
+  it("passes additional next dev arguments through startDev", () => {
+    const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
+
+    startDev({
+      env: {},
+      extraArgs: ["--webpack"],
+      spawnImpl,
+    });
+
+    expect(spawnImpl.mock.calls[0][1]).toEqual(["dev", "--webpack"]);
+  });
+
   it("startSmokeDev enables the local generator runtime flag without injecting a dispatch URL", async () => {
     const spawnImpl = vi.fn().mockReturnValue({ on: vi.fn() });
 
