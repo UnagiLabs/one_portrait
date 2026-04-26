@@ -1342,7 +1342,7 @@ a {
 
 .op-demo-unit-athlete {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 420px);
+  grid-template-columns: minmax(0, 0.88fr) minmax(240px, 420px);
   gap: clamp(20px, 4vw, 44px);
   align-items: end;
   padding: clamp(24px, 5vw, 56px);
@@ -1360,8 +1360,8 @@ a {
 .op-demo-unit-athlete-copy h1 {
   margin: 18px 0 14px;
   color: #f8f3e7;
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 8vw, 7rem);
+  font-family: "Anton", "Impact", "Helvetica Neue", sans-serif;
+  font-size: clamp(3rem, 6vw, 5.25rem);
   font-weight: 700;
   line-height: 0.9;
 }
@@ -1436,7 +1436,7 @@ a {
 .op-demo-unit-reveal-card {
   position: relative;
   grid-column: 1 / -1;
-  min-height: 360px;
+  min-height: 480px;
   overflow: hidden;
   background:
     linear-gradient(rgba(245, 239, 227, 0.08) 1px, transparent 1px),
@@ -1458,8 +1458,9 @@ a {
 .op-demo-completion-mosaic {
   position: relative;
   align-self: center;
-  width: min(100%, 430px);
-  min-height: 270px;
+  justify-self: center;
+  width: min(100%, 330px);
+  min-height: 0;
   aspect-ratio: 40 / 50;
   overflow: hidden;
   border: 1px solid rgba(245, 239, 227, 0.16);
@@ -1559,7 +1560,7 @@ a {
 .op-demo-unit-submit h2 {
   margin: 18px 0 12px;
   color: #f8f3e7;
-  font-family: var(--font-display);
+  font-family: "Anton", "Impact", "Helvetica Neue", sans-serif;
   font-size: clamp(2rem, 4vw, 3.25rem);
   line-height: 1;
 }
@@ -1619,7 +1620,7 @@ a {
 
 .op-demo-unit-wallet-panel p span {
   color: rgba(245, 239, 227, 0.62);
-  font-family: var(--font-mono);
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
   font-size: 0.9rem;
 }
 
