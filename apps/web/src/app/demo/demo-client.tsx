@@ -1,5 +1,6 @@
 "use client";
 
+import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
 import { useEffect, useRef, useState } from "react";
 
 const takeru = {
@@ -10,8 +11,10 @@ const takeru = {
 } as const;
 
 const submittedCount = 1999;
-const maxSlots = 2000;
+const maxSlots = unitTileCount;
 const demoAddress = "0xdemo...2000";
+const completedMosaicSrc = "/demo/demo_mozaiku.png";
+const revealDurationMs = 3600;
 
 export function DemoClient(): React.ReactElement {
   const [isConnected, setIsConnected] = useState(false);
@@ -99,9 +102,15 @@ export function DemoClient(): React.ReactElement {
           </article>
 
           <article className="op-demo-unit-card op-demo-unit-reveal-card">
-            <span>Reveal area</span>
-            <strong>Awaiting final photo</strong>
-            <p>The completed portrait preview will appear here later.</p>
+            {previewUrl ? (
+              <DemoCompletionReveal />
+            ) : (
+              <>
+                <span>Reveal area</span>
+                <strong>Awaiting final photo</strong>
+                <p>The completed portrait preview will appear here later.</p>
+              </>
+            )}
           </article>
         </div>
       </section>
@@ -179,5 +188,170 @@ export function DemoClient(): React.ReactElement {
         )}
       </section>
     </main>
+  );
+}
+
+function DemoCompletionReveal(): React.ReactElement {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+  const reducedMotion = prefersReducedMotion();
+  const [chapter, setChapter] = useState(
+    reducedMotion ? "Completed mosaic revealed." : "Final fan photo accepted.",
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) {
+      return;
+    }
+
+    const image = new Image();
+    let cancelled = false;
+
+    const render = (timestamp: number): void => {
+      if (startRef.current === null) {
+        startRef.current = timestamp;
+      }
+
+      const elapsed = timestamp - startRef.current;
+      const progress = reducedMotion
+        ? 1
+        : Math.min(1, elapsed / revealDurationMs);
+
+      drawDemoRevealFrame(canvas, context, image, progress);
+
+      const nextChapter =
+        progress >= 1
+          ? "Completed mosaic revealed."
+          : progress > 0.62
+            ? "40 x 50 tiles are locking into the final portrait."
+            : "Final fan photo accepted.";
+      setChapter((current) =>
+        current === nextChapter ? current : nextChapter,
+      );
+
+      if (progress < 1) {
+        frameRef.current = window.requestAnimationFrame(render);
+      }
+    };
+
+    image.onload = () => {
+      if (!cancelled) {
+        frameRef.current = window.requestAnimationFrame(render);
+      }
+    };
+    image.src = completedMosaicSrc;
+
+    if (reducedMotion) {
+      frameRef.current = window.requestAnimationFrame(render);
+    }
+
+    return () => {
+      cancelled = true;
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, [reducedMotion]);
+
+  return (
+    <div
+      className="op-demo-completion-reveal"
+      data-testid="demo-completion-reveal"
+    >
+      <canvas
+        aria-label="Demo completion reveal canvas"
+        className="op-demo-completion-canvas"
+        data-testid="demo-completion-canvas"
+        ref={canvasRef}
+      />
+      <div className="op-demo-completion-fallback">
+        {/* biome-ignore lint/performance/noImgElement: public completed demo mosaic asset */}
+        <img alt="Completed Takeru mosaic" src={completedMosaicSrc} />
+      </div>
+      <div className="op-demo-completion-copy">
+        <span>Reveal area</span>
+        <strong>{chapter}</strong>
+        <p>
+          {unitTileGrid.cols} x {unitTileGrid.rows} = {unitTileCount} tiles
+        </p>
+        <p>All demo slots are complete for the unit.</p>
+      </div>
+    </div>
+  );
+}
+
+function drawDemoRevealFrame(
+  canvas: HTMLCanvasElement,
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  progress: number,
+): void {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1, rect.width || 520);
+  const height = Math.max(1, rect.height || 300);
+  const pixelWidth = Math.floor(width * dpr);
+  const pixelHeight = Math.floor(height * dpr);
+
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  context.clearRect(0, 0, width, height);
+
+  const targetAspect = unitTileGrid.cols / unitTileGrid.rows;
+  const mosaicWidth = Math.min(width * 0.88, height * 0.72 * targetAspect);
+  const mosaicHeight = mosaicWidth / targetAspect;
+  const left = (width - mosaicWidth) / 2;
+  const top = (height - mosaicHeight) / 2;
+
+  context.fillStyle = "#070b10";
+  context.fillRect(0, 0, width, height);
+
+  if (image.complete && image.naturalWidth > 0) {
+    context.save();
+    context.globalAlpha = 0.2 + progress * 0.78;
+    context.drawImage(image, left, top, mosaicWidth, mosaicHeight);
+    context.restore();
+  }
+
+  const tileWidth = mosaicWidth / unitTileGrid.cols;
+  const tileHeight = mosaicHeight / unitTileGrid.rows;
+  const visibleTiles = Math.ceil(unitTileCount * progress);
+
+  for (let index = 0; index < visibleTiles; index += 1) {
+    const col = index % unitTileGrid.cols;
+    const row = Math.floor(index / unitTileGrid.cols);
+    const x = left + col * tileWidth;
+    const y = top + row * tileHeight;
+
+    context.fillStyle =
+      index % 5 === 0
+        ? "rgba(255, 122, 26, 0.34)"
+        : "rgba(245, 239, 227, 0.16)";
+    context.fillRect(
+      x,
+      y,
+      Math.max(0.6, tileWidth - 0.4),
+      Math.max(0.6, tileHeight - 0.4),
+    );
+  }
+
+  context.strokeStyle = "rgba(245, 239, 227, 0.42)";
+  context.lineWidth = 1;
+  context.strokeRect(left, top, mosaicWidth, mosaicHeight);
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 }

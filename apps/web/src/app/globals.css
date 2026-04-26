@@ -1434,12 +1434,57 @@ a {
 }
 
 .op-demo-unit-reveal-card {
+  position: relative;
   min-height: 220px;
+  overflow: hidden;
   background:
     linear-gradient(rgba(245, 239, 227, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245, 239, 227, 0.08) 1px, transparent 1px),
     rgba(10, 15, 20, 0.82);
   background-size: 22px 22px;
+}
+
+.op-demo-completion-reveal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  min-height: 100%;
+}
+
+.op-demo-completion-canvas,
+.op-demo-completion-fallback,
+.op-demo-completion-fallback img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.op-demo-completion-canvas {
+  z-index: 1;
+}
+
+.op-demo-completion-fallback {
+  overflow: hidden;
+  background: #070b10;
+}
+
+.op-demo-completion-fallback img {
+  object-fit: cover;
+  opacity: 0.42;
+  transform: scale(1.04);
+}
+
+.op-demo-completion-copy {
+  position: relative;
+  z-index: 2;
+  align-self: end;
+  padding: 22px;
+  background: linear-gradient(transparent, rgba(5, 3, 2, 0.88));
+}
+
+.op-demo-completion-copy p + p {
+  margin-top: 4px;
 }
 
 .op-demo-unit-submit {

@@ -7,6 +7,7 @@ import { DemoClient } from "./demo-client";
 
 const createObjectURL = vi.fn<(file: File) => string>();
 const revokeObjectURL = vi.fn<(url: string) => void>();
+const originalMatchMedia = window.matchMedia;
 
 Object.defineProperty(URL, "createObjectURL", {
   configurable: true,
@@ -30,6 +31,7 @@ function selectImage(file: File): void {
 describe("DemoClient", () => {
   afterEach(() => {
     cleanup();
+    window.matchMedia = originalMatchMedia;
     createObjectURL.mockReset();
     revokeObjectURL.mockReset();
   });
@@ -46,9 +48,7 @@ describe("DemoClient", () => {
     expect(
       screen.getByRole("region", { name: /Submission panel/i }),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("heading", { name: "Takeru" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Takeru" })).toBeTruthy();
     expect(screen.getByText(/1999\s*\/\s*2000/)).toBeTruthy();
     expect(screen.getByText(/Reveal area/i)).toBeTruthy();
     expect(screen.getByText(/Awaiting final photo/i)).toBeTruthy();
@@ -122,12 +122,73 @@ describe("DemoClient", () => {
     expect(screen.queryByText(/1999\s*\/\s*2000/)).toBeNull();
   });
 
+  it("keeps the reveal canvas hidden while awaiting the final photo", () => {
+    render(<DemoClient />);
+
+    expect(screen.getByText(/Awaiting final photo/i)).toBeTruthy();
+    expect(screen.queryByTestId("demo-completion-reveal")).toBeNull();
+    expect(screen.queryByTestId("demo-completion-canvas")).toBeNull();
+  });
+
+  it("starts a demo completion reveal after image selection", () => {
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    expect(screen.getByTestId("demo-completion-reveal")).toBeTruthy();
+    expect(screen.getByTestId("demo-completion-canvas")).toBeTruthy();
+    expect(screen.getByText(/40\s*x\s*50/i)).toBeTruthy();
+    expect(screen.getByText(/2000 tiles/i)).toBeTruthy();
+    expect(screen.getByText(/Final fan photo accepted/i)).toBeTruthy();
+  });
+
+  it("references the completed mosaic asset in the reveal area", () => {
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Connect Sui wallet/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    const completedMosaic = screen.getByAltText("Completed Takeru mosaic");
+    expect(completedMosaic.getAttribute("src")).toBe("/demo/demo_mozaiku.png");
+  });
+
+  it("shows the completed reveal immediately for reduced motion", () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      addListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+      removeListener: vi.fn(),
+    }));
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    expect(screen.getByText(/Completed mosaic revealed/i)).toBeTruthy();
+  });
+
   it("revokes local preview URLs on reselection and unmount", () => {
     createObjectURL
       .mockReturnValueOnce("blob:demo-preview-1")
       .mockReturnValueOnce("blob:demo-preview-2");
     const { unmount } = render(<DemoClient />);
-    fireEvent.click(screen.getByRole("button", { name: /Connect Sui wallet/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Connect Sui wallet/i }),
+    );
 
     selectImage(new File(["first"], "first.png", { type: "image/png" }));
     selectImage(new File(["second"], "second.png", { type: "image/png" }));
@@ -142,6 +203,9 @@ describe("DemoClient", () => {
 
     expect(screen.queryByText(/upload/i)).toBeNull();
     expect(screen.queryByText(/transaction/i)).toBeNull();
+    expect(screen.queryByText(/finalize/i)).toBeNull();
+    expect(document.body.textContent).not.toContain("/api/finalize");
+    expect(document.body.textContent).not.toMatch(/generator dispatch/i);
     expect(screen.getByText(/mock/i)).toBeTruthy();
   });
 });
