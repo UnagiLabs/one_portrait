@@ -66,6 +66,30 @@ async function expectNoForbiddenNetworkCalls(
   );
 }
 
+async function expectElementsDoNotOverlap(
+  page: Page,
+  firstTestId: string,
+  secondAltText: string,
+): Promise<void> {
+  const firstBox = await page.getByTestId(firstTestId).boundingBox();
+  const secondBox = await page.getByAltText(secondAltText).boundingBox();
+
+  expect(firstBox).not.toBeNull();
+  expect(secondBox).not.toBeNull();
+
+  if (!firstBox || !secondBox) {
+    return;
+  }
+
+  const separated =
+    firstBox.x + firstBox.width <= secondBox.x ||
+    secondBox.x + secondBox.width <= firstBox.x ||
+    firstBox.y + firstBox.height <= secondBox.y ||
+    secondBox.y + secondBox.height <= firstBox.y;
+
+  expect(separated).toBe(true);
+}
+
 async function runDemoStageFlow(page: Page): Promise<void> {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/demo");
@@ -101,6 +125,11 @@ async function runDemoStageFlow(page: Page): Promise<void> {
   await expect(
     page.getByText(/highlighted at \(37, 46\) as #2000/i),
   ).toBeVisible();
+  await expectElementsDoNotOverlap(
+    page,
+    "demo-placement-highlight",
+    "Takeru original submission",
+  );
 
   await page.getByRole("button", { name: /Hide highlight/i }).click();
 

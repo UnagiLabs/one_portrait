@@ -1435,7 +1435,8 @@ a {
 
 .op-demo-unit-reveal-card {
   position: relative;
-  min-height: 220px;
+  grid-column: 1 / -1;
+  min-height: 360px;
   overflow: hidden;
   background:
     linear-gradient(rgba(245, 239, 227, 0.08) 1px, transparent 1px),
@@ -1448,7 +1449,22 @@ a {
   position: absolute;
   inset: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  gap: 16px;
   min-height: 100%;
+  padding: 16px;
+}
+
+.op-demo-completion-mosaic {
+  position: relative;
+  align-self: center;
+  width: min(100%, 430px);
+  min-height: 270px;
+  aspect-ratio: 40 / 50;
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.16);
+  border-radius: 6px;
+  background: #070b10;
 }
 
 .op-demo-completion-canvas,
@@ -1489,9 +1505,11 @@ a {
 .op-demo-completion-copy {
   position: relative;
   z-index: 2;
-  align-self: end;
-  padding: 22px;
-  background: linear-gradient(transparent, rgba(5, 3, 2, 0.88));
+  align-self: center;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
 }
 
 .op-demo-completion-copy p + p {
@@ -1512,10 +1530,8 @@ a {
 }
 
 .op-demo-completion-original {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  width: min(30%, 116px);
+  position: relative;
+  width: min(100%, 150px);
   overflow: hidden;
   border: 1px solid rgba(245, 239, 227, 0.34);
   border-radius: 6px;
@@ -1660,6 +1676,16 @@ a {
 
   .op-demo-unit-athlete-media {
     min-height: 240px;
+  }
+
+  .op-demo-completion-reveal {
+    position: relative;
+    grid-template-columns: 1fr;
+  }
+
+  .op-demo-completion-mosaic {
+    width: min(100%, 280px);
+    min-height: 0;
   }
 
   .op-demo-unit-submit-steps div {

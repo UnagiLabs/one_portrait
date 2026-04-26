@@ -273,27 +273,32 @@ function DemoCompletionReveal({
       className="op-demo-completion-reveal"
       data-testid="demo-completion-reveal"
     >
-      <canvas
-        aria-label="Demo completion reveal canvas"
-        className="op-demo-completion-canvas"
-        data-testid="demo-completion-canvas"
-        ref={canvasRef}
-      />
-      <div className="op-demo-completion-fallback">
-        {/* biome-ignore lint/performance/noImgElement: public completed demo mosaic asset */}
-        <img alt="Completed Takeru mosaic" src={completedMosaicSrc} />
-        {highlightVisible ? (
-          <div
-            className="op-demo-placement-highlight op-placement-highlight-frame op-placement-highlight-pulse"
-            data-testid="demo-placement-highlight"
-            style={{
-              left: `${(demoPlacement.x / unitTileGrid.cols) * 100}%`,
-              top: `${(demoPlacement.y / unitTileGrid.rows) * 100}%`,
-              width: `${100 / unitTileGrid.cols}%`,
-              height: `${100 / unitTileGrid.rows}%`,
-            }}
-          />
-        ) : null}
+      <div
+        className="op-demo-completion-mosaic"
+        data-testid="demo-completion-mosaic"
+      >
+        <canvas
+          aria-label="Demo completion reveal canvas"
+          className="op-demo-completion-canvas"
+          data-testid="demo-completion-canvas"
+          ref={canvasRef}
+        />
+        <div className="op-demo-completion-fallback">
+          {/* biome-ignore lint/performance/noImgElement: public completed demo mosaic asset */}
+          <img alt="Completed Takeru mosaic" src={completedMosaicSrc} />
+          {highlightVisible ? (
+            <div
+              className="op-demo-placement-highlight op-placement-highlight-frame op-placement-highlight-pulse"
+              data-testid="demo-placement-highlight"
+              style={{
+                left: `${(demoPlacement.x / unitTileGrid.cols) * 100}%`,
+                top: `${(demoPlacement.y / unitTileGrid.rows) * 100}%`,
+                width: `${100 / unitTileGrid.cols}%`,
+                height: `${100 / unitTileGrid.rows}%`,
+              }}
+            />
+          ) : null}
+        </div>
       </div>
       <div className="op-demo-completion-copy">
         <span>Reveal area</span>
