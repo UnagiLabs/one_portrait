@@ -1,0 +1,141 @@
+import { expect, type Page, test } from "@playwright/test";
+
+import {
+  TINY_JPEG_BUFFER,
+  TINY_JPEG_MIME,
+  TINY_JPEG_NAME,
+} from "./fixtures/tiny-jpeg";
+
+type ForbiddenNetworkState = {
+  readonly calls: Map<string, number>;
+  readonly total: () => number;
+};
+
+const FORBIDDEN_ROUTES: readonly [string, string | RegExp][] = [
+  ["enoki sponsor", "**/api/enoki/submit-photo/sponsor"],
+  ["enoki execute", "**/api/enoki/submit-photo/execute"],
+  ["finalize", "**/api/finalize"],
+  ["admin finalize", "**/api/admin/finalize"],
+  ["admin create unit", "**/api/admin/create-unit"],
+  ["generator dispatch", /\/dispatch(?:\?|$)/],
+  ["walrus publisher", /publisher(?:\.[^/]+)?\/.*\/v1\/blobs(?:\?|\/|$)/],
+  ["walrus blobs", /\/v1\/blobs(?:\?|\/|$)/],
+];
+
+async function installForbiddenNetworkGuards(
+  page: Page,
+): Promise<ForbiddenNetworkState> {
+  const calls = new Map<string, number>(
+    FORBIDDEN_ROUTES.map(([name]) => [name, 0]),
+  );
+
+  for (const [name, routePattern] of FORBIDDEN_ROUTES) {
+    await page.route(routePattern, async (route) => {
+      calls.set(name, (calls.get(name) ?? 0) + 1);
+      await route.fulfill({
+        status: 418,
+        contentType: "application/json",
+        body: JSON.stringify({ error: `forbidden ${name}` }),
+      });
+    });
+  }
+
+  return {
+    calls,
+    total: () =>
+      Array.from(calls.values()).reduce((sum, count) => sum + count, 0),
+  };
+}
+
+async function selectTinyImage(page: Page): Promise<void> {
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).toBeVisible();
+  await fileInput.setInputFiles({
+    name: TINY_JPEG_NAME,
+    mimeType: TINY_JPEG_MIME,
+    buffer: TINY_JPEG_BUFFER,
+  });
+}
+
+async function expectNoForbiddenNetworkCalls(
+  state: ForbiddenNetworkState,
+): Promise<void> {
+  await expect.poll(() => state.total()).toBe(0);
+  expect(Object.fromEntries(state.calls)).toEqual(
+    Object.fromEntries(FORBIDDEN_ROUTES.map(([name]) => [name, 0])),
+  );
+}
+
+async function runDemoStageFlow(page: Page): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/demo");
+
+  await expect(
+    page.getByRole("main", { name: /Takeru Unit demo/i }),
+  ).toBeVisible();
+  await expect(page.getByText(/1999\s*\/\s*2000/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Continue with Google zkLogin/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Connect Sui wallet/i }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: /Continue with Google zkLogin/i })
+    .click();
+
+  await expect(page.getByText(/Demo wallet connected/i)).toBeVisible();
+  await expect(page.getByText(/0xdemo\.\.\.2000/i)).toBeVisible();
+
+  await selectTinyImage(page);
+
+  await expect(page.getByText(/2000\s*\/\s*2000/)).toBeVisible();
+  await expect(page.getByText(/1999\s*\/\s*2000/)).toHaveCount(0);
+  await expect(page.getByAltText("Selected submission preview")).toBeVisible();
+  await expect(page.getByTestId("demo-completion-reveal")).toBeVisible();
+  await expect(page.getByAltText("Completed Takeru mosaic")).toBeVisible();
+  await expect(page.getByText(/Completed mosaic revealed/i)).toBeVisible();
+  await expect(page.getByAltText("Takeru original submission")).toBeVisible();
+  await expect(page.getByTestId("demo-placement-highlight")).toBeVisible();
+  await expect(
+    page.getByText(/highlighted at \(37, 46\) as #2000/i),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: /Hide highlight/i }).click();
+
+  await expect(page.getByTestId("demo-placement-highlight")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Show highlight/i }),
+  ).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByRole("button", { name: /Show highlight/i }).click();
+
+  await expect(page.getByTestId("demo-placement-highlight")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Hide highlight/i }),
+  ).toHaveAttribute("aria-pressed", "true");
+}
+
+test.describe("/demo stage flow", () => {
+  test("completes the desktop demo locally without upload or finalize calls", async ({
+    page,
+  }) => {
+    const forbiddenNetwork = await installForbiddenNetworkGuards(page);
+
+    await runDemoStageFlow(page);
+
+    await expectNoForbiddenNetworkCalls(forbiddenNetwork);
+  });
+
+  test("keeps the main demo operation usable on a mobile viewport", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const forbiddenNetwork = await installForbiddenNetworkGuards(page);
+
+    await runDemoStageFlow(page);
+
+    await expectNoForbiddenNetworkCalls(forbiddenNetwork);
+  });
+});

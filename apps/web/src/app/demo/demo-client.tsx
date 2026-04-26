@@ -133,7 +133,7 @@ export function DemoClient(): React.ReactElement {
           </p>
         </div>
 
-        <div className="op-demo-unit-submit-steps" aria-label="Submission flow">
+        <div className="op-demo-unit-submit-steps">
           <div>
             <span>01</span>
             <strong>Connect wallet</strong>
