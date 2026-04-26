@@ -14,6 +14,11 @@ const submittedCount = 1999;
 const maxSlots = unitTileCount;
 const demoAddress = "0xdemo...2000";
 const completedMosaicSrc = "/demo/demo_mozaiku.png";
+const demoPlacement = {
+  x: 37,
+  y: 46,
+  submissionNo: 2000,
+} as const;
 const revealDurationMs = 3600;
 
 export function DemoClient(): React.ReactElement {
@@ -103,7 +108,7 @@ export function DemoClient(): React.ReactElement {
 
           <article className="op-demo-unit-card op-demo-unit-reveal-card">
             {previewUrl ? (
-              <DemoCompletionReveal />
+              <DemoCompletionReveal originalPhotoUrl={previewUrl} />
             ) : (
               <>
                 <span>Reveal area</span>
@@ -191,14 +196,20 @@ export function DemoClient(): React.ReactElement {
   );
 }
 
-function DemoCompletionReveal(): React.ReactElement {
+function DemoCompletionReveal({
+  originalPhotoUrl,
+}: {
+  readonly originalPhotoUrl: string;
+}): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
   const reducedMotion = prefersReducedMotion();
+  const [highlightVisible, setHighlightVisible] = useState(true);
   const [chapter, setChapter] = useState(
     reducedMotion ? "Completed mosaic revealed." : "Final fan photo accepted.",
   );
+  const highlightLabel = highlightVisible ? "Hide highlight" : "Show highlight";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -271,6 +282,18 @@ function DemoCompletionReveal(): React.ReactElement {
       <div className="op-demo-completion-fallback">
         {/* biome-ignore lint/performance/noImgElement: public completed demo mosaic asset */}
         <img alt="Completed Takeru mosaic" src={completedMosaicSrc} />
+        {highlightVisible ? (
+          <div
+            className="op-demo-placement-highlight op-placement-highlight-frame op-placement-highlight-pulse"
+            data-testid="demo-placement-highlight"
+            style={{
+              left: `${(demoPlacement.x / unitTileGrid.cols) * 100}%`,
+              top: `${(demoPlacement.y / unitTileGrid.rows) * 100}%`,
+              width: `${100 / unitTileGrid.cols}%`,
+              height: `${100 / unitTileGrid.rows}%`,
+            }}
+          />
+        ) : null}
       </div>
       <div className="op-demo-completion-copy">
         <span>Reveal area</span>
@@ -278,7 +301,22 @@ function DemoCompletionReveal(): React.ReactElement {
         <p>
           {unitTileGrid.cols} x {unitTileGrid.rows} = {unitTileCount} tiles
         </p>
-        <p>All demo slots are complete for the unit.</p>
+        <p>
+          Your Kakera is highlighted at ({demoPlacement.x}, {demoPlacement.y})
+          as #{demoPlacement.submissionNo}.
+        </p>
+        <button
+          aria-pressed={highlightVisible}
+          className="op-demo-highlight-toggle"
+          onClick={() => setHighlightVisible((current) => !current)}
+          type="button"
+        >
+          {highlightLabel}
+        </button>
+        <div className="op-demo-completion-original">
+          {/* biome-ignore lint/performance/noImgElement: local object URL preview */}
+          <img alt="Takeru original submission" src={originalPhotoUrl} />
+        </div>
       </div>
     </div>
   );

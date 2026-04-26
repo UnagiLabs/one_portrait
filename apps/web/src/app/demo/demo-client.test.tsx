@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { unitTileGrid } from "@one-portrait/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DemoClient } from "./demo-client";
@@ -157,6 +158,62 @@ describe("DemoClient", () => {
 
     const completedMosaic = screen.getByAltText("Completed Takeru mosaic");
     expect(completedMosaic.getAttribute("src")).toBe("/demo/demo_mozaiku.png");
+  });
+
+  it("shows the selected original photo in the completed panel", () => {
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    const completedOriginal = screen.getByRole("img", {
+      name: /Takeru original submission/i,
+    });
+    expect(completedOriginal.getAttribute("src")).toBe("blob:demo-preview-1");
+  });
+
+  it("shows the fixed demo placement highlight using unit grid math", () => {
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue with Google zkLogin/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    expect(
+      screen.getByText(/highlighted at \(37, 46\) as #2000/i),
+    ).toBeTruthy();
+
+    const highlight = screen.getByTestId("demo-placement-highlight");
+    const style = highlight.getAttribute("style");
+    expect(style).toContain(`left: ${(37 / unitTileGrid.cols) * 100}%`);
+    expect(style).toContain(`top: ${(46 / unitTileGrid.rows) * 100}%`);
+    expect(style).toContain(`width: ${100 / unitTileGrid.cols}%`);
+    expect(style).toContain(`height: ${100 / unitTileGrid.rows}%`);
+  });
+
+  it("toggles the fixed placement highlight", () => {
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Connect Sui wallet/i }),
+    );
+
+    selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+
+    expect(screen.getByTestId("demo-placement-highlight")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Hide highlight/i }));
+
+    expect(screen.queryByTestId("demo-placement-highlight")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Show highlight/i }));
+
+    expect(screen.getByTestId("demo-placement-highlight")).toBeTruthy();
   });
 
   it("shows the completed reveal immediately for reduced motion", () => {
