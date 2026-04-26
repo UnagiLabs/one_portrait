@@ -1485,13 +1485,64 @@ a {
   color: #f8f3e7;
 }
 
-.op-demo-unit-submit button {
+.op-demo-unit-submit button:not(.op-btn-primary):not(.op-btn-ghost) {
   min-height: 52px;
   border: 0;
   border-radius: 8px;
   background: rgba(245, 239, 227, 0.16);
   color: rgba(245, 239, 227, 0.6);
   font-weight: 800;
+}
+
+.op-demo-unit-wallet-actions,
+.op-demo-unit-wallet-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.op-demo-unit-wallet-panel p {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid rgba(245, 239, 227, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.op-demo-unit-wallet-panel p strong {
+  color: #f8f3e7;
+}
+
+.op-demo-unit-wallet-panel p span {
+  color: rgba(245, 239, 227, 0.62);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.op-demo-unit-wallet-panel label {
+  display: grid;
+  gap: 10px;
+  color: #f8f3e7;
+  font-weight: 800;
+}
+
+.op-demo-unit-wallet-panel input {
+  width: 100%;
+  color: rgba(245, 239, 227, 0.72);
+}
+
+.op-demo-unit-preview {
+  overflow: hidden;
+  border: 1px solid rgba(245, 239, 227, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.op-demo-unit-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
 }
 
 @media (max-width: 980px) {
