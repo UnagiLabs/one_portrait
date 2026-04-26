@@ -66,6 +66,29 @@ async function expectNoForbiddenNetworkCalls(
   );
 }
 
+async function expectHighlightInsideMosaic(page: Page): Promise<void> {
+  const highlightBox = await page
+    .getByTestId("placement-highlight")
+    .boundingBox();
+  const mosaicBox = await page.getByTestId("reveal-image").boundingBox();
+
+  expect(highlightBox).not.toBeNull();
+  expect(mosaicBox).not.toBeNull();
+
+  if (!highlightBox || !mosaicBox) {
+    return;
+  }
+
+  expect(highlightBox.x).toBeGreaterThanOrEqual(mosaicBox.x - 1);
+  expect(highlightBox.y).toBeGreaterThanOrEqual(mosaicBox.y - 1);
+  expect(highlightBox.x + highlightBox.width).toBeLessThanOrEqual(
+    mosaicBox.x + mosaicBox.width + 1,
+  );
+  expect(highlightBox.y + highlightBox.height).toBeLessThanOrEqual(
+    mosaicBox.y + mosaicBox.height + 1,
+  );
+}
+
 async function expectElementsDoNotOverlap(
   page: Page,
   firstTestId: string,
@@ -113,33 +136,40 @@ async function runDemoStageFlow(page: Page): Promise<void> {
 
   await selectTinyImage(page);
 
+  await expect(page.getByText(/1999\s*\/\s*2000/)).toBeVisible();
+  await expect(page.getByText(/2000\s*\/\s*2000/)).toHaveCount(0);
+  await expect(page.getByAltText("Selected submission preview")).toBeVisible();
+  await expect(page.getByTestId("demo-completion-reveal")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Confirm submission/i }).click();
+
   await expect(page.getByText(/2000\s*\/\s*2000/)).toBeVisible();
   await expect(page.getByText(/1999\s*\/\s*2000/)).toHaveCount(0);
-  await expect(page.getByAltText("Selected submission preview")).toBeVisible();
   await expect(page.getByTestId("demo-completion-reveal")).toBeVisible();
-  await expect(page.getByAltText("Completed Takeru mosaic")).toBeVisible();
+  await expect(page.getByAltText("Takeru completed mosaic")).toBeVisible();
   await expect(page.getByText(/Completed mosaic revealed/i)).toBeVisible();
   await expect(page.getByAltText("Takeru original submission")).toBeVisible();
-  await expect(page.getByTestId("demo-placement-highlight")).toBeVisible();
+  await expect(page.getByTestId("placement-highlight")).toBeVisible();
   await expect(
     page.getByText(/highlighted at \(37, 46\) as #2000/i),
   ).toBeVisible();
+  await expectHighlightInsideMosaic(page);
   await expectElementsDoNotOverlap(
     page,
-    "demo-placement-highlight",
+    "placement-highlight",
     "Takeru original submission",
   );
 
   await page.getByRole("button", { name: /Hide highlight/i }).click();
 
-  await expect(page.getByTestId("demo-placement-highlight")).toHaveCount(0);
+  await expect(page.getByTestId("placement-highlight")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: /Show highlight/i }),
   ).toHaveAttribute("aria-pressed", "false");
 
   await page.getByRole("button", { name: /Show highlight/i }).click();
 
-  await expect(page.getByTestId("demo-placement-highlight")).toBeVisible();
+  await expect(page.getByTestId("placement-highlight")).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Hide highlight/i }),
   ).toHaveAttribute("aria-pressed", "true");

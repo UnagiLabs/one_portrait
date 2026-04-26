@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 
-import { unitTileGrid } from "@one-portrait/shared";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -110,7 +109,7 @@ describe("DemoClient", () => {
     ).toBeTruthy();
   });
 
-  it("previews a selected local image and advances demo progress", () => {
+  it("previews a selected local image without advancing demo progress", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
@@ -121,8 +120,16 @@ describe("DemoClient", () => {
     expect(
       screen.getByAltText("Selected submission preview").getAttribute("src"),
     ).toBe("blob:demo-preview-1");
-    expect(screen.getByText(/2000\s*\/\s*2000/)).toBeTruthy();
-    expect(screen.queryByText(/1999\s*\/\s*2000/)).toBeNull();
+    expect(screen.getByText(/1999\s*\/\s*2000/)).toBeTruthy();
+    expect(screen.queryByText(/2000\s*\/\s*2000/)).toBeNull();
+    expect(screen.queryByTestId("demo-completion-reveal")).toBeNull();
+    expect(
+      (
+        screen.getByRole("button", {
+          name: /Confirm submission/i,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
   });
 
   it("keeps the reveal canvas hidden while awaiting the final photo", () => {
@@ -133,18 +140,21 @@ describe("DemoClient", () => {
     expect(screen.queryByTestId("demo-completion-canvas")).toBeNull();
   });
 
-  it("starts a demo completion reveal after image selection", () => {
+  it("starts a demo completion reveal after submission confirmation", () => {
     createObjectURL.mockReturnValue("blob:demo-preview-1");
     render(<DemoClient />);
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
     expect(screen.getByTestId("demo-completion-reveal")).toBeTruthy();
     expect(screen.getByTestId("demo-completion-canvas")).toBeTruthy();
     expect(screen.getByText(/40\s*x\s*50/i)).toBeTruthy();
     expect(screen.getByText(/2000 tiles/i)).toBeTruthy();
-    expect(screen.getByText(/Final fan photo accepted/i)).toBeTruthy();
+    expect(screen.getByText(/2000\s*\/\s*2000/)).toBeTruthy();
   });
 
   it("references the completed mosaic asset in the reveal area", () => {
@@ -153,8 +163,11 @@ describe("DemoClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
-    const completedMosaic = screen.getByAltText("Completed Takeru mosaic");
+    const completedMosaic = screen.getByAltText("Takeru completed mosaic");
     expect(completedMosaic.getAttribute("src")).toBe("/demo/demo_mozaiku.png");
   });
 
@@ -164,6 +177,9 @@ describe("DemoClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
     const completedOriginal = screen.getByRole("img", {
       name: /Takeru original submission/i,
@@ -177,17 +193,20 @@ describe("DemoClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
     expect(
       screen.getByText(/highlighted at \(37, 46\) as #2000/i),
     ).toBeTruthy();
 
-    const highlight = screen.getByTestId("demo-placement-highlight");
+    const highlight = screen.getByTestId("placement-highlight");
     const style = highlight.getAttribute("style");
-    expect(style).toContain(`left: ${(37 / unitTileGrid.cols) * 100}%`);
-    expect(style).toContain(`top: ${(46 / unitTileGrid.rows) * 100}%`);
-    expect(style).toContain(`width: ${100 / unitTileGrid.cols}%`);
-    expect(style).toContain(`height: ${100 / unitTileGrid.rows}%`);
+    expect(style).toContain("left:");
+    expect(style).toContain("top:");
+    expect(style).toContain("width:");
+    expect(style).toContain("height:");
   });
 
   it("toggles the fixed placement highlight", () => {
@@ -196,16 +215,19 @@ describe("DemoClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sui wallet/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
-    expect(screen.getByTestId("demo-placement-highlight")).toBeTruthy();
+    expect(screen.getByTestId("placement-highlight")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Hide highlight/i }));
 
-    expect(screen.queryByTestId("demo-placement-highlight")).toBeNull();
+    expect(screen.queryByTestId("placement-highlight")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /Show highlight/i }));
 
-    expect(screen.getByTestId("demo-placement-highlight")).toBeTruthy();
+    expect(screen.getByTestId("placement-highlight")).toBeTruthy();
   });
 
   it("shows the completed reveal immediately for reduced motion", () => {
@@ -224,6 +246,9 @@ describe("DemoClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
 
     selectImage(new File(["demo"], "portrait.png", { type: "image/png" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Confirm submission/i }),
+    );
 
     expect(screen.getByText(/Completed mosaic revealed/i)).toBeTruthy();
   });

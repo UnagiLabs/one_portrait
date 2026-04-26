@@ -1457,6 +1457,19 @@ a {
   text-align: left;
 }
 
+.op-demo-completion-animation {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  gap: 16px;
+  min-height: 260px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  background: rgba(10, 6, 4, 0.85);
+  text-align: left;
+}
+
 .op-demo-completion-mosaic {
   position: relative;
   align-self: center;
@@ -1481,6 +1494,17 @@ a {
 
 .op-demo-completion-canvas {
   z-index: 1;
+}
+
+.op-demo-completion-animation .op-demo-completion-canvas {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 228px;
+  border: 1px solid rgba(245, 239, 227, 0.16);
+  background: #070b10;
 }
 
 .op-demo-completion-fallback {
@@ -1698,6 +1722,10 @@ a {
 
   .op-demo-completion-reveal {
     position: relative;
+    grid-template-columns: 1fr;
+  }
+
+  .op-demo-completion-animation {
     grid-template-columns: 1fr;
   }
 

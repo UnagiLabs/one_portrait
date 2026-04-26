@@ -2,7 +2,9 @@
 
 import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { MasterPlacementView } from "../../lib/sui";
+import { RevealPanel } from "../units/[unitId]/reveal-panel";
 
 const takeru = {
   name: "Takeru",
@@ -18,17 +20,26 @@ const completedMosaicSrc = "/demo/demo_mozaiku.png";
 const demoPlacement = {
   x: 37,
   y: 46,
+  submitter: demoAddress,
   submissionNo: 2000,
-} as const;
+} satisfies MasterPlacementView;
 const revealDurationMs = 3600;
 const demoUnitId =
   "0xdemo0000000000000000000000000000000000000000000000000000000007d0";
+type DemoPhase = "connected" | "previewing" | "revealing" | "completed";
 
 export function DemoClient(): React.ReactElement {
   const [isConnected, setIsConnected] = useState(false);
+  const [demoPhase, setDemoPhase] = useState<DemoPhase>("connected");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
-  const displaySubmittedCount = previewUrl ? maxSlots : submittedCount;
+  const isSubmitted =
+    previewUrl !== null &&
+    (demoPhase === "revealing" || demoPhase === "completed");
+  const displaySubmittedCount = isSubmitted ? maxSlots : submittedCount;
+  const completeDemoReveal = useCallback(() => {
+    setDemoPhase("completed");
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -56,6 +67,15 @@ export function DemoClient(): React.ReactElement {
     const nextPreviewUrl = URL.createObjectURL(file);
     previewUrlRef.current = nextPreviewUrl;
     setPreviewUrl(nextPreviewUrl);
+    setDemoPhase("previewing");
+  };
+
+  const confirmDemoSubmission = () => {
+    if (!previewUrl) {
+      return;
+    }
+
+    setDemoPhase(prefersReducedMotion() ? "completed" : "revealing");
   };
 
   return (
@@ -130,8 +150,12 @@ export function DemoClient(): React.ReactElement {
 
             <div className="mt-4 w-full">
               <DemoProgress submittedCount={displaySubmittedCount} />
-              {previewUrl ? (
-                <DemoCompletionReveal originalPhotoUrl={previewUrl} />
+              {previewUrl && isSubmitted ? (
+                <DemoCompletionReveal
+                  demoPhase={demoPhase}
+                  originalPhotoUrl={previewUrl}
+                  onComplete={completeDemoReveal}
+                />
               ) : null}
             </div>
           </div>
@@ -148,7 +172,9 @@ export function DemoClient(): React.ReactElement {
           className="flex flex-col gap-6 bg-[var(--bg-2)] p-6 lg:p-7"
         >
           <DemoSubmissionPanel
+            confirmDemoSubmission={confirmDemoSubmission}
             connectDemoWallet={connectDemoWallet}
+            demoPhase={demoPhase}
             handleImageChange={handleImageChange}
             isConnected={isConnected}
             previewUrl={previewUrl}
@@ -192,18 +218,26 @@ function DemoProgress({
 }
 
 function DemoSubmissionPanel({
+  confirmDemoSubmission,
   connectDemoWallet,
+  demoPhase,
   handleImageChange,
   isConnected,
   previewUrl,
 }: {
+  readonly confirmDemoSubmission: () => void;
   readonly connectDemoWallet: () => void;
+  readonly demoPhase: DemoPhase;
   readonly handleImageChange: (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => void;
   readonly isConnected: boolean;
   readonly previewUrl: string | null;
 }): React.ReactElement {
+  const hasPreview = previewUrl !== null;
+  const submissionLocked =
+    demoPhase === "revealing" || demoPhase === "completed";
+
   return (
     <section className="grid gap-4 border border-[var(--rule)] bg-[rgba(245,239,227,0.03)] p-5">
       <div className="grid gap-2">
@@ -246,7 +280,12 @@ function DemoSubmissionPanel({
             />
           ) : null}
 
-          <button className="op-btn-primary" disabled type="button">
+          <button
+            className="op-btn-primary"
+            disabled={!hasPreview || submissionLocked}
+            onClick={confirmDemoSubmission}
+            type="button"
+          >
             Confirm submission
           </button>
         </>
@@ -279,25 +318,28 @@ function DemoSubmissionPanel({
 }
 
 function DemoCompletionReveal({
+  demoPhase,
+  onComplete,
   originalPhotoUrl,
 }: {
+  readonly demoPhase: DemoPhase;
+  readonly onComplete: () => void;
   readonly originalPhotoUrl: string;
 }): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
-  const reducedMotion = prefersReducedMotion();
-  const [highlightVisible, setHighlightVisible] = useState(true);
   const [chapter, setChapter] = useState(
-    reducedMotion ? "Completed mosaic revealed." : "Final fan photo accepted.",
+    demoPhase === "completed"
+      ? "Completed mosaic revealed."
+      : "Final fan photo accepted.",
   );
-  const highlightLabel = highlightVisible ? "Hide highlight" : "Show highlight";
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
 
-    if (!canvas || !context) {
+    if (!canvas || !context || demoPhase === "completed") {
       return;
     }
 
@@ -310,9 +352,7 @@ function DemoCompletionReveal({
       }
 
       const elapsed = timestamp - startRef.current;
-      const progress = reducedMotion
-        ? 1
-        : Math.min(1, elapsed / revealDurationMs);
+      const progress = Math.min(1, elapsed / revealDurationMs);
 
       drawDemoRevealFrame(canvas, context, image, progress);
 
@@ -328,6 +368,8 @@ function DemoCompletionReveal({
 
       if (progress < 1) {
         frameRef.current = window.requestAnimationFrame(render);
+      } else {
+        onComplete();
       }
     };
 
@@ -338,26 +380,19 @@ function DemoCompletionReveal({
     };
     image.src = completedMosaicSrc;
 
-    if (reducedMotion) {
-      frameRef.current = window.requestAnimationFrame(render);
-    }
-
     return () => {
       cancelled = true;
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
       }
     };
-  }, [reducedMotion]);
+  }, [demoPhase, onComplete]);
 
   return (
-    <div
-      className="op-demo-completion-reveal"
-      data-testid="demo-completion-reveal"
-    >
-      <div
-        className="op-demo-completion-mosaic"
-        data-testid="demo-completion-mosaic"
+    <div className="mt-8 grid gap-5" data-testid="demo-completion-reveal">
+      <section
+        aria-label="Demo completion animation"
+        className="op-demo-completion-animation"
       >
         <canvas
           aria-label="Demo completion reveal canvas"
@@ -365,46 +400,20 @@ function DemoCompletionReveal({
           data-testid="demo-completion-canvas"
           ref={canvasRef}
         />
-        <div className="op-demo-completion-fallback">
-          {/* biome-ignore lint/performance/noImgElement: public completed demo mosaic asset */}
-          <img alt="Completed Takeru mosaic" src={completedMosaicSrc} />
-          {highlightVisible ? (
-            <div
-              className="op-demo-placement-highlight op-placement-highlight-frame op-placement-highlight-pulse"
-              data-testid="demo-placement-highlight"
-              style={{
-                left: `${(demoPlacement.x / unitTileGrid.cols) * 100}%`,
-                top: `${(demoPlacement.y / unitTileGrid.rows) * 100}%`,
-                width: `${100 / unitTileGrid.cols}%`,
-                height: `${100 / unitTileGrid.rows}%`,
-              }}
-            />
-          ) : null}
+        <div className="op-demo-completion-copy">
+          <span>Reveal area</span>
+          <strong>{chapter}</strong>
+          <p>
+            {unitTileGrid.cols} x {unitTileGrid.rows} = {unitTileCount} tiles
+          </p>
         </div>
-      </div>
-      <div className="op-demo-completion-copy">
-        <span>Reveal area</span>
-        <strong>{chapter}</strong>
-        <p>
-          {unitTileGrid.cols} x {unitTileGrid.rows} = {unitTileCount} tiles
-        </p>
-        <p>
-          Your Kakera is highlighted at ({demoPlacement.x}, {demoPlacement.y})
-          as #{demoPlacement.submissionNo}.
-        </p>
-        <button
-          aria-pressed={highlightVisible}
-          className="op-demo-highlight-toggle"
-          onClick={() => setHighlightVisible((current) => !current)}
-          type="button"
-        >
-          {highlightLabel}
-        </button>
-        <div className="op-demo-completion-original">
-          {/* biome-ignore lint/performance/noImgElement: local object URL preview */}
-          <img alt="Takeru original submission" src={originalPhotoUrl} />
-        </div>
-      </div>
+      </section>
+      <RevealPanel
+        displayName={takeru.name}
+        mosaicUrl={completedMosaicSrc}
+        originalPhotoUrl={originalPhotoUrl}
+        placement={demoPlacement}
+      />
     </div>
   );
 }
