@@ -109,7 +109,7 @@ async function runDemoStageFlow(page: Page): Promise<void> {
     .getByRole("button", { name: /Continue with Google zkLogin/i })
     .click();
 
-  await expect(page.getByText(/Demo wallet connected/i)).toBeVisible();
+  await expect(page.getByText(/Demo wallet address confirmed/i)).toBeVisible();
   await expect(page.getByText(/0xdemo\.\.\.2000/i)).toBeVisible();
 
   await selectTinyImage(page);

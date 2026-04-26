@@ -1446,13 +1446,15 @@ a {
 }
 
 .op-demo-completion-reveal {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
   gap: 16px;
-  min-height: 100%;
+  margin-top: 32px;
   padding: 16px;
+  border: 1px solid var(--rule-strong);
+  background: rgba(10, 6, 4, 0.85);
+  text-align: left;
 }
 
 .op-demo-completion-mosaic {
@@ -1511,6 +1513,21 @@ a {
   gap: 10px;
   min-width: 0;
   padding: 0;
+}
+
+.op-demo-completion-copy > span {
+  color: rgba(245, 239, 227, 0.52);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.op-demo-completion-copy > strong {
+  display: block;
+  color: #f8f3e7;
+  font-size: clamp(1.35rem, 2.6vw, 2.2rem);
+  line-height: 1.05;
 }
 
 .op-demo-completion-copy p + p {

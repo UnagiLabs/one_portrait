@@ -1,6 +1,7 @@
 "use client";
 
 import { unitTileCount, unitTileGrid } from "@one-portrait/shared";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const takeru = {
@@ -20,6 +21,8 @@ const demoPlacement = {
   submissionNo: 2000,
 } as const;
 const revealDurationMs = 3600;
+const demoUnitId =
+  "0xdemo0000000000000000000000000000000000000000000000000000000007d0";
 
 export function DemoClient(): React.ReactElement {
   const [isConnected, setIsConnected] = useState(false);
@@ -56,125 +59,204 @@ export function DemoClient(): React.ReactElement {
   };
 
   return (
-    <main aria-label="Takeru Unit demo" className="op-demo op-demo-unit">
-      <section
-        aria-label="Athlete unit overview"
-        className="op-demo-unit-overview"
-      >
-        <div className="op-demo-unit-athlete">
-          <div className="op-demo-unit-athlete-copy">
-            <p className="op-eyebrow">
-              <span className="bar" />
-              <span>ONE Portrait demo unit</span>
-            </p>
-            <h1>{takeru.name}</h1>
-            <p>
-              A fixed demo unit for {takeru.name}, ready for the final fan
-              submission.
-            </p>
-          </div>
-          <div className="op-demo-unit-athlete-media">
-            {/* biome-ignore lint/performance/noImgElement: public demo cutout asset */}
-            <img src={takeru.imageSrc} alt={takeru.name} />
-          </div>
-        </div>
-
-        <div className="op-demo-unit-grid">
-          <article className="op-demo-unit-card">
-            <span>Athlete</span>
-            <strong>{takeru.name}</strong>
-            <p>
-              {takeru.country} / {takeru.discipline}
-            </p>
-          </article>
-
-          <article className="op-demo-unit-card">
-            <span>Unit</span>
-            <strong>Takeru Demo Unit</strong>
-            <p>Fixed demo flow</p>
-          </article>
-
-          <article className="op-demo-unit-card">
-            <span>Progress</span>
-            <strong>
-              {displaySubmittedCount} / {maxSlots}
-            </strong>
-            <p>
-              {previewUrl
-                ? "The final demo slot is locally staged."
-                : "One slot remains before reveal."}
-            </p>
-          </article>
-
-          <article className="op-demo-unit-card op-demo-unit-reveal-card">
-            {previewUrl ? (
-              <DemoCompletionReveal originalPhotoUrl={previewUrl} />
-            ) : (
-              <>
-                <span>Reveal area</span>
-                <strong>Awaiting final photo</strong>
-                <p>The completed portrait preview will appear here later.</p>
-              </>
-            )}
-          </article>
-        </div>
-      </section>
-
-      <section aria-label="Submission panel" className="op-demo-unit-submit">
-        <div>
-          <p className="op-eyebrow">
-            <span className="bar" />
-            <span>Submission panel</span>
-          </p>
-          <h2>Submit your photo</h2>
-          <p>
-            This stage demo uses local-only wallet state and a mock submission
-            preview.
-          </p>
-        </div>
-
-        <div className="op-demo-unit-submit-steps">
-          <div>
-            <span>01</span>
-            <strong>Connect wallet</strong>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>Choose photo</strong>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>Submit photo</strong>
-          </div>
-        </div>
-
-        {isConnected ? (
-          <div className="op-demo-unit-wallet-panel">
-            <p>
-              <strong>Demo wallet connected</strong>
-              <span>{demoAddress}</span>
-            </p>
-            <label>
-              <span>Choose one image</span>
-              <input
-                accept="image/*"
-                aria-label="Choose one image"
-                onChange={handleImageChange}
-                type="file"
-              />
-            </label>
-            {previewUrl ? (
-              <div className="op-demo-unit-preview">
-                {/* biome-ignore lint/performance/noImgElement: local object URL preview */}
-                <img alt="Selected submission preview" src={previewUrl} />
+    <main
+      aria-label="Takeru Unit demo"
+      className="grain relative min-h-screen overflow-hidden text-[var(--ink)]"
+    >
+      <div className="mx-auto grid max-w-6xl gap-px bg-[var(--rule)] lg:grid-cols-[1fr_380px]">
+        <section
+          aria-label="Athlete unit overview"
+          className="relative flex min-h-[80vh] flex-col justify-between gap-10 bg-[var(--bg-2)] p-8 md:p-12 lg:p-14"
+        >
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 45%, rgba(255, 122, 26, 0.08), transparent 65%)",
+            }}
+          />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+            <nav className="flex flex-wrap items-center gap-4">
+              <Link
+                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                href="/"
+              >
+                ← All athletes
+              </Link>
+              <Link
+                className="font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)] hover:text-[var(--ink)]"
+                href="/gallery"
+              >
+                Participation history
+              </Link>
+            </nav>
+            <div className="text-right font-mono-op text-[11px] text-[var(--ink-dim)]">
+              <div>
+                {takeru.name}{" "}
+                <span className="text-[var(--ember)]">— UNIT</span>
               </div>
-            ) : null}
-            <button disabled type="button">
-              Mock local submit
-            </button>
+              <div className="mt-1 break-all text-[var(--ink-faint)]">
+                one_portrait::unit · {demoUnitId.slice(0, 10)}…
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="op-demo-unit-wallet-actions">
+
+          <div className="relative z-10 grid justify-items-center gap-6 text-center">
+            <div className="op-eyebrow">
+              <span className="bar" />
+              <span
+                className="h-2 w-2 rounded-full bg-[var(--ember)]"
+                style={{
+                  boxShadow: "0 0 14px var(--ember)",
+                  animation: "op-pulse 1s infinite",
+                }}
+              />
+              <span>UNIT ACTIVE — HIDDEN UNTIL REVEAL</span>
+            </div>
+
+            {/* biome-ignore lint/performance/noImgElement: public demo cutout asset */}
+            <img
+              alt={takeru.name}
+              className="h-24 w-24 rounded-none border border-[var(--rule-strong)] object-cover"
+              src={takeru.imageSrc}
+            />
+
+            <h1 className="font-display text-[clamp(40px,7vw,88px)] leading-[0.9] tracking-[-0.01em] text-[var(--ink)]">
+              {takeru.name}
+            </h1>
+            <p className="font-mono-op text-[11px] break-all text-[var(--ink-faint)]">
+              {demoUnitId}
+            </p>
+
+            <div className="mt-4 w-full">
+              <DemoProgress submittedCount={displaySubmittedCount} />
+              {previewUrl ? (
+                <DemoCompletionReveal originalPhotoUrl={previewUrl} />
+              ) : null}
+            </div>
+          </div>
+
+          <div className="relative z-10 text-right font-mono-op text-[11px] uppercase tracking-[0.12em] text-[var(--ink-dim)]">
+            Stage demo · 0 SUI required
+            <br />
+            Local mock state · No network submission
+          </div>
+        </section>
+
+        <aside
+          aria-label="Submission panel"
+          className="flex flex-col gap-6 bg-[var(--bg-2)] p-6 lg:p-7"
+        >
+          <DemoSubmissionPanel
+            connectDemoWallet={connectDemoWallet}
+            handleImageChange={handleImageChange}
+            isConnected={isConnected}
+            previewUrl={previewUrl}
+          />
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function DemoProgress({
+  submittedCount,
+}: {
+  readonly submittedCount: number;
+}): React.ReactElement {
+  const pct = (submittedCount / maxSlots) * 100;
+  const remaining = Math.max(0, maxSlots - submittedCount);
+  const progressLabel = submittedCount >= maxSlots ? "Filled" : "Filling";
+
+  return (
+    <div className="grid gap-5">
+      <p aria-live="polite" className="op-big-counter tabular-nums">
+        <span className="sr-only">{`${submittedCount} / ${maxSlots}`}</span>
+        <span className="num">{submittedCount}</span>
+        <span className="slash">/</span>
+        <span className="total">{maxSlots}</span>
+      </p>
+      <div className="grid gap-2">
+        <div className="op-progress-bar">
+          <div className="op-progress-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-3 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+          <span className="text-[var(--ember)]">{progressLabel}</span>
+          <span>
+            {remaining} tiles remaining · {submittedCount} Kakera minted
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DemoSubmissionPanel({
+  connectDemoWallet,
+  handleImageChange,
+  isConnected,
+  previewUrl,
+}: {
+  readonly connectDemoWallet: () => void;
+  readonly handleImageChange: (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => void;
+  readonly isConnected: boolean;
+  readonly previewUrl: string | null;
+}): React.ReactElement {
+  return (
+    <section className="grid gap-4 border border-[var(--rule)] bg-[rgba(245,239,227,0.03)] p-5">
+      <div className="grid gap-2">
+        <p className="op-eyebrow">
+          <span className="bar" />
+          <span>Submit access</span>
+        </p>
+        <h2 className="font-display text-[24px] leading-[0.95] tracking-[-0.01em] text-[var(--ink)]">
+          Participation wallet
+        </h2>
+      </div>
+
+      {isConnected ? (
+        <>
+          <p className="text-sm text-[var(--ink-dim)]">
+            Demo wallet address confirmed. This local state signs nothing and
+            keeps the stage flow offline.
+          </p>
+          <p className="font-mono-op text-[11px] break-all text-[var(--ember)]">
+            {demoAddress}
+          </p>
+
+          <label className="grid gap-2 font-mono-op text-[11px] uppercase tracking-[0.14em] text-[var(--ink-dim)]">
+            <span>Choose one image</span>
+            <input
+              accept="image/*"
+              aria-label="Choose one image"
+              className="op-file-input block w-full font-mono-op text-[11px] text-[var(--ink)]"
+              onChange={handleImageChange}
+              type="file"
+            />
+          </label>
+
+          {previewUrl ? (
+            // biome-ignore lint/performance/noImgElement: local object URL preview
+            <img
+              alt="Selected submission preview"
+              className="max-w-full border border-[var(--rule-strong)]"
+              src={previewUrl}
+            />
+          ) : null}
+
+          <button className="op-btn-primary" disabled type="button">
+            Mock local submit
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--ink-dim)]">
+            Connect Google zkLogin or Sui wallet to submit from this waiting
+            room.
+          </p>
+          <div className="flex flex-wrap gap-3">
             <button
               className="op-btn-primary"
               onClick={connectDemoWallet}
@@ -190,9 +272,9 @@ export function DemoClient(): React.ReactElement {
               Connect Sui wallet
             </button>
           </div>
-        )}
-      </section>
-    </main>
+        </>
+      )}
+    </section>
   );
 }
 

@@ -47,12 +47,13 @@ describe("DemoClient", () => {
       screen.getByRole("region", { name: /Athlete unit overview/i }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("region", { name: /Submission panel/i }),
+      screen.getByRole("complementary", { name: /Submission panel/i }),
     ).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Takeru" })).toBeTruthy();
+    expect(screen.getByText(/UNIT ACTIVE — HIDDEN UNTIL REVEAL/i)).toBeTruthy();
+    expect(screen.getByText(/Participation wallet/i)).toBeTruthy();
     expect(screen.getByText(/1999\s*\/\s*2000/)).toBeTruthy();
-    expect(screen.getByText(/Reveal area/i)).toBeTruthy();
-    expect(screen.getByText(/Awaiting final photo/i)).toBeTruthy();
+    expect(screen.getByText(/1 tiles remaining/i)).toBeTruthy();
   });
 
   it("uses only the Takeru athlete asset in the demo shell", () => {
@@ -101,8 +102,8 @@ describe("DemoClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: buttonName }));
 
-    expect(screen.getByText(/Demo wallet connected/i)).toBeTruthy();
-    expect(screen.getByText(/0xdemo/i)).toBeTruthy();
+    expect(screen.getByText(/Demo wallet address confirmed/i)).toBeTruthy();
+    expect(screen.getByText("0xdemo...2000")).toBeTruthy();
     expect(screen.getByLabelText(/Choose one image/i)).toBeTruthy();
   });
 
@@ -126,7 +127,7 @@ describe("DemoClient", () => {
   it("keeps the reveal canvas hidden while awaiting the final photo", () => {
     render(<DemoClient />);
 
-    expect(screen.getByText(/Awaiting final photo/i)).toBeTruthy();
+    expect(screen.getByText(/1 tiles remaining/i)).toBeTruthy();
     expect(screen.queryByTestId("demo-completion-reveal")).toBeNull();
     expect(screen.queryByTestId("demo-completion-canvas")).toBeNull();
   });
