@@ -8,5 +8,6 @@
 **/e2e/artifacts
 **/.env
 **/.env.local
+docs/pitch/
 .git
 .github

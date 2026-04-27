@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ONE Portrait — Pitch Deck</title>
+<script src="lib/deck-stage.js"></script>
+<script type="application/json" id="speaker-notes">
+[
+  "Hello everyone. This is ONE Portrait. One fan shares one photo, and 2,000 photos become one athlete portrait. It is on-chain and non-profit.\nハロー、皆さん。ONE Portrait を紹介します。ファンが1人1枚ずつ写真を投稿し、2,000枚で選手の肖像画をつくります。完全オンチェーン、非営利です。",
+  "Many Web3 products focus on owning and trading. Fans want something simpler: to support the athlete and remember the night. ONE Portrait makes that support visible, without speculation.\n今のWeb3の多くは所有や取引に寄っています。でもファンがしたいのは、選手を応援し、その夜を記憶に残すことです。ONE Portrait はその応援を見える形にします。投機ではなく、ファンから選手へ、選手からファンへの贈り物です。",
+  "The idea is simple. Two thousand fans upload one photo each. When the last photo arrives, one hidden mosaic appears on every screen.\nアイデアはとてもシンプルです。2,000人のファンが1枚ずつ写真を投稿します。その写真が一枚のモザイク肖像画になります。完成までは隠され、最後の写真が届いた瞬間に全員の画面へ同時に表示されます。",
+  "The theme is to connect ONE Championship with Japanese fans. We chose belonging, not points or drops. Fans can say, \"I was there,\" because their photos become the portrait.\nハッカソンのテーマは、ONE Championship と日本のファンをつなぐことです。トークン、ポイント、限定ドロップという答えもあります。でも私たちは「参加した実感」を選びました。ファンは「あの夜にいた」と言える。その写真が文字どおり肖像になります。",
+  "A fan scans a QR code and signs in with Google. No wallet and no SUI token are needed. They pick an athlete, upload a photo, and receive Kakera in the same transaction.\n体験の流れです。ファンはQRコードを読み取り、Googleでログインします。ウォレットもSUIトークンも不要です。選手を選んで写真を投稿すると、同じトランザクションで Soulbound NFT の Kakera を受け取ります。",
+  "Before completion, fans only see a counter. The 2,000th photo becomes the trigger. Then the finished portrait appears on every device at once.\nここが見せ場です。完成前はカウンターだけが見えます。2,000枚目の写真がトリガーになります。その瞬間、完成した肖像が全員の端末に同時に表示されます。リビールそのものが演出になります。",
+  "Kakera means \"fragment\" in Japanese. It proves the fan was there and shows where their photo is in the portrait. It is Soulbound, so it cannot be traded.\nKakera は日本語で「欠片」という意味です。参加したファン全員に、あの夜に立ち会った証として渡ります。自分の写真が肖像のどこにあるかも表示されます。Soulbound なので譲渡できず、参加した本人に意味が残ります。",
+  "Sui and Walrus make this possible. Walrus stores the mosaic, and Sui connects each photo to its position on-chain. Move makes Kakera Soulbound, and Enoki gives fans zero gas.\nなぜ Sui と Walrus か。まず Walrus で完成モザイクを永続保存できます。次に Sui で各写真と座標をオンチェーンで結びつけられます。さらに Move により Kakera を本当に Soulbound にできます。そして zkLogin と Enoki により、ファンのガス代はゼロです。",
+  "Now I will show the live demo. We will go from landing page to upload, reveal, and gallery. It is running on Sui Testnet.\nここまでが設計です。ここから実際に動いているデモを見せます。ランディング、投稿、リビール、ギャラリーまで進みます。Sui Testnet 上で動いています。",
+  "【日本語スクリプト】\nONE Portrait は、ひとつのシンプルな機能です。\nでも、使える場面はひとつではありません。\n試合当日、ファンミーティング、会場演出、ツアーの記録。\nどの場面でも、ファンは一枚の写真で参加できます。\nその写真が、選手への応援として見える形になります。\nONEのアスリートとファンの距離を、少し近づける。\nそれが、このプロダクトの一番大事な価値です。\n\n【英語スクリプト】\nONE Portrait is one simple feature.\nIt works for match day, fan meetings, stadium shows, and tours.\nIn each scene, one photo makes the fan visible and brings fans closer to athletes.",
+  "This can be used tomorrow. At ONE SAMURAI, put one QR code in the lobby. Fans scan, sign in, and join with one photo. No app, no wallet, no special equipment.\nもう一つ大事な点です。これは明日から使えます。ONE SAMURAI のロビーにQRコードを置くだけです。ファンは読み取り、ログインし、写真1枚で参加できます。アプリもウォレットも、特別な会場設備も不要です。",
+  "We are a team of two. BUTASAN leads engineering, and SHIZUKU works on concept and UI/UX. Your smile is their strength. Thank you.\nチームは二人です。BUTASAN がエンジニアリングリードです。SHIZUKU がコンセプトと UI/UX を担当しています。最後にもう一度、あなたの笑顔が、ヒーローの力になる。ありがとうございました。"
+]
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --ink: #f4ede0;
+    --ink-soft: #c9c1b3;
+    --ink-dim: #8a8478;
+    --bg: #0a0807;
+    --bg-panel: #161311;
+    --line: #2a2520;
+    --gold: #d4a53a;
+    --blood: #c41c2a;
+    --jp: "Noto Sans JP", sans-serif;
+    --en: "Oswald", "Helvetica Neue", sans-serif;
+    --en-display: "Bebas Neue", "Oswald", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+  }
+
+  html, body { margin: 0; padding: 0; background: #000; }
+  deck-stage { background: #000; }
+
+  section {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--en);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .slide-pad { padding: 100px 120px 90px; box-sizing: border-box; width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .eyebrow { font-family: var(--en); font-size: 22px; letter-spacing: .3em; color: var(--gold); text-transform: uppercase; font-weight: 600; margin: 0 0 36px; }
+  .slide-num { position: absolute; top: 52px; right: 120px; font-family: var(--mono); font-size: 16px; color: var(--ink-dim); letter-spacing: .2em; }
+  .slide-num::before { content: ""; display: inline-block; width: 48px; height: 1px; background: var(--ink-dim); vertical-align: middle; margin-right: 14px; }
+  .footer-mark { position: absolute; bottom: 48px; left: 120px; font-family: var(--en); font-size: 14px; letter-spacing: .3em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; }
+
+  /* EN-led typography system */
+  .en-huge { font-family: var(--en-display); font-size: 200px; line-height: .88; letter-spacing: .01em; margin: 0; text-transform: uppercase; font-weight: 400; }
+  .en-h1 { font-family: var(--en-display); font-size: 140px; line-height: .92; letter-spacing: .01em; margin: 0; text-transform: uppercase; font-weight: 400; }
+  .en-h2 { font-family: var(--en-display); font-size: 108px; line-height: .95; letter-spacing: .01em; margin: 0; text-transform: uppercase; font-weight: 400; }
+  .en-h3 { font-family: var(--en-display); font-size: 72px; line-height: 1; letter-spacing: .02em; margin: 0; text-transform: uppercase; font-weight: 400; }
+  .en-body { font-family: var(--en); font-size: 24px; line-height: 1.5; letter-spacing: .02em; color: var(--ink-soft); font-weight: 400; }
+
+  .jp-sub { font-family: var(--jp); font-size: 22px; line-height: 1.7; color: var(--ink-dim); font-weight: 500; letter-spacing: .02em; }
+  .jp-sub-strong { font-family: var(--jp); font-size: 26px; line-height: 1.6; color: var(--ink-soft); font-weight: 700; letter-spacing: .02em; }
+
+  .accent { color: var(--gold); }
+  .blood { color: var(--blood); }
+
+  /* ------ 1. TITLE ------ */
+  .s-title { background: radial-gradient(circle at 70% 40%, #2a0f10 0%, #0a0807 55%); }
+  .s-title .logo { width: 540px; height: 540px; position: absolute; right: 80px; top: 50%; transform: translateY(-50%); object-fit: contain; filter: drop-shadow(0 40px 120px rgba(196,28,42,.25)); }
+  .s-title .txt { max-width: 1000px; position: relative; z-index: 2; }
+  .s-title h1 { font-family: var(--en-display); font-size: 260px; line-height: .88; margin: 0; letter-spacing: 0; font-weight: 400; }
+  .s-title h1 .line2 { display: block; color: var(--gold); }
+  .s-title .tagline { font-family: var(--en); font-size: 44px; letter-spacing: .18em; color: var(--ink); margin: 28px 0 0; font-weight: 500; text-transform: uppercase; }
+  .s-title .jp-title-row { font-family: var(--jp); font-size: 18px; letter-spacing: .3em; color: var(--ink-dim); margin: 18px 0 0; font-weight: 500; }
+  .s-title .catch-en { font-family: var(--en-display); font-size: 64px; color: var(--ink); margin: 70px 0 0; line-height: 1.1; font-weight: 400; letter-spacing: .02em; }
+  .s-title .catch-en .hl { color: var(--blood); }
+  .s-title .catch-en .gld { color: var(--gold); }
+  .s-title .catch-jp { font-family: var(--jp); font-size: 20px; color: var(--ink-dim); margin: 18px 0 0; letter-spacing: .08em; font-weight: 500; }
+  .s-title .hack-tag { position: absolute; bottom: 60px; left: 120px; font-family: var(--en); font-size: 16px; letter-spacing: .3em; color: var(--gold); font-weight: 600; text-transform: uppercase; }
+  .s-title .hack-tag::before { content: "●"; color: var(--blood); margin-right: 14px; }
+
+  /* ------ 2. PROBLEM ------ */
+  .s-prob .lead { display: flex; align-items: baseline; gap: 32px; flex-wrap: wrap; }
+  .s-prob .lead h2 { font-family: var(--en-display); font-size: 132px; line-height: .95; margin: 0; letter-spacing: .01em; font-weight: 400; text-transform: uppercase; }
+  .s-prob .lead h2 .accent { color: var(--gold); }
+  .s-prob .jp-lead { font-family: var(--jp); font-size: 22px; color: var(--ink-dim); margin-top: 18px; font-weight: 500; line-height: 1.6; }
+  .s-prob .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 36px; margin-top: 56px; flex: 1; align-content: end; }
+  .s-prob .col { border-top: 2px solid var(--line); padding-top: 26px; }
+  .s-prob .col.lead-col { border-top-color: var(--blood); }
+  .s-prob .col .label { font-family: var(--en); font-size: 15px; letter-spacing: .24em; color: var(--ink-dim); text-transform: uppercase; margin-bottom: 16px; font-weight: 600; }
+  .s-prob .col.lead-col .label { color: var(--blood); }
+  .s-prob .col .big { font-family: var(--en-display); font-size: 56px; line-height: 1; letter-spacing: .02em; color: var(--ink); margin: 0 0 12px; text-transform: uppercase; font-weight: 400; }
+  .s-prob .col.lead-col .big { color: var(--gold); }
+  .s-prob .col .jp-h { font-family: var(--jp); font-size: 17px; color: var(--ink-soft); font-weight: 700; letter-spacing: .04em; margin: 0 0 14px; }
+  .s-prob .col .jp { font-family: var(--jp); font-size: 14px; color: var(--ink-dim); font-weight: 400; line-height: 1.7; letter-spacing: .02em; }
+  .s-prob .closer { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap; }
+  .s-prob .closer .en { font-family: var(--en); font-size: 18px; letter-spacing: .22em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; }
+  .s-prob .closer .en .gold { color: var(--gold); }
+  .s-prob .closer .jp { font-family: var(--jp); font-size: 14px; color: var(--ink-dim); font-weight: 500; }
+
+  /* ------ 3. SOLUTION ------ */
+  .s-sol .hero-num { font-family: var(--en-display); font-size: 480px; line-height: .82; color: var(--gold); margin: 0; letter-spacing: -.03em; font-weight: 400; }
+  .s-sol .hero-row { display: grid; grid-template-columns: auto 1fr; gap: 60px; align-items: center; margin-top: 40px; }
+  .s-sol .copy { padding-top: 24px; }
+  .s-sol .copy .big { font-family: var(--en-display); font-size: 92px; line-height: 1; letter-spacing: .01em; margin: 0 0 22px; text-transform: uppercase; font-weight: 400; }
+  .s-sol .copy .big .gold { color: var(--gold); }
+  .s-sol .copy .en-sub { font-family: var(--en); font-size: 26px; letter-spacing: .05em; color: var(--ink-soft); font-weight: 500; line-height: 1.4; text-transform: uppercase; }
+  .s-sol .copy .jp { font-family: var(--jp); font-size: 20px; color: var(--ink-dim); margin-top: 20px; line-height: 1.6; font-weight: 500; }
+  .s-sol .strip { display: flex; gap: 12px; margin-top: 50px; }
+  .s-sol .strip .tile { width: 56px; height: 56px; border-radius: 4px; background: var(--bg-panel); }
+  .s-sol .strip .tile.on { background: var(--gold); }
+  .s-sol .strip .tile.blood { background: var(--blood); }
+
+  /* ------ 4. THEME FIT ------ */
+  .s-theme .slide-pad { padding-top: 90px; padding-bottom: 80px; }
+  .s-theme .quote-block { border-left: 6px solid var(--blood); padding: 16px 36px; margin: 18px 0 36px; }
+  .s-theme .quote-block .q-en { font-family: var(--en-display); font-size: 48px; line-height: 1.1; color: var(--ink); margin: 0; text-transform: uppercase; letter-spacing: .02em; font-weight: 400; }
+  .s-theme .quote-block .q-tag { font-family: var(--en); font-size: 14px; letter-spacing: .22em; color: var(--ink-dim); margin: 12px 0 8px; font-weight: 600; text-transform: uppercase; }
+  .s-theme .quote-block .q-jp { font-family: var(--jp); font-size: 16px; color: var(--ink-dim); font-weight: 500; line-height: 1.6; }
+
+  .s-theme .options-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 18px; margin: 0 0 36px; align-items: stretch; }
+  .s-theme .opt { padding: 22px 22px 24px; border: 1px solid var(--line); background: var(--bg-panel); position: relative; }
+  .s-theme .opt .tag { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; margin-bottom: 14px; }
+  .s-theme .opt .label { font-family: var(--en-display); font-size: 30px; line-height: 1.05; color: var(--ink-soft); letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-theme .opt .jp { font-family: var(--jp); font-size: 13px; color: var(--ink-dim); margin-top: 8px; line-height: 1.55; font-weight: 500; }
+  .s-theme .opt.ours { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,165,58,.10), rgba(212,165,58,.02)); }
+  .s-theme .opt.ours .tag { color: var(--gold); }
+  .s-theme .opt.ours .label { color: var(--ink); }
+  .s-theme .opt.ours .jp { color: var(--ink-soft); }
+  .s-theme .opt.ours .pin { position: absolute; top: 18px; right: 18px; font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--gold); font-weight: 700; }
+
+  .s-theme .ans { font-family: var(--en-display); font-size: 96px; line-height: 1; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-theme .ans .gold { color: var(--gold); }
+  .s-theme .ans-jp { font-family: var(--jp); font-size: 20px; color: var(--ink-dim); margin: 18px 0 0; font-weight: 700; letter-spacing: .04em; line-height: 1.6; }
+  .s-theme .values { display: flex; gap: 48px; margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line); }
+  .s-theme .values .v { font-family: var(--en-display); font-size: 36px; letter-spacing: .04em; color: var(--gold); font-weight: 400; text-transform: uppercase; }
+  .s-theme .values .v .jp-tag { display: block; font-family: var(--jp); font-size: 13px; color: var(--ink-dim); letter-spacing: .1em; font-weight: 500; margin-top: 4px; }
+
+  /* ------ 5. FLOW ------ */
+  .s-flow h2 { font-family: var(--en-display); font-size: 108px; line-height: .95; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-flow h2 .gold { color: var(--gold); }
+  .s-flow .jp-lead { font-family: var(--jp); font-size: 20px; color: var(--ink-dim); margin-top: 18px; font-weight: 500; letter-spacing: .03em; }
+  .s-flow .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 50px; flex: 1; align-content: center; }
+  .s-flow .step { padding: 32px 24px; border: 1px solid var(--line); background: var(--bg-panel); border-radius: 2px; }
+  .s-flow .step.hi { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,165,58,.08), transparent); }
+  .s-flow .step .n { font-family: var(--mono); font-size: 15px; letter-spacing: .2em; color: var(--gold); font-weight: 600; }
+  .s-flow .step .en-name { font-family: var(--en-display); font-size: 40px; line-height: 1; color: var(--ink); margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .02em; font-weight: 400; }
+  .s-flow .step.hi .en-name { color: var(--gold); }
+  .s-flow .step .jp-name { font-family: var(--jp); font-size: 15px; color: var(--ink-dim); font-weight: 500; }
+  .s-flow .step .note { font-family: var(--en); font-size: 15px; line-height: 1.5; color: var(--ink-soft); margin-top: 24px; letter-spacing: .02em; }
+  .s-flow .step .note-jp { font-family: var(--jp); font-size: 13px; line-height: 1.55; color: var(--ink-dim); margin-top: 8px; font-weight: 500; }
+  .s-flow .callout { margin-top: 40px; font-family: var(--en-display); font-size: 48px; line-height: 1.1; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .02em; font-weight: 400; }
+  .s-flow .callout .gold { color: var(--gold); }
+  .s-flow .callout-jp { font-family: var(--jp); font-size: 15px; color: var(--ink-dim); font-weight: 500; margin-top: 8px; letter-spacing: .04em; }
+
+  /* ------ 6. REVEAL ------ */
+  .s-reveal { background: radial-gradient(circle at 50% 50%, #1a0708 0%, #000 70%); overflow: hidden; }
+  .s-reveal .stack { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; text-align: center; padding-top: 40px; }
+  .s-reveal .counter { font-family: var(--en-display); font-size: 440px; line-height: .85; letter-spacing: -.03em; color: var(--blood); margin: 0; text-shadow: 0 0 120px rgba(196,28,42,.4); font-weight: 400; }
+  .s-reveal .counter .of { color: var(--gold); font-size: 160px; margin-left: 20px; }
+  .s-reveal .headline { font-family: var(--en-display); font-size: 120px; line-height: 1; margin: 30px 0 14px; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-reveal .headline .gold { color: var(--gold); }
+  .s-reveal .jp-line { font-family: var(--jp); font-size: 22px; color: var(--ink-dim); font-weight: 700; letter-spacing: .06em; }
+  .s-reveal .descript { font-family: var(--en); font-size: 20px; color: var(--ink-soft); max-width: 1000px; margin: 40px auto 0; line-height: 1.6; letter-spacing: .02em; }
+  .s-reveal .tape { position: absolute; left: 0; right: 0; height: 2px; background: var(--blood); opacity: .3; }
+
+  /* ------ 7. KAKERA ------ */
+  .s-kak .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 70px; align-items: center; height: 100%; }
+  .s-kak .visual { background: #000; border: 1px solid var(--line); position: relative; overflow: hidden; aspect-ratio: 724 / 540; }
+  .s-kak .visual img.shot { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .s-kak .visual .corner-tag { position: absolute; top: 18px; right: 18px; font-family: var(--mono); font-size: 13px; color: var(--gold); letter-spacing: .14em; background: rgba(0,0,0,.7); padding: 6px 12px; border: 1px solid var(--gold); }
+  .s-kak h2 { font-family: var(--en-display); font-size: 132px; line-height: .95; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-kak h2 .blood { color: var(--blood); }
+  .s-kak .jp-h { font-family: var(--jp); font-size: 24px; color: var(--ink-soft); margin: 16px 0 12px; font-weight: 700; letter-spacing: .05em; }
+  .s-kak .en-h { font-family: var(--en); font-size: 22px; letter-spacing: .08em; color: var(--ink-dim); margin: 0 0 36px; font-weight: 500; text-transform: uppercase; }
+  .s-kak .points { list-style: none; padding: 0; margin: 0; }
+  .s-kak .points li { padding: 20px 0; border-top: 1px solid var(--line); }
+  .s-kak .points li:last-child { border-bottom: 1px solid var(--line); }
+  .s-kak .points li .k { color: var(--gold); font-family: var(--mono); font-size: 13px; letter-spacing: .14em; display: block; margin-bottom: 8px; font-weight: 600; }
+  .s-kak .points li .en-pt { font-family: var(--en-display); font-size: 36px; line-height: 1.1; color: var(--ink); letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-kak .points li .jp-pt { font-family: var(--jp); font-size: 14px; color: var(--ink-dim); font-weight: 500; margin-top: 6px; line-height: 1.55; }
+
+  /* ------ 8. WHY ------ */
+  .s-why h2 { font-family: var(--en-display); font-size: 120px; line-height: .95; margin: 0 0 10px; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-why h2 .gold { color: var(--gold); }
+  .s-why .jp-h { font-family: var(--jp); font-size: 22px; color: var(--ink-dim); margin-bottom: 40px; font-weight: 700; letter-spacing: .04em; }
+  .s-why .matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+  .s-why .cell { border: 1px solid var(--line); padding: 28px 32px; background: var(--bg-panel); }
+  .s-why .cell .tag { font-family: var(--mono); font-size: 13px; color: var(--gold); letter-spacing: .16em; font-weight: 600; }
+  .s-why .cell .t { font-family: var(--en-display); font-size: 48px; color: var(--ink); line-height: 1.05; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: .02em; font-weight: 400; }
+  .s-why .cell .jp { font-family: var(--jp); font-size: 14px; color: var(--ink-soft); font-weight: 500; margin-bottom: 12px; line-height: 1.55; }
+  .s-why .cell .d { font-family: var(--en); font-size: 16px; color: var(--ink-dim); line-height: 1.6; letter-spacing: .02em; }
+
+  /* ------ 9. DEMO BREAK ------ */
+  .s-demo-break { background: var(--bg); }
+  .s-demo-break .slide-pad { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+  .s-demo-break .demo-tag { font-family: var(--mono); font-size: 18px; letter-spacing: .3em; color: var(--blood); text-transform: uppercase; font-weight: 600; margin-bottom: 36px; display: flex; align-items: center; gap: 18px; }
+  .s-demo-break .demo-tag::before { content: ""; width: 14px; height: 14px; background: var(--blood); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.85); } }
+  .s-demo-break h1 { font-family: var(--en-display); font-size: 240px; line-height: .9; margin: 0 0 56px; letter-spacing: -.01em; text-transform: uppercase; font-weight: 400; color: var(--ink); }
+  .s-demo-break h1 .gold { color: var(--gold); }
+  .s-demo-break .jp-h { font-family: var(--jp); font-size: 28px; color: var(--ink-soft); margin: 0; font-weight: 700; letter-spacing: .04em; }
+  .s-demo-break .url-row { margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 28px; width: 100%; }
+  .s-demo-break .url-label { font-family: var(--en); font-size: 14px; letter-spacing: .3em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; }
+  .s-demo-break .url { font-family: var(--mono); font-size: 22px; color: var(--gold); letter-spacing: .02em; }
+  .s-demo-break .duration { margin-left: auto; font-family: var(--en); font-size: 16px; letter-spacing: .24em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; }
+  .s-demo-break .duration .gold { color: var(--gold); }
+
+  /* ------ 9. WHERE IT SHINES ------ */
+  .s-shines h2 { font-family: var(--en-display); font-size: 96px; line-height: .95; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-shines .jp-h { font-family: var(--jp); font-size: 20px; color: var(--ink-dim); margin: 14px 0 0; font-weight: 500; }
+  .s-shines .scenarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin-top: 40px; flex: 1; min-height: 0; }
+  .s-shines .card { background: var(--bg-panel); border: 1px solid var(--line); padding: 32px 28px 30px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .s-shines .card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--gold); }
+  .s-shines .card .num { font-family: var(--mono); font-size: 13px; color: var(--ink-dim); letter-spacing: .2em; }
+  .s-shines .card .en-title { font-family: var(--en-display); font-size: 38px; line-height: 1; color: var(--ink); text-transform: uppercase; letter-spacing: .02em; margin: 18px 0 6px; font-weight: 400; }
+  .s-shines .card .en-title .gold { color: var(--gold); }
+  .s-shines .card .jp-sub { font-family: var(--jp); font-size: 15px; color: var(--ink-soft); font-weight: 700; margin: 0 0 18px; letter-spacing: .02em; }
+  .s-shines .card .divider { height: 1px; background: var(--line); margin: 4px 0 16px; }
+  .s-shines .card .desc { font-family: var(--jp); font-size: 14px; line-height: 1.7; color: var(--ink-dim); font-weight: 400; flex: 1; }
+  .s-shines .footnote { margin-top: 28px; font-family: var(--en); font-size: 16px; color: var(--ink-dim); letter-spacing: .15em; text-transform: uppercase; }
+  .s-shines .footnote .gold { color: var(--gold); }
+
+  /* ------ 11. TOMORROW (READY NOW) ------ */
+  .s-tmrw { background: #0a0807; }
+  .s-tmrw .head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 60px; }
+  .s-tmrw h2 { font-family: var(--en-display); font-size: 96px; line-height: .92; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-tmrw h2 .gold { color: var(--gold); }
+  .s-tmrw .head-row .jp-h { font-family: var(--en); font-size: 24px; color: var(--ink-soft); margin: 0 0 18px; font-weight: 500; letter-spacing: .08em; max-width: 560px; line-height: 1.45; text-align: right; text-transform: uppercase; }
+  .s-tmrw .body { display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; margin-top: 44px; flex: 1; min-height: 0; }
+  .s-tmrw .left { display: flex; flex-direction: column; gap: 28px; }
+  .s-tmrw .scene { background: var(--bg-panel); border: 1px solid var(--line); padding: 36px 40px; position: relative; }
+  .s-tmrw .scene::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+  .s-tmrw .scene .where { font-family: var(--en); font-size: 14px; letter-spacing: .3em; color: var(--gold); text-transform: uppercase; font-weight: 600; }
+  .s-tmrw .scene .quote { font-family: var(--en-display); font-size: 66px; color: var(--ink); font-weight: 400; margin: 16px 0 12px; letter-spacing: .02em; line-height: 1; text-transform: uppercase; }
+  .s-tmrw .scene .quote .accent { color: var(--gold); }
+  .s-tmrw .scene .quote-jp { font-family: var(--jp); font-size: 17px; color: var(--ink-soft); font-weight: 700; letter-spacing: .08em; margin: 0 0 16px; }
+  .s-tmrw .scene .desc { font-family: var(--en); font-size: 18px; color: var(--ink-dim); line-height: 1.55; font-weight: 400; letter-spacing: .03em; }
+  .s-tmrw .scene .desc .jp-mini { display: block; font-family: var(--jp); font-size: 13px; color: var(--ink-dim); line-height: 1.65; letter-spacing: .04em; margin-top: 8px; }
+  .s-tmrw .checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; margin-top: 8px; }
+  .s-tmrw .chk { display: flex; align-items: baseline; gap: 14px; }
+  .s-tmrw .chk .x { font-family: var(--en-display); font-size: 26px; color: var(--blood); line-height: 1; min-width: 22px; }
+  .s-tmrw .chk .ok { font-family: var(--en-display); font-size: 24px; color: var(--gold); line-height: 1; min-width: 22px; }
+  .s-tmrw .chk .label { font-family: var(--en); font-size: 16px; color: var(--ink-soft); font-weight: 600; line-height: 1.35; letter-spacing: .08em; text-transform: uppercase; }
+  .s-tmrw .chk .label .jp-mini { display: block; font-family: var(--jp); font-size: 11px; color: var(--ink-dim); font-weight: 500; letter-spacing: .04em; text-transform: none; margin-top: 2px; }
+  .s-tmrw .chk.no .label { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-dim); font-weight: 500; }
+  .s-tmrw .chk.no .label .jp-mini { text-decoration: line-through; text-decoration-color: var(--ink-dim); }
+  .s-tmrw .right { display: flex; flex-direction: column; }
+  .s-tmrw .qr-card { background: #fff; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 18px; border: 1px solid var(--line); position: relative; align-self: center; width: 320px; }
+  .s-tmrw .qr-card::after { content: "DEMO QR"; position: absolute; top: -12px; right: 18px; background: var(--gold); color: #000; font-family: var(--en); font-size: 11px; letter-spacing: .25em; padding: 4px 10px; font-weight: 700; }
+  .s-tmrw .qr-img { width: 220px; height: 220px; display: block; image-rendering: pixelated; }
+  .s-tmrw .qr-card .url { font-family: var(--mono); font-size: 14px; color: #000; letter-spacing: .04em; }
+  .s-tmrw .one-liner { margin-top: 28px; font-family: var(--en-display); font-size: 44px; color: var(--ink); line-height: 1.05; letter-spacing: .02em; text-align: center; }
+  .s-tmrw .one-liner .gold { color: var(--gold); }
+  .s-tmrw .one-liner .jp { display: block; font-family: var(--en); font-size: 17px; color: var(--ink-soft); font-weight: 500; margin-top: 18px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-tmrw .one-liner .jp-small { display: block; font-family: var(--jp); font-size: 13px; color: var(--ink-dim); font-weight: 500; margin-top: 8px; letter-spacing: .06em; }
+  .s-tmrw .footnote { margin-top: 28px; font-family: var(--en); font-size: 16px; color: var(--ink-dim); letter-spacing: .15em; text-transform: uppercase; }
+  .s-tmrw .footnote .gold { color: var(--gold); }
+
+  /* ------ 11. CLOSE ------ */
+  .s-close { background: radial-gradient(circle at 30% 60%, #1a0708 0%, #000 70%); }
+  .s-close .close-wrap { display: grid; grid-template-columns: 1.4fr 1fr; gap: 80px; height: 100%; align-items: center; }
+  .s-close .catch-en { font-family: var(--en-display); font-size: 156px; line-height: .95; margin: 0; letter-spacing: .02em; text-transform: uppercase; font-weight: 400; }
+  .s-close .catch-en .gold { color: var(--gold); }
+  .s-close .catch-en .blood { color: var(--blood); }
+  .s-close .catch-jp { font-family: var(--jp); font-size: 26px; color: var(--ink-soft); font-weight: 700; margin: 32px 0 0; letter-spacing: .06em; }
+  .s-close .team-card { border-left: 3px solid var(--gold); padding: 8px 0 8px 36px; }
+  .s-close .team-card .hd { font-family: var(--en); font-size: 15px; letter-spacing: .3em; color: var(--gold); font-weight: 600; margin-bottom: 24px; text-transform: uppercase; }
+  .s-close .team-card .m { margin-bottom: 26px; }
+  .s-close .team-card .name { font-family: var(--en-display); font-size: 44px; color: var(--ink); letter-spacing: .04em; line-height: 1; font-weight: 400; }
+  .s-close .team-card .role-en { font-family: var(--en); font-size: 15px; color: var(--ink-soft); letter-spacing: .08em; text-transform: uppercase; margin-top: 8px; font-weight: 500; }
+  .s-close .team-card .role-jp { font-family: var(--jp); font-size: 13px; color: var(--ink-dim); margin-top: 4px; font-weight: 500; }
+  .s-close .footer-tag { position: absolute; bottom: 52px; left: 120px; right: 120px; display: flex; justify-content: space-between; font-family: var(--en); font-size: 14px; letter-spacing: .22em; color: var(--ink-dim); text-transform: uppercase; font-weight: 600; }
+  .s-close .footer-tag .gold { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<deck-stage width="1920" height="1080">
+
+<!-- 1. TITLE -->
+<section data-label="01 Title" class="s-title">
+  <img src="assets/logo.png" alt="ONE Portrait" class="logo">
+  <div class="slide-pad">
+    <div class="txt">
+      <h1>ONE<span class="line2">PORTRAIT</span></h1>
+      <div class="tagline">The Faces of Fans</div>
+      <div class="jp-title-row">ワン・ポートレイト</div>
+      <div class="catch-en">YOUR <span class="hl">SMILE</span><br>IS THEIR <span class="gld">STRENGTH</span>.</div>
+      <div class="catch-jp">あなたの笑顔が、ヒーローの力になる。</div>
+    </div>
+    <div class="hack-tag">SUI × ONE SAMURAI HACKATHON · APR 2026</div>
+  </div>
+</section>
+
+<!-- 2. PROBLEM -->
+<section data-label="02 Problem" class="s-prob">
+  <div class="slide-pad">
+    <div class="slide-num">02 / 12</div>
+    <div class="eyebrow">The Insight</div>
+    <div class="lead">
+      <h2>YOUR CHEER<br>BECOMES <span class="accent">HIS STRENGTH</span>.</h2>
+    </div>
+    <p class="jp-lead">A gift, both ways &mdash; not ownership, not speculation.<br><span style="color:var(--ink-dim); font-size:18px; display:inline-block; margin-top:6px;">ファンの応援が、選手の力になる。</span></p>
+    <div class="cols">
+      <div class="col lead-col">
+        <div class="label">01 / To The Fighter</div>
+        <div class="big">HIS<br>STRENGTH</div>
+        <div class="jp-h">A wall of support, made visible.</div>
+        <div class="jp">2,000枚の写真で描かれた肖像が、「これだけの人が俺のために」を可視化し、選手の背中を押す。</div>
+      </div>
+      <div class="col">
+        <div class="label">02 / To The Room</div>
+        <div class="big">ONE<br>ROAR</div>
+        <div class="jp-h">The venue lights up as one.</div>
+        <div class="jp">2,000枚目がリビールのトリガー。会場ビジョンもスマホも、同じ瞬間に光る。</div>
+      </div>
+      <div class="col">
+        <div class="label">03 / To The Future</div>
+        <div class="big">ONE<br>NIGHT</div>
+        <div class="jp-h">The night, kept on-chain.</div>
+        <div class="jp">Kakera は譲渡不能なSoulbound NFT。あの夜の熱量がオンチェーンに残り続ける。</div>
+      </div>
+    </div>
+    <div class="closer">
+      <div class="en">NOT OWNERSHIP. NOT SPECULATION. <span class="gold">A GIFT, BOTH WAYS.</span></div>
+      <div class="jp">ファンから選手へ、選手からファンへ。</div>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 3. SOLUTION -->
+<section data-label="03 Solution" class="s-sol">
+  <div class="slide-pad">
+    <div class="slide-num">03 / 12</div>
+    <div class="eyebrow">The Idea</div>
+    <div class="hero-row">
+      <div>
+        <div class="hero-num">2,000</div>
+      </div>
+      <div class="copy">
+        <div class="big">FANS, ONE<br><span class="gold">PORTRAIT</span>.</div>
+        <div class="en-sub">Each fan, one photo. Together — a mosaic of an athlete.</div>
+        <div class="jp">2,000人のファンが、一枚ずつの写真で、一枚の肖像をつくる。</div>
+      </div>
+    </div>
+    <div class="strip" aria-hidden="true">
+      <div class="tile"></div><div class="tile on"></div><div class="tile"></div><div class="tile on"></div><div class="tile"></div><div class="tile blood"></div><div class="tile on"></div><div class="tile"></div><div class="tile"></div><div class="tile on"></div><div class="tile blood"></div><div class="tile"></div><div class="tile on"></div><div class="tile"></div><div class="tile on"></div><div class="tile"></div><div class="tile blood"></div><div class="tile"></div>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 4. THEME FIT -->
+<section data-label="04 Theme Fit" class="s-theme">
+  <div class="slide-pad">
+    <div class="slide-num">04 / 12</div>
+    <div class="eyebrow">Answering The Brief</div>
+    <div class="quote-block">
+      <p class="q-en">“BUILD A NEW WAY TO CONNECT<br>ONE CHAMPIONSHIP WITH JAPANESE FANS.”</p>
+      <div class="q-tag">— Official Hackathon Theme</div>
+      <p class="q-jp">「ONE Championshipと日本のファンをつなぐ、新しい方法を作れ」</p>
+    </div>
+
+    <div class="options-row">
+      <div class="opt">
+        <div class="tag">// ONE PATH</div>
+        <div class="label">Tokens &amp;<br>Speculation</div>
+        <div class="jp">トークン、投機型。</div>
+      </div>
+      <div class="opt">
+        <div class="tag">// ANOTHER</div>
+        <div class="label">Points &amp;<br>Rewards</div>
+        <div class="jp">ポイント、ポイ活型。</div>
+      </div>
+      <div class="opt">
+        <div class="tag">// ANOTHER</div>
+        <div class="label">Limited<br>Drops</div>
+        <div class="jp">コレクタブル販売型。</div>
+      </div>
+      <div class="opt ours">
+        <div class="pin">→ OUR ANSWER</div>
+        <div class="tag">// ONE PORTRAIT</div>
+        <div class="label">A New Way<br>to <span style="color:var(--gold);">Belong.</span></div>
+        <div class="jp">どれも成立する。ただ我々は、ファンが「あの夜に立ち会った」と言える、別軸の答えを選ぶ。</div>
+      </div>
+    </div>
+
+    <h2 class="ans">FANS' <span class="gold">PHOTOS</span> BECOME<br>THE PORTRAIT. LITERALLY.</h2>
+    <p class="ans-jp">ファンの写真が、そのまま肖像になる。</p>
+    <div class="values">
+      <div class="v">RESPECT<span class="jp-tag">リスペクト</span></div>
+      <div class="v">COURAGE<span class="jp-tag">勇気</span></div>
+      <div class="v">INTEGRITY<span class="jp-tag">誠実さ</span></div>
+      <div class="v">HUMILITY<span class="jp-tag">謙虚さ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. FLOW -->
+<section data-label="05 Flow" class="s-flow">
+  <div class="slide-pad">
+    <div class="slide-num">05 / 12</div>
+    <div class="eyebrow">How It Works</div>
+    <h2>ZERO FRICTION.<br>FEELS LIKE <span class="gold">WEB2</span>.</h2>
+    <p class="jp-lead">UX is Web2. The backend is fully on-chain. <span style="color:var(--ink-dim); display:inline-block; margin-left:14px;">摩擦ゼロ、裏側はオンチェーン。</span></p>
+    <div class="steps">
+      <div class="step"><div class="n">// 01</div><div class="en-name">Scan</div><div class="jp-name">QRアクセス</div><div class="note">Land via QR</div><div class="note-jp">会場・SNSから着地</div></div>
+      <div class="step"><div class="n">// 02</div><div class="en-name">Login</div><div class="jp-name">ログイン</div><div class="note">zkLogin, no wallet</div><div class="note-jp">ウォレット不要</div></div>
+      <div class="step"><div class="n">// 03</div><div class="en-name">Pick</div><div class="jp-name">選手を選ぶ</div><div class="note">Active athletes</div><div class="note-jp">進行中ユニット</div></div>
+      <div class="step"><div class="n">// 04</div><div class="en-name">Upload</div><div class="jp-name">写真投稿</div><div class="note">Direct PUT to Walrus</div><div class="note-jp">Walrus に直接保存</div></div>
+      <div class="step hi"><div class="n">// 05</div><div class="en-name">Mint</div><div class="jp-name">Kakera受領</div><div class="note">Soulbound NFT, same tx</div><div class="note-jp">同一Txで即時発行</div></div>
+    </div>
+    <div class="callout">NO SUI TOKEN. <span class="gold">ZERO GAS.</span></div>
+    <p class="callout-jp">Enoki Sponsored Tx covers every transaction. <span style="color:var(--ink-dim); display:inline-block; margin-left:12px;">SUIトークン不要・ガスゼロ。</span></p>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 6. REVEAL -->
+<section data-label="06 Reveal" class="s-reveal">
+  <div class="tape" style="top:35%;"></div>
+  <div class="tape" style="top:65%;"></div>
+  <div class="slide-pad" style="display:flex; align-items:center; justify-content:center; text-align:center;">
+    <div class="slide-num">06 / 12</div>
+    <div class="stack">
+      <div class="eyebrow" style="text-align:center; margin-bottom:10px;">The Reveal</div>
+      <div class="counter">2000<span class="of">/2000</span></div>
+      <div class="headline">ONE MOMENT.<br><span class="gold">EVERY SCREEN.</span></div>
+      <p class="jp-line">The portrait rises everywhere at once.<span style="display:block; color:var(--ink-dim); font-size:18px; margin-top:8px;">その瞬間、全員、同じ画面を見る。</span></p>
+      <p class="descript">The 2,000th photo becomes a distributed trigger. Every participant's browser finalizes the mosaic simultaneously — the finished portrait rises on every device at once.</p>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 7. KAKERA -->
+<section data-label="07 Kakera" class="s-kak">
+  <div class="slide-pad">
+    <div class="slide-num">07 / 12</div>
+    <div class="eyebrow">The Proof</div>
+    <div class="grid2">
+      <div class="visual">
+        <img class="shot" src="assets/kakera-locator.png" alt="Kakera locator UI">
+        <div class="corner-tag">YOUR KAKERA · (31, 38)</div>
+      </div>
+      <div>
+        <h2>KAKERA</h2>
+        <p class="jp-h">An untradeable proof of presence. <span style="color:var(--ink-dim); display:inline-block; margin-left:12px;">欠片 — ファンの証。</span></p>
+        <div class="en-h">Soulbound by Type, Not by Rule.</div>
+        <ul class="points">
+          <li>
+            <span class="k">// TYPE-LEVEL</span>
+            <div class="en-pt">Untradeable at Compile Time</div>
+            <div class="jp-pt">Move の能力設計で、譲渡を型レベルから禁止。</div>
+          </li>
+          <li>
+            <span class="k">// LOCATOR</span>
+            <div class="en-pt">Find Your Tile in the Portrait</div>
+            <div class="jp-pt">「あの肖像の、あの位置に、私がいる」— 自分の写真の座標が表示される。</div>
+          </li>
+          <li>
+            <span class="k">// EVERLASTING</span>
+            <div class="en-pt">History Lives On-Chain</div>
+            <div class="jp-pt">投機ではなく、あの瞬間に立ち会った証。参加履歴は永久にオンチェーンに残る。</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 8. WHY SUI x WALRUS -->
+<section data-label="08 Why Sui x Walrus" class="s-why">
+  <div class="slide-pad">
+    <div class="slide-num">08 / 12</div>
+    <div class="eyebrow">Why Sui × Walrus</div>
+    <h2>ONLY THIS STACK<br><span class="gold">WORKS.</span></h2>
+    <p class="jp-h">No other stack pulls this off. <span style="color:var(--ink-dim); display:inline-block; margin-left:14px;">この組み合わせでしか成立しない。</span></p>
+    <div class="matrix">
+      <div class="cell">
+        <div class="tag">// STORAGE</div>
+        <div class="t">Walrus Persistence</div>
+        <div class="jp">Walrus で永続保存。</div>
+        <div class="d">Final mosaic and target images live on decentralized storage; `blob_id` is the canonical identifier.</div>
+      </div>
+      <div class="cell">
+        <div class="tag">// LOOKUP</div>
+        <div class="t">Sui Table Reverse-Lookup</div>
+        <div class="jp">Sui Table で blob→座標を逆引き。</div>
+        <div class="d">`placements: Table&lt;blob_id, Placement&gt;` resolves coordinates on-chain at near-zero cost.</div>
+      </div>
+      <div class="cell">
+        <div class="tag">// SOULBOUND</div>
+        <div class="t">Type-Level Guarantee</div>
+        <div class="jp">型レベルで譲渡不能を保証。</div>
+        <div class="d">`key only`, no `store`. Non-transfer is enforced by the type system, not by a runtime check.</div>
+      </div>
+      <div class="cell">
+        <div class="tag">// UX</div>
+        <div class="t">zkLogin + Sponsored Tx</div>
+        <div class="jp">Google 認証＋スポンサード送金。</div>
+        <div class="d">Google sign-in only. Zero gas for fans — Enoki covers every tx.</div>
+      </div>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 9. DEMO BREAK -->
+<section data-label="09 Demo" class="s-demo-break">
+  <div class="slide-pad">
+    <div class="slide-num">09 / 12</div>
+    <div class="demo-tag">LIVE DEMO · NOW</div>
+    <h1>SEE IT<br><span class="gold">LIVE.</span></h1>
+    <p class="jp-h">It&rsquo;s already running. <span style="color:var(--ink-dim); display:inline-block; margin-left:14px;">ここから実際に動いているものをご覧ください。</span></p>
+    <div class="url-row">
+      <div class="url-label">URL</div>
+      <div class="url">one-portrait-web.bububutasan00.workers.dev</div>
+      <div class="duration">~ <span class="gold">2 MIN</span></div>
+    </div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 10. WHERE IT SHINES -->
+<section data-label="10 Where It Shines" class="s-shines">
+  <div class="slide-pad">
+    <div class="slide-num">10 / 12</div>
+    <div class="eyebrow">Where It Shines</div>
+    <h2>ONE PRIMITIVE.<br><span style="color:var(--gold);">MANY MOMENTS.</span></h2>
+    <p class="jp-h">One mechanism, many nights. <span style="color:var(--ink-dim); display:inline-block; margin-left:14px;">同じ仕組みが、違う夜を転がせる。</span></p>
+    <div class="scenarios">
+      <div class="card">
+        <div class="num">01 / MATCH-DAY</div>
+        <div class="en-title">"I WAS <span class="gold">THERE</span>."</div>
+        <div class="jp-sub">その夜に立ち会った証</div>
+        <div class="divider"></div>
+        <div class="desc">QR is live only inside the venue and broadcast window. 2,000 photos weave the winner&rsquo;s portrait. Kakera becomes the on-chain ticket stub.</div>
+      </div>
+      <div class="card">
+        <div class="num">02 / FAN MEETING</div>
+        <div class="en-title">A ROOM, <span class="gold">RETOLD.</span></div>
+        <div class="jp-sub">2,000の視点で同じ部屋を組み直す</div>
+        <div class="divider"></div>
+        <div class="desc">The target is the official group shot on stage. Fans submit their selfies from the same night, and the room is rebuilt through everyone&rsquo;s eyes.</div>
+      </div>
+      <div class="card">
+        <div class="num">03 / STADIUM</div>
+        <div class="en-title">ONE FRAME, <span class="gold">EVERY SCREEN.</span></div>
+        <div class="jp-sub">ビジョンとスマホが同時に光る</div>
+        <div class="divider"></div>
+        <div class="desc">The 2,000th photo is the trigger. No staff cue, no countdown &mdash; the reveal itself becomes the show.</div>
+      </div>
+      <div class="card">
+        <div class="num">04 / TOUR SERIES</div>
+        <div class="en-title">ONE CITY, <span class="gold">ONE MOSAIC.</span></div>
+        <div class="jp-sub">都市ごとに別のモザイク</div>
+        <div class="divider"></div>
+        <div class="desc">Tokyo, Osaka, Bangkok &mdash; each city is its own unit. The Kakera in a fan&rsquo;s wallet replays their entire tour history.</div>
+      </div>
+    </div>
+    <div class="footnote">THE MECHANISM IS THE PRODUCT — <span class="gold">THE MOMENT IS THE CONTENT.</span> <span style="color:var(--ink-dim); font-size:18px; letter-spacing:.06em; margin-left:18px; text-transform:none;">仕組みが製品、その夜がコンテンツ。</span></div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 11. TOMORROW (READY NOW) -->
+<section data-label="11 Tomorrow" class="s-tmrw">
+  <div class="slide-pad">
+    <div class="slide-num">11 / 12</div>
+    <div class="head-row">
+      <div>
+        <div class="eyebrow">Ready Tomorrow</div>
+        <h2>SHIP IT <span class="gold">TONIGHT.</span></h2>
+      </div>
+      <p class="jp-h">Drop into ONE SAMURAI&mdash;tomorrow.<br><span style="color:var(--ink-dim);">No setup. No prep. Just one QR.</span><br><span style="color:var(--ink-dim); font-family:var(--jp); font-size:14px; letter-spacing:.06em; text-transform:none;">明日のONE SAMURAIに、そのまま載る。</span></p>
+    </div>
+
+    <div class="body">
+      <div class="left">
+        <div class="scene">
+          <div class="where">Lobby · Pre-Match</div>
+          <div class="quote">Scan here.<br><span class="accent">Join the portrait.</span></div>
+          <div class="quote-jp">QRを読み込んで、ポートレートに参加。</div>
+          <div class="desc">Stick a QR poster in the lobby. Fans scan, sign in with Google, drop a photo. The pre-match wait turns into the event.<span class="jp-mini">ロビーにQRを置くだけ。ファンはスマホで参加し、試合前の待ち時間がイベントになる。</span></div>
+        </div>
+
+        <div class="checklist">
+          <div class="chk no"><span class="x">✕</span><span class="label">App install<span class="jp-mini">アプリ不要</span></span></div>
+          <div class="chk no"><span class="x">✕</span><span class="label">Wallet setup<span class="jp-mini">ウォレット作成不要</span></span></div>
+          <div class="chk no"><span class="x">✕</span><span class="label">SUI purchase<span class="jp-mini">SUI購入不要</span></span></div>
+          <div class="chk no"><span class="x">✕</span><span class="label">Venue hardware<span class="jp-mini">会場設備不要</span></span></div>
+          <div class="chk no"><span class="x">✕</span><span class="label">Staff operation<span class="jp-mini">運営オペ不要</span></span></div>
+          <div class="chk no"><span class="x">✕</span><span class="label">Pre-registration<span class="jp-mini">事前登録不要</span></span></div>
+          <div class="chk"><span class="ok">✓</span><span class="label">One phone + one QR<span class="jp-mini">スマホとQRだけ</span></span></div>
+          <div class="chk"><span class="ok">✓</span><span class="label">Ready tomorrow<span class="jp-mini">明日から使える</span></span></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="qr-card">
+          <img class="qr-img" src="assets/QR_265676.png" alt="ONE Portrait QR code">
+          <div class="url">one-portrait.app</div>
+        </div>
+        <div class="one-liner">
+          ONE QR. ONE TAP. <span class="gold">ONE PORTRAIT.</span>
+          <span class="jp">A paper QR turns waiting time into a fan moment.</span>
+          <span class="jp-small">紙一枚で、待ち時間がファンの時間になる。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote">A SIDE EVENT THAT NEEDS <span class="gold">NO SETUP.</span> <span style="color:var(--ink-dim); font-size:18px; letter-spacing:.06em; margin-left:18px; text-transform:none;">Live from a single QR.</span> <span style="color:var(--ink-dim); font-family:var(--jp); font-size:14px; letter-spacing:.06em; margin-left:14px; text-transform:none;">設営ゼロ、QRひとつで。</span></div>
+    <div class="footer-mark">ONE PORTRAIT</div>
+  </div>
+</section>
+
+<!-- 11. CLOSE -->
+<section data-label="12 Close" class="s-close">
+  <div class="slide-pad">
+    <div class="close-wrap">
+      <div>
+        <h2 class="catch-en">YOUR <span class="blood">SMILE</span><br>IS THEIR<br><span class="gold">STRENGTH</span>.</h2>
+        <p class="catch-jp">あなたの笑顔が、選手の力になる。</p>
+      </div>
+      <div class="team-card">
+        <div class="hd">Team</div>
+        <div class="m">
+          <div class="name">BUTASAN</div>
+          <div class="role-en">Engineering Lead</div>
+          <div class="role-jp">メインエンジニア</div>
+        </div>
+        <div class="m">
+          <div class="name">SHIZUKU</div>
+          <div class="role-en">Concept · UI/UX Engineer</div>
+          <div class="role-jp">コンセプト・UI/UXエンジニア</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-tag">
+      <span><span class="gold">ONE PORTRAIT</span> · THE FACES OF FANS</span>
+      <span>SUI × ONE SAMURAI HACKATHON · APR 2026</span>
+    </div>
+  </div>
+</section>
+
+</deck-stage>
+</body>
+</html>
