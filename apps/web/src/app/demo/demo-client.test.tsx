@@ -1,7 +1,31 @@
 // @vitest-environment happy-dom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../home-experience", () => ({
+  MosaicConvergence: ({
+    loadingText = "Loading assets",
+    onComplete,
+  }: {
+    readonly loadingText?: string;
+    readonly onComplete?: () => void;
+  }) => (
+    <>
+      <canvas data-testid="demo-reveal-canvas" />
+      <div>{loadingText}</div>
+      <button onClick={onComplete} type="button">
+        Finish reveal animation
+      </button>
+    </>
+  ),
+}));
 
 import { DemoClient } from "./demo-client";
 
@@ -49,6 +73,7 @@ function submitDemoImage(): void {
 describe("DemoClient", () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     window.matchMedia = originalMatchMedia;
     createObjectURL.mockReset();
     revokeObjectURL.mockReset();
@@ -170,6 +195,61 @@ describe("DemoClient", () => {
     expect(screen.getByText(/Loading assets/i)).toBeTruthy();
     expect(screen.getByText(/2000\s*\/\s*2000/)).toBeTruthy();
     expect(screen.queryByTestId("reveal-panel")).toBeNull();
+  });
+
+  it("holds the completed reveal briefly before easing into the completed panel", () => {
+    vi.useFakeTimers();
+    createObjectURL.mockReturnValue("blob:demo-preview-1");
+    render(<DemoClient />);
+    fireEvent.click(screen.getByRole("button", { name: /Google zkLogin/i }));
+
+    submitDemoImage();
+
+    const overlay = screen.getByTestId("demo-reveal-overlay");
+    expect(overlay.getAttribute("data-state")).toBe("revealing");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Finish reveal animation/i }),
+    );
+
+    expect(screen.getByTestId("demo-reveal-overlay")).toBeTruthy();
+    expect(
+      screen.getByTestId("demo-reveal-overlay").getAttribute("data-state"),
+    ).toBe("hold");
+    expect(screen.queryByTestId("demo-reveal-handoff")).toBeNull();
+    expect(screen.queryByTestId("demo-completion-reveal")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+
+    expect(
+      screen.getByTestId("demo-reveal-overlay").getAttribute("data-state"),
+    ).toBe("hold");
+    expect(screen.queryByTestId("demo-completion-reveal")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(
+      screen.getByTestId("demo-reveal-overlay").getAttribute("data-state"),
+    ).toBe("handoff");
+    expect(screen.getByTestId("demo-reveal-handoff")).toBeTruthy();
+    expect(screen.getByTestId("demo-completion-reveal")).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(1599);
+    });
+
+    expect(screen.getByTestId("demo-reveal-overlay")).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(screen.queryByTestId("demo-reveal-overlay")).toBeNull();
+    expect(screen.getByTestId("demo-completion-reveal")).toBeTruthy();
   });
 
   it("references the completed mosaic asset in the reveal area", () => {
