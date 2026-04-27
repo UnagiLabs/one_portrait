@@ -2707,6 +2707,22 @@ a {
   min-height: 100svh;
   overflow: hidden;
   background: #050302;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: center;
+  transition:
+    opacity 1500ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 1500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1500ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: blur(0) saturate(1) brightness(1);
+  will-change: opacity, filter, transform;
+}
+
+.op-demo-reveal-fullscreen.is-handoff {
+  opacity: 0;
+  transform: scale(1.018);
+  filter: blur(10px) saturate(1.18) brightness(1.12);
+  pointer-events: none;
 }
 
 .op-demo-reveal-fullscreen::after {
@@ -2737,6 +2753,71 @@ a {
   pointer-events: none;
 }
 
+.op-demo-reveal-handoff {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(245, 239, 227, 0.2) 45%,
+      rgba(255, 122, 26, 0.26) 50%,
+      rgba(160, 238, 211, 0.14) 55%,
+      transparent 66%,
+      transparent 100%
+    ),
+    radial-gradient(circle at 50% 48%, rgba(255, 122, 26, 0.2), transparent 42%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(-18%) scale(1.04);
+  animation: op-demo-reveal-handoff-sweep 1500ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+.op-demo-completion-arrival {
+  animation: op-demo-completion-arrival 1100ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+@keyframes op-demo-reveal-handoff-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-18%) scale(1.04);
+  }
+
+  34% {
+    opacity: 0.78;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(18%) scale(1.02);
+  }
+}
+
+@keyframes op-demo-completion-arrival {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(10px);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.005);
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .grain::after,
   .op-btn-primary::before,
@@ -2748,12 +2829,18 @@ a {
   .op-home-teaser-image,
   .op-home-teaser-panel,
   .op-home-teaser-scan,
+  .op-demo-completion-arrival,
   .op-demo-hero-athlete.primary,
   .op-demo-grid-glow,
   .op-demo-athlete-track,
+  .op-demo-reveal-handoff,
   .op-finalize-spinner,
   .op-indeterminate-bar::after {
     animation: none;
+  }
+
+  .op-demo-reveal-fullscreen {
+    transition: none;
   }
 
   .op-hero-title .line {

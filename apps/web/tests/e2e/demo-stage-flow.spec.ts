@@ -151,6 +151,22 @@ async function runDemoStageFlow(page: Page): Promise<void> {
     page.getByText(/Photo tiles converge into one mosaic/i),
   ).toBeVisible();
   await expectFullScreenOverlay(page);
+  await expect(page.getByTestId("demo-reveal-overlay")).toHaveAttribute(
+    "data-state",
+    "hold",
+    {
+      timeout: 10_000,
+    },
+  );
+  await expect(page.getByTestId("demo-reveal-overlay")).toHaveAttribute(
+    "data-state",
+    "handoff",
+    {
+      timeout: 10_000,
+    },
+  );
+  await expect(page.getByTestId("demo-reveal-handoff")).toBeVisible();
+  await expect(page.getByTestId("demo-completion-reveal")).toBeVisible();
   await expect(page.getByTestId("demo-reveal-overlay")).toHaveCount(0, {
     timeout: 10_000,
   });

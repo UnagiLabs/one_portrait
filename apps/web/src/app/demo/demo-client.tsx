@@ -25,25 +25,64 @@ const demoPlacement = {
   submissionNo: 2000,
 } satisfies MasterPlacementView;
 const demoRevealDurationMs = 3600;
+const demoRevealHoldDurationMs = 1000;
+const demoRevealHandoffDurationMs = 1600;
 const demoUnitId =
   "0xdemo0000000000000000000000000000000000000000000000000000000007d0";
-type DemoPhase = "connected" | "previewing" | "revealingOverlay" | "completed";
+type DemoPhase =
+  | "connected"
+  | "previewing"
+  | "revealingOverlay"
+  | "revealHold"
+  | "revealHandoff"
+  | "completed";
 
 export function DemoClient(): React.ReactElement {
   const [isConnected, setIsConnected] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("connected");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSubmitted =
     previewUrl !== null &&
-    (demoPhase === "revealingOverlay" || demoPhase === "completed");
+    (demoPhase === "revealingOverlay" ||
+      demoPhase === "revealHold" ||
+      demoPhase === "revealHandoff" ||
+      demoPhase === "completed");
   const displaySubmittedCount = isSubmitted ? maxSlots : submittedCount;
   const completeDemoReveal = useCallback(() => {
-    setDemoPhase("completed");
+    setDemoPhase("revealHold");
+
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+    }
+
+    if (handoffTimerRef.current) {
+      clearTimeout(handoffTimerRef.current);
+    }
+
+    holdTimerRef.current = setTimeout(() => {
+      holdTimerRef.current = null;
+      setDemoPhase("revealHandoff");
+
+      handoffTimerRef.current = setTimeout(() => {
+        handoffTimerRef.current = null;
+        setDemoPhase("completed");
+      }, demoRevealHandoffDurationMs);
+    }, demoRevealHoldDurationMs);
   }, []);
 
   useEffect(() => {
     return () => {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+      }
+
+      if (handoffTimerRef.current) {
+        clearTimeout(handoffTimerRef.current);
+      }
+
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
       }
@@ -59,6 +98,16 @@ export function DemoClient(): React.ReactElement {
 
     if (!file) {
       return;
+    }
+
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (handoffTimerRef.current) {
+      clearTimeout(handoffTimerRef.current);
+      handoffTimerRef.current = null;
     }
 
     if (previewUrlRef.current) {
@@ -151,7 +200,8 @@ export function DemoClient(): React.ReactElement {
 
             <div className="mt-4 w-full">
               <DemoProgress submittedCount={displaySubmittedCount} />
-              {previewUrl && demoPhase === "completed" ? (
+              {previewUrl &&
+              (demoPhase === "revealHandoff" || demoPhase === "completed") ? (
                 <DemoCompletionReveal originalPhotoUrl={previewUrl} />
               ) : null}
             </div>
@@ -179,8 +229,18 @@ export function DemoClient(): React.ReactElement {
         </aside>
       </div>
 
-      {previewUrl && demoPhase === "revealingOverlay" ? (
+      {previewUrl &&
+      (demoPhase === "revealingOverlay" ||
+        demoPhase === "revealHold" ||
+        demoPhase === "revealHandoff") ? (
         <DemoRevealOverlay
+          overlayState={
+            demoPhase === "revealHandoff"
+              ? "handoff"
+              : demoPhase === "revealHold"
+                ? "hold"
+                : "revealing"
+          }
           originalPhotoUrl={previewUrl}
           onComplete={completeDemoReveal}
         />
@@ -327,7 +387,10 @@ function DemoCompletionReveal({
   readonly originalPhotoUrl: string;
 }): React.ReactElement {
   return (
-    <div className="mt-8 grid gap-5" data-testid="demo-completion-reveal">
+    <div
+      className="op-demo-completion-arrival mt-8 grid gap-5"
+      data-testid="demo-completion-reveal"
+    >
       <RevealPanel
         displayName={takeru.name}
         mosaicUrl={completedMosaicSrc}
@@ -339,18 +402,24 @@ function DemoCompletionReveal({
 }
 
 function DemoRevealOverlay({
+  overlayState,
   originalPhotoUrl,
   onComplete,
 }: {
+  readonly overlayState: "revealing" | "hold" | "handoff";
   readonly originalPhotoUrl: string;
   readonly onComplete: () => void;
 }): React.ReactElement {
   const tileSources = useMemo(() => [originalPhotoUrl], [originalPhotoUrl]);
+  const isHandoff = overlayState === "handoff";
 
   return (
     <section
       aria-label="Demo full-screen reveal"
-      className="op-demo-reveal-fullscreen"
+      className={["op-demo-reveal-fullscreen", isHandoff ? "is-handoff" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      data-state={overlayState}
       data-testid="demo-reveal-overlay"
     >
       <MosaicConvergence
@@ -365,6 +434,13 @@ function DemoRevealOverlay({
         showReplay={false}
         tileSources={tileSources}
       />
+      {isHandoff ? (
+        <div
+          aria-hidden="true"
+          className="op-demo-reveal-handoff"
+          data-testid="demo-reveal-handoff"
+        />
+      ) : null}
     </section>
   );
 }
